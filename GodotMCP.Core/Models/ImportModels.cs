@@ -18,6 +18,15 @@ public sealed class IntegrationMetadata
     public bool IsMaintained { get; set; }
 }
 
+/// <summary>
+/// Standard result returned by tools and services exposed via MCP. Contains
+/// a success flag, human-friendly message, optional data dictionary, and an
+/// optional remediation suggestion for errors.
+/// </summary>
+/// <param name="Success">True when the operation succeeded.</param>
+/// <param name="Message">Human readable message describing the outcome.</param>
+/// <param name="Data">Optional key/value data returned by the operation.</param>
+/// <param name="SuggestedRemediation">Short suggestion describing how to fix failures.</param>
 public sealed record ToolResult(
     bool Success,
     string Message,

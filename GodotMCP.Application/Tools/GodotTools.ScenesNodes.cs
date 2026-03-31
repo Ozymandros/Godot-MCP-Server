@@ -17,6 +17,24 @@ public partial class GodotTools
             return Invalid("scenePath must be a valid project-relative path.", "Use paths like res://scenes/Main.tscn.");
         }
 
+        // Prefer running the operation inside Godot if operations runner is available.
+        if (godotOperationsRunner is not null)
+        {
+            try
+            {
+                var payload = $$"""{ "scenePath": "{scenePath}", "root": { "name": "{rootNodeName}", "type": "{rootNodeType}" } }""";
+                var opResult = await godotOperationsRunner.RunOperationAsync("create_scene", payload, cancellationToken).ConfigureAwait(false);
+                if (opResult.Success)
+                {
+                    return new ToolResult(true, $"Scene created at {scenePath} (via Godot operations).", opResult.Data);
+                }
+            }
+            catch
+            {
+                // ignore and fall back to file-based implementation
+            }
+        }
+
         var scene = new GodotScene();
         scene.Nodes.Add(new GodotNode
         {
@@ -38,6 +56,23 @@ public partial class GodotTools
         if (!IsValidResPath(scenePath))
         {
             return Invalid("scenePath must be a valid project-relative path.");
+        }
+
+        if (godotOperationsRunner is not null)
+        {
+            try
+            {
+                var payload = $$"""{ "scenePath": "{scenePath}", "parentPath": "{parentPath}", "node": { "name": "{nodeName}", "type": "{nodeType}" } }""";
+                var opResult = await godotOperationsRunner.RunOperationAsync("add_node", payload, cancellationToken).ConfigureAwait(false);
+                if (opResult.Success)
+                {
+                    return new ToolResult(true, $"Node '{nodeName}' added (via Godot operations).", opResult.Data);
+                }
+            }
+            catch
+            {
+                // fallback
+            }
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);

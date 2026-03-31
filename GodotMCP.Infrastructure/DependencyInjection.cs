@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddSingleton<IImportFileGenerator, ImportFileGenerator>();
         services.AddSingleton<IProjectConfigService, ProjectConfigService>();
         services.AddSingleton<IGodotCliService, GodotCliService>();
+        services.AddSingleton<IGodotOperationsRunner, GodotOperationsRunner>();
         services.AddSingleton<IIntegrationInspector, IntegrationInspector>();
         return services;
     }

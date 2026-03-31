@@ -5,6 +5,11 @@ using System.Reflection;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Collection of RPC-accessible Godot tooling functions exposed over MCP.
+/// Methods are grouped across partial class files by feature area (scenes,
+/// scripts, imports, integrations, etc.).
+/// </summary>
 public partial class GodotTools
 {
     private readonly IGodotFileService fileService;
@@ -14,6 +19,7 @@ public partial class GodotTools
     private readonly IImportFileGenerator importFileGenerator;
     private readonly IProjectConfigService projectConfigService;
     private readonly IGodotCliService godotCliService;
+    private readonly IGodotOperationsRunner? godotOperationsRunner;
     private readonly IIntegrationInspector integrationInspector;
 
     public GodotTools(
@@ -24,7 +30,8 @@ public partial class GodotTools
         IImportFileGenerator importFileGenerator,
         IProjectConfigService projectConfigService,
         IGodotCliService godotCliService,
-        IIntegrationInspector integrationInspector)
+        IIntegrationInspector integrationInspector,
+        IGodotOperationsRunner? godotOperationsRunner = null)
     {
         this.fileService = fileService;
         this.pathResolver = pathResolver;
@@ -34,8 +41,40 @@ public partial class GodotTools
         this.projectConfigService = projectConfigService;
         this.godotCliService = godotCliService;
         this.integrationInspector = integrationInspector;
+        this.godotOperationsRunner = godotOperationsRunner;
     }
 
+    /// <summary>
+    /// Returns the installed Godot version by invoking the Godot CLI
+    /// with <c>--version</c> and returning captured output.
+    /// </summary>
+    [JsonRpcMethod("get_godot_version")]
+    public async Task<ToolResult> GetGodotVersion()
+    {
+        // Invoke Godot with --version to retrieve installed version information
+        var result = await godotCliService.RunAsync("--version");
+        if (!result.Success)
+        {
+            return result;
+        }
+
+        var stdout = result.Data is null || !result.Data.TryGetValue("stdout", out var outText)
+            ? string.Empty
+            : outText ?? string.Empty;
+
+        // Attempt to extract a short version line from stdout
+        var firstLine = stdout.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
+
+        return new ToolResult(true, "Godot version retrieved.", new Dictionary<string, string>
+        {
+            ["raw"] = stdout,
+            ["version_line"] = firstLine
+        });
+    }
+
+    /// <summary>
+    /// Enumerates server capabilities exposed by this MCP server.
+    /// </summary>
     [JsonRpcMethod("get_server_capabilities")]
     public ToolResult GetServerCapabilities()
     {
