@@ -1,0 +1,15 @@
+name: godot-mcp-server
+
+services:
+  godot-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: godot-mcp-server:local
+    stdin_open: true
+    tty: false
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      - GODOT_PATH=${GODOT_PATH:-}

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="GodotMCP.Application/GodotMCP.Application.csproj" />
+  <Project Path="GodotMCP.Core/GodotMCP.Core.csproj" />
+  <Project Path="GodotMCP.Infrastructure/GodotMCP.Infrastructure.csproj" />
+  <Project Path="GodotMCP.Server/GodotMCP.Server.csproj" />
+  <Project Path="GodotMCP.Tests/GodotMCP.Tests.csproj" />
+</Solution>

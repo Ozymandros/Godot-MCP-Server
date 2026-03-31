@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotMCP.Application", "GodotMCP.Application\GodotMCP.Application.csproj", "{AD878297-4E6E-1775-CBE9-5AFEBA28DE62}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotMCP.Core", "GodotMCP.Core\GodotMCP.Core.csproj", "{0C9DCB6E-EE61-AF84-E6FA-2D9B07B4DFD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotMCP.Infrastructure", "GodotMCP.Infrastructure\GodotMCP.Infrastructure.csproj", "{BC96C8E9-47B6-216D-8519-8DE9ED2EBCB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotMCP.Server", "GodotMCP.Server\GodotMCP.Server.csproj", "{2DC678E7-C81E-ACE1-0328-8834C9B72864}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotMCP.Tests", "GodotMCP.Tests\GodotMCP.Tests.csproj", "{54B43345-0B44-6E0E-304D-5CD4B6F2BC05}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AD878297-4E6E-1775-CBE9-5AFEBA28DE62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD878297-4E6E-1775-CBE9-5AFEBA28DE62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD878297-4E6E-1775-CBE9-5AFEBA28DE62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD878297-4E6E-1775-CBE9-5AFEBA28DE62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C9DCB6E-EE61-AF84-E6FA-2D9B07B4DFD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C9DCB6E-EE61-AF84-E6FA-2D9B07B4DFD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C9DCB6E-EE61-AF84-E6FA-2D9B07B4DFD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C9DCB6E-EE61-AF84-E6FA-2D9B07B4DFD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC96C8E9-47B6-216D-8519-8DE9ED2EBCB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC96C8E9-47B6-216D-8519-8DE9ED2EBCB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC96C8E9-47B6-216D-8519-8DE9ED2EBCB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC96C8E9-47B6-216D-8519-8DE9ED2EBCB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DC678E7-C81E-ACE1-0328-8834C9B72864}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DC678E7-C81E-ACE1-0328-8834C9B72864}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DC678E7-C81E-ACE1-0328-8834C9B72864}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DC678E7-C81E-ACE1-0328-8834C9B72864}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54B43345-0B44-6E0E-304D-5CD4B6F2BC05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54B43345-0B44-6E0E-304D-5CD4B6F2BC05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54B43345-0B44-6E0E-304D-5CD4B6F2BC05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54B43345-0B44-6E0E-304D-5CD4B6F2BC05}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E711256C-69E5-49D4-B955-57ED06D12271}
+	EndGlobalSection
+EndGlobal
