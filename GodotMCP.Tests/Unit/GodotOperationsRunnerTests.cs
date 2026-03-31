@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Process;
@@ -40,10 +40,10 @@ public class GodotOperationsRunnerTests
             var payload = "{\"hello\":\"world\"}";
             var res = await runner.RunOperationAsync("noop", payload);
 
-            res.Success.Should().BeTrue();
-            capturedArgs.Should().NotBeNull();
-            capturedArgs!.Should().Contain("--script");
-            capturedArgs.Should().Contain("noop");
+            Assert.True(res.Success);
+            Assert.NotNull(capturedArgs);
+            Assert.Contains("--script", capturedArgs!);
+            Assert.Contains("noop", capturedArgs);
         }
         finally
         {

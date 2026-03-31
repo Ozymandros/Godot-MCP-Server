@@ -1,6 +1,9 @@
-using FluentAssertions;
-using GodotMCP.Infrastructure.Process;
+using System;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using GodotMCP.Infrastructure.Process;
+using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -25,8 +28,8 @@ public class GodotCliServiceLocatorFilesystemTests
             var resolver = new GodotMCP.Infrastructure.Services.PathResolver(Path.GetTempPath());
             var svc = new GodotCliService(resolver, system);
             var found = svc.LocateGodotBinary();
-            found.Should().NotBeNull();
-            found.Should().Contain("Godot");
+            Assert.NotNull(found);
+            Assert.Contains("Godot", found);
         }
         finally { try { Directory.Delete(tempHome, true); } catch { } }
     }
@@ -55,13 +58,13 @@ public class GodotCliServiceLocatorFilesystemTests
                 // Try to locate by searching program files manually
                 var candidates = new[] { Path.Combine(tempProgramFiles, "Godot", "Godot.exe"), Path.Combine(tempProgramFiles, "Godot.exe") };
                 var any = candidates.Any(c => File.Exists(c));
-                any.Should().BeTrue();
+                Assert.True(any);
             }
             else
             {
                 var full = Path.GetFullPath(found);
                 var expected = Path.GetFullPath(tempProgramFiles);
-                (full.StartsWith(expected, StringComparison.OrdinalIgnoreCase) || full.Contains("godot-locator-path")).Should().BeTrue();
+                Assert.True(full.StartsWith(expected, StringComparison.OrdinalIgnoreCase) || full.Contains("godot-locator-path"));
             }
         }
         finally { try { Directory.Delete(tempProgramFiles, true); } catch { } }

@@ -1,5 +1,5 @@
 using System;
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Infrastructure.Config;
 using GodotMCP.Tests.Fixtures;
 using Xunit;
@@ -20,7 +20,7 @@ public class PathAndConfigTests
             var config = new ProjectConfigService(resolver);
             await config.SetValueAsync("application", "config/name", "\"Demo\"");
             var value = await config.GetValueAsync("application", "config/name");
-            value.Should().Be("\"Demo\"");
+            Assert.Equal("\"Demo\"", value);
         }
         finally
         {
@@ -44,7 +44,7 @@ public class PathAndConfigTests
         try
         {
             var absolute = resolver.ResolveResPath(path);
-            absolute.Should().StartWith(root);
+            Assert.StartsWith(root, absolute);
         }
         finally
         {

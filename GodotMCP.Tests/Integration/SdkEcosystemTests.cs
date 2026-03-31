@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Application.Tools;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Infrastructure.Config;
@@ -34,22 +34,22 @@ public class SdkEcosystemTests
                 new IntegrationInspector(resolver));
 
             var result = tools.DiscoverIntegrations();
-            result.Success.Should().BeTrue();
-            result.Data.Should().NotBeNull();
-            result.Data!.Keys.Should().Contain("myplugin");
+            Assert.True(result.Success);
+            Assert.NotNull(result.Data);
+            Assert.Contains("myplugin", result.Data!.Keys);
 
-            tools.VerifyIntegrationHealth("myplugin").Success.Should().BeTrue();
+            Assert.True(tools.VerifyIntegrationHealth("myplugin").Success);
 
             var installResult = await tools.InstallIntegrationAsync(
                 "Analytics SDK",
                 "https://example.com/analytics",
                 Core.Models.IntegrationProfile.CommunitySdk);
-            installResult.Success.Should().BeTrue();
+            Assert.True(installResult.Success);
 
             var compatibility = tools.ListIntegrationCompatibility();
-            compatibility.Success.Should().BeTrue();
-            compatibility.Data.Should().NotBeNull();
-            compatibility.Data!.Keys.Should().Contain("Analytics_SDK");
+            Assert.True(compatibility.Success);
+            Assert.NotNull(compatibility.Data);
+            Assert.Contains("Analytics_SDK", compatibility.Data!.Keys);
         }
         finally
         {
@@ -82,7 +82,7 @@ public class SdkEcosystemTests
                 new IntegrationInspector(resolver));
 
             var result = await tools.InstallIntegrationAsync("", "https://example.com", Core.Models.IntegrationProfile.VendorSdk);
-            result.Success.Should().BeFalse();
+            Assert.False(result.Success);
         }
         finally
         {

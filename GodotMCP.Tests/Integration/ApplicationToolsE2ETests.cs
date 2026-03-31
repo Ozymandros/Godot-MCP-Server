@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Application.Tools;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Infrastructure.Config;
@@ -40,13 +40,13 @@ public class ApplicationToolsE2ETests
                 new GodotCliService(resolver),
                 new IntegrationInspector(resolver));
 
-            (await tools.CreateGodotProjectAsync("Demo")).Success.Should().BeTrue();
-            (await tools.CreateSceneAsync("res://scenes/Main.tscn", "Main", "Node2D")).Success.Should().BeTrue();
-            (await tools.AddNodeAsync("res://scenes/Main.tscn", ".", "Player", "Node2D")).Success.Should().BeTrue();
-            (await tools.CreateScriptAsync("res://scripts/Player.gd", "gd", "Node2D", "Player")).Success.Should().BeTrue();
-            (await tools.AttachScriptAsync("res://scenes/Main.tscn", "Player", "res://scripts/Player.gd")).Success.Should().BeTrue();
-            tools.HealthCheck().Success.Should().BeTrue();
-            tools.GetServerInfo().Success.Should().BeTrue();
+            Assert.True((await tools.CreateGodotProjectAsync("Demo")).Success);
+            Assert.True((await tools.CreateSceneAsync("res://scenes/Main.tscn", "Main", "Node2D")).Success);
+            Assert.True((await tools.AddNodeAsync("res://scenes/Main.tscn", ".", "Player", "Node2D")).Success);
+            Assert.True((await tools.CreateScriptAsync("res://scripts/Player.gd", "gd", "Node2D", "Player")).Success);
+            Assert.True((await tools.AttachScriptAsync("res://scenes/Main.tscn", "Player", "res://scripts/Player.gd")).Success);
+            Assert.True(tools.HealthCheck().Success);
+            Assert.True(tools.GetServerInfo().Success);
         }
         finally
         {
@@ -81,7 +81,7 @@ public class ApplicationToolsE2ETests
 
             await tools.CreateGodotProjectAsync("Demo");
             var result = await tools.CreateSceneAsync("../outside.tscn", "Main", "Node2D");
-            result.Success.Should().BeFalse();
+            Assert.False(result.Success);
         }
         finally
         {

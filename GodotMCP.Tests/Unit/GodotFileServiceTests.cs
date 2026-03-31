@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Core.Interfaces;
 using Xunit;
 
@@ -30,16 +30,16 @@ public class GodotFileServiceTests
 
             var path = "res://assets/test.txt";
             await svc.WriteAsync(path, "hello");
-            svc.Exists(path).Should().BeTrue();
+            Assert.True(svc.Exists(path));
             var content = await svc.ReadAsync(path);
-            content.Should().Be("hello");
+            Assert.Equal("hello", content);
 
             var dir = "res://assets";
             var files = svc.EnumerateFiles(dir, "*.txt", false).ToList();
-            files.Count.Should().BeGreaterThanOrEqualTo(1);
+            Assert.True(files.Count >= 1);
 
             await svc.DeleteAsync(path);
-            svc.Exists(path).Should().BeFalse();
+            Assert.False(svc.Exists(path));
         }
         finally
         {

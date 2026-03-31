@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Infrastructure.Services;
@@ -20,11 +20,12 @@ public class GodotCliServiceLocatorTests
         // Ensure calling the locator does not throw and returns either null or a path
         string? result = null;
         Action act = () => result = svc.LocateGodotBinary();
-        act.Should().NotThrow();
+        // xUnit does not provide an Assert for "not throw" directly; invoke and allow exceptions to fail the test
+        act();
         // Result may be null on CI; if non-null it should be an existing path
         if (result is not null)
         {
-            File.Exists(result).Should().BeTrue();
+            Assert.True(File.Exists(result));
         }
     }
 }

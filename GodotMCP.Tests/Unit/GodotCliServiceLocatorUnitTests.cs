@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Xunit;
 using System.Runtime.InteropServices;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Services;
@@ -31,8 +31,8 @@ public class GodotCliServiceLocatorUnitTests
                 var resolver = new PathResolver(root);
                 var svc = new GodotCliService(resolver);
                 var found = svc.LocateGodotBinary();
-                found.Should().NotBeNull();
-                Path.GetFullPath(found!).Should().Be(Path.GetFullPath(fakeExe));
+                Assert.NotNull(found);
+                Assert.Equal(Path.GetFullPath(fakeExe), Path.GetFullPath(found!));
             }
             finally
             {
@@ -65,8 +65,8 @@ public class GodotCliServiceLocatorUnitTests
             var resolver = new PathResolver(root);
             var svc = new GodotCliService(resolver);
             var found = svc.LocateGodotBinary();
-            found.Should().NotBeNull();
-            Path.GetFullPath(found!).Should().StartWith(Path.GetFullPath(root));
+            Assert.NotNull(found);
+            Assert.StartsWith(Path.GetFullPath(root), Path.GetFullPath(found!));
         }
         finally
         {

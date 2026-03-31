@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
+using Xunit;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Process;
@@ -50,9 +50,9 @@ public class GodotOperationsRunnerParsingTests
 
             var json = System.Text.Json.JsonSerializer.Serialize(payload);
             var res = await runner.RunOperationAsync("attach_script", json);
-            res.Success.Should().BeTrue();
-            res.Data.Should().ContainKey("nodeName");
-            res.Data!["nodeName"].Should().Be("Player");
+            Assert.True(res.Success);
+            Assert.True(res.Data?.ContainsKey("nodeName"));
+            Assert.Equal("Player", res.Data!["nodeName"]);
         }
         finally { try { Directory.Delete(root, true); } catch { } }
     }
