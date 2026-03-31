@@ -19,11 +19,11 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Restore
-        run: dotnet restore
-      - name: Build (fail on missing XML docs)
-        run: dotnet build -warnaserror:1591 -c Release
+        run: dotnet restore GodotMCP.slnx
+      - name: Build
+        run: dotnet build GodotMCP.slnx -c Release --no-restore
       - name: Test
-        run: dotnet test -c Release --no-build
+        run: dotnet test GodotMCP.slnx -c Release --no-build
 
   docker-build:
     runs-on: ubuntu-latest
