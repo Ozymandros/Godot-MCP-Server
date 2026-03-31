@@ -95,7 +95,8 @@ public sealed class GodotCliService(IPathResolver pathResolver, ISystemService? 
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
         {
             // Check /Applications and user Applications for Godot.app bundles
-            var macLocations = new[] { "/Applications", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Applications") };
+            var userPersonal = systemService.GetFolderPath(Environment.SpecialFolder.Personal) ?? Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            var macLocations = new[] { "/Applications", Path.Combine(userPersonal, "Applications") };
             foreach (var loc in macLocations)
             {
                 try
