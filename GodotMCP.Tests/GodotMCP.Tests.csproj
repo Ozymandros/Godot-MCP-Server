@@ -15,8 +15,8 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <PackageReference Include="System.IO.Abstractions" Version="18.2.8" />
-    <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="18.2.8" />
+    <PackageReference Include="System.IO.Abstractions" Version="19.0.1" />
+    <PackageReference Include="System.IO.Abstractions.TestingHelpers" Version="19.0.1" />
   </ItemGroup>
 
   <ItemGroup>

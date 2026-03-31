@@ -90,7 +90,18 @@ internal sealed class TestableSystemService : ISystemService
     }
 
     public void SetEnvironmentVariable(string name, string? value) => Environment.SetEnvironmentVariable(name, value);
-    public string GetFolderPath(Environment.SpecialFolder folder) => Environment.GetFolderPath(folder);
+    
+    public string GetFolderPath(Environment.SpecialFolder folder)
+    {
+        // Return the test-provided personal folder when the code asks for the user's personal folder.
+        if (folder == Environment.SpecialFolder.Personal || folder == Environment.SpecialFolder.UserProfile)
+        {
+            if (!string.IsNullOrEmpty(personalFolder)) return personalFolder;
+        }
+
+        return Environment.GetFolderPath(folder);
+    }
+
     public bool FileExists(string path) => File.Exists(path);
     public bool DirectoryExists(string path) => Directory.Exists(path);
     public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, SearchOption searchOption) => Directory.EnumerateDirectories(path, searchPattern, searchOption);
