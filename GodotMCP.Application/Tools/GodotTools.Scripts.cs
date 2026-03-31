@@ -57,6 +57,25 @@ public partial class {{className}} : {{baseType}}
             return Invalid("scenePath, scriptPath and nodeName are required and must be valid.");
         }
 
+        // Prefer engine-backed attach when operations runner is available
+        if (godotOperationsRunner is not null)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["requestId"] = Guid.NewGuid().ToString(),
+                ["payload"] = new Dictionary<string, object>
+                {
+                    ["scenePath"] = scenePath,
+                    ["nodeName"] = nodeName,
+                    ["scriptPath"] = scriptPath
+                }
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            return await godotOperationsRunner.RunOperationAsync("attach_script", json, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Fallback to text-based attach
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
         var extId = (scene.ExternalResources.Count + 1).ToString();
         scene.ExternalResources.Add(new ExtResource { Id = extId, Path = scriptPath, Type = "Script" });

@@ -14,8 +14,9 @@ namespace GodotMCP.Infrastructure.Process;
 /// executes it with the provided arguments. Standard output and error are
 /// captured and returned via <see cref="GodotMCP.Core.Models.ToolResult"/>.
 /// </remarks>
-public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliService
+public sealed class GodotCliService(IPathResolver pathResolver, ISystemService? system = null) : IGodotCliService
 {
+    private readonly ISystemService systemService = system ?? new DefaultSystemService();
     // Attempts to find a Godot executable. Preference order:
     // 1. $GODOT_PATH env var
     // 2. common binaries on PATH (godot, Godot, godot4)
@@ -23,34 +24,152 @@ public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliServi
     /// Locate a suitable Godot executable on the system.
     /// </summary>
     /// <returns>The path to the Godot executable if found; otherwise <c>null</c>.</returns>
-    private string? LocateGodotBinary()
+    public string? LocateGodotBinary()
     {
-        var env = Environment.GetEnvironmentVariable("GODOT_PATH");
-        if (!string.IsNullOrWhiteSpace(env))
-        {
+        // 1) Environment override
+        var env = systemService.GetEnvironmentVariable("GODOT_PATH");
+        if (!string.IsNullOrWhiteSpace(env) && File.Exists(env))
             return env;
-        }
 
-        // Candidate names to try on PATH
-        var candidates = new[] { "godot", "Godot", "godot4" };
-        // On Windows try .exe suffix if necessary
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        foreach (var name in candidates)
+        // 2) Try common PATH candidates first using the injectable system service
+        var pathCandidates = new[] { "godot", "Godot", "godot4" };
+        try
         {
-            var fileName = name + (isWindows ? ".exe" : string.Empty);
-            try
+            var pathEnv = systemService.GetEnvironmentVariable("PATH") ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            var pathEntries = pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var name in pathCandidates)
             {
-                var full = Which(fileName);
-                if (!string.IsNullOrEmpty(full)) return full;
+                var fileName = name + (isWindows ? ".exe" : string.Empty);
+                foreach (var p in pathEntries)
+                {
+                    try
+                    {
+                        var candidate = systemService.Combine(p, fileName);
+                        if (systemService.FileExists(candidate)) return candidate;
+                    }
+                    catch { }
+                }
+
+                if (!isWindows)
+                {
+                    var which = TryWhichCommand(name);
+                    if (!string.IsNullOrEmpty(which)) return which;
+                }
             }
-            catch
+        }
+        catch { }
+
+        // 3) Platform-specific common install locations
+        if (isWindows)
+        {
+            var programFiles = systemService.GetEnvironmentVariable("ProgramFiles")
+                ?? systemService.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+            if (!string.IsNullOrEmpty(programFiles))
             {
-                // ignore and try next
+                // Common installation folders
+                var candidates = new[]
+                {
+                    systemService.Combine(programFiles, "Godot", "Godot.exe"),
+                    systemService.Combine(programFiles, "Godot Engine", "Godot.exe"),
+                    systemService.Combine(programFiles, "Godot Engine", "godot.exe")
+                };
+
+                foreach (var c in candidates)
+                {
+                    try { if (systemService.FileExists(c)) return c; } catch { }
+                }
+
+                // Also check ProgramFiles(x86)
+                var programFilesX86 = systemService.GetEnvironmentVariable("ProgramFiles(x86)");
+                if (!string.IsNullOrEmpty(programFilesX86))
+                {
+                    foreach (var c in new[] { systemService.Combine(programFilesX86, "Godot", "Godot.exe") })
+                    {
+                        try { if (systemService.FileExists(c)) return c; } catch { }
+                    }
+                }
+            }
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            // Check /Applications and user Applications for Godot.app bundles
+            var macLocations = new[] { "/Applications", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Applications") };
+            foreach (var loc in macLocations)
+            {
+                try
+                {
+                    if (!Directory.Exists(loc)) continue;
+                    foreach (var app in Directory.EnumerateDirectories(loc, "Godot*.app", SearchOption.TopDirectoryOnly))
+                    {
+                        var exe = Path.Combine(app, "Contents", "MacOS");
+                        if (Directory.Exists(exe))
+                        {
+                            foreach (var file in Directory.EnumerateFiles(exe))
+                            {
+                                if (File.Exists(file)) return file;
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+        else
+        {
+            // Linux / Unix-like
+            var linuxCandidates = new[] { "/usr/bin/godot", "/usr/local/bin/godot", "/snap/bin/godot", "/opt/godot/bin/godot" };
+            foreach (var c in linuxCandidates)
+            {
+                try { if (systemService.FileExists(c)) return c; } catch { }
+            }
+
+            var home = systemService.GetEnvironmentVariable("HOME") ?? systemService.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrEmpty(home))
+            {
+                try
+                {
+                    var userHub = systemService.Combine(home, "Godot", "Hub", "Editor");
+                    if (systemService.DirectoryExists(userHub))
+                    {
+                        foreach (var version in systemService.EnumerateDirectories(userHub, "*", SearchOption.TopDirectoryOnly).OrderByDescending(d => d))
+                        {
+                            var exe = systemService.Combine(version, "Godot");
+                            if (systemService.FileExists(exe)) return exe;
+                        }
+                    }
+                }
+                catch { }
             }
         }
 
         return null;
+    }
+
+    private static void TryEnsureExecutable(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "chmod",
+                    Arguments = $"+x \"{path}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var p = System.Diagnostics.Process.Start(psi);
+                p?.WaitForExit(500);
+            }
+        }
+        catch
+        {
+            // best-effort
+        }
     }
 
     /// <summary>
@@ -74,6 +193,32 @@ public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliServi
                 // ignore invalid path entries
             }
         }
+        ;
+
+        return null;
+    }
+
+    private static string? TryWhichCommand(string name)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "which",
+                Arguments = name,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var p = System.Diagnostics.Process.Start(psi);
+            if (p is null) return null;
+            var outp = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(1500);
+            outp = outp?.Trim();
+            if (!string.IsNullOrEmpty(outp) && File.Exists(outp)) return outp;
+        }
+        catch { }
 
         return null;
     }
@@ -91,11 +236,22 @@ public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliServi
         if (string.IsNullOrWhiteSpace(godotBinary))
         {
             var tried = Environment.GetEnvironmentVariable("GODOT_PATH") is null ? "GODOT_PATH + common PATH candidates" : "GODOT_PATH";
-            return new ToolResult(false, "Godot executable not found.", Data: new Dictionary<string,string>
+            return new ToolResult(false, "Godot executable not found.", Data: new Dictionary<string, string>
             {
                 ["tried"] = tried
             }, SuggestedRemediation: "Set GODOT_PATH to your Godot 4.x executable or ensure 'godot' is on PATH.");
         }
+        ;
+
+        // Ensure the binary is executable on Unix-like systems (chmod +x)
+        try
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                TryEnsureExecutable(godotBinary);
+            }
+        }
+        catch { }
 
         var psi = new ProcessStartInfo
         {
@@ -128,13 +284,11 @@ public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliServi
         var error = await stdErrTask.ConfigureAwait(false);
 
         if (process.ExitCode != 0)
-        {
-            return new ToolResult(false, $"Godot CLI failed with code {process.ExitCode}.", new Dictionary<string,string>
+            return new ToolResult(false, $"Godot CLI failed with code {process.ExitCode}.", new Dictionary<string, string>
             {
                 ["stdout"] = output,
                 ["stderr"] = error
             });
-        }
 
         return new ToolResult(true, "Godot CLI command completed.", new Dictionary<string, string>
         {

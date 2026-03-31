@@ -1,11 +1,21 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using FluentAssertions;
 using GodotMCP.Core.Interfaces;
+using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Services;
-using GodotMCP.Core.Models;
+using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
+/// <summary>
+/// Unit tests for <see cref="GodotMCP.Infrastructure.Process.GodotOperationsRunner"/>
+/// verifying CLI invocation and response handling.
+/// </summary>
 public class GodotOperationsRunnerTests
 {
     [Fact]
@@ -21,7 +31,9 @@ public class GodotOperationsRunnerTests
             IGodotCliService fakeCli = new FakeCliService((args) =>
             {
                 capturedArgs = args;
-                return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = "{}" }));
+                // Simulate a Godot stdout response envelope
+                var stdout = "{\"schemaVersion\":\"1.0\",\"requestId\":\"rid\",\"success\":true,\"message\":\"ok\",\"data\":{\"scenePath\":\"res://scenes/Main.tscn\"}}";
+                return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = stdout }));
             });
 
             var runner = new GodotOperationsRunner(fakeCli, resolver);

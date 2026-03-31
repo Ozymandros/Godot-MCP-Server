@@ -37,13 +37,58 @@ public sealed class GodotOperationsRunner(IGodotCliService godotCliService, IPat
         var payloadPath = Path.Combine(tempDir, "payload.json");
         await File.WriteAllTextAsync(payloadPath, payloadJson, cancellationToken).ConfigureAwait(false);
 
-        // Run godot with --script <scriptPath> <operationName> <payloadPath>
-        var args = $"--headless --quit --script \"{scriptPath}\" {operationName} \"{payloadPath}\"";
-        var result = await godotCliService.RunAsync(args, cancellationToken).ConfigureAwait(false);
+        // Run godot with --path <projectRoot> --script <scriptPath> <operationName> <payloadPath>
+        var projectArg = $"--path \"{pathResolver.ProjectRoot}\"";
+        var args = $"--headless --quit {projectArg} --script \"{scriptPath}\" {operationName} \"{payloadPath}\"";
+        var rawResult = await godotCliService.RunAsync(args, cancellationToken).ConfigureAwait(false);
 
         // Cleanup best-effort (do not fail operation if cleanup fails)
         try { Directory.Delete(tempDir, true); } catch { }
 
-        return result;
+        // Try to parse stdout as a JSON response envelope emitted by the GDScript.
+        var stdout = rawResult.Data is not null && rawResult.Data.TryGetValue("stdout", out var outText) ? outText : string.Empty;
+        var stderr = rawResult.Data is not null && rawResult.Data.TryGetValue("stderr", out var errText) ? errText : string.Empty;
+
+        if (string.IsNullOrWhiteSpace(stdout))
+        {
+            // No stdout; return failure with captured stderr
+            return new ToolResult(false, "No response from Godot operations script.", new Dictionary<string, string>
+            {
+                ["stdout"] = stdout ?? string.Empty,
+                ["stderr"] = stderr ?? string.Empty
+            });
+        }
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(stdout);
+            var root = doc.RootElement;
+            var success = root.GetProperty("success").GetBoolean();
+            var message = root.TryGetProperty("message", out var m) ? m.GetString() ?? string.Empty : string.Empty;
+            var data = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (root.TryGetProperty("data", out var d) && d.ValueKind == System.Text.Json.JsonValueKind.Object)
+            {
+                foreach (var prop in d.EnumerateObject())
+                {
+                    data[prop.Name] = prop.Value.ToString() ?? string.Empty;
+                }
+            }
+
+            // Include stderr for debugging
+            if (!string.IsNullOrWhiteSpace(stderr))
+            {
+                data["stderr"] = stderr ?? string.Empty;
+            }
+
+            return new ToolResult(success, message, data);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new ToolResult(false, "Invalid JSON response from Godot operations script.", new Dictionary<string, string>
+            {
+                ["stdout"] = stdout ?? string.Empty,
+                ["stderr"] = stderr ?? string.Empty
+            });
+        }
     }
 }

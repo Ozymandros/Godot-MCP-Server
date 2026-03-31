@@ -1,11 +1,16 @@
+using System;
 using FluentAssertions;
 using GodotMCP.Infrastructure.Config;
 using GodotMCP.Tests.Fixtures;
+using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
 public class PathAndConfigTests
 {
+    /// <summary>
+    /// Unit tests for path resolution and project configuration service.
+    /// </summary>
     [Fact]
     public async Task ProjectConfigService_ShouldSetAndReadValues()
     {

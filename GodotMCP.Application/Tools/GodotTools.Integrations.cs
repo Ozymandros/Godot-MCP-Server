@@ -18,6 +18,38 @@ public partial class GodotTools
         return new ToolResult(true, $"Discovered {entries.Count} integration(s).", data);
     }
 
+    // attach_script is implemented in GodotTools.Scripts.cs; that RPC will prefer
+    // the operations runner when available and fall back to text-based edits.
+
+    [JsonRpcMethod("update_resource_uids")]
+    public async Task<ToolResult> UpdateResourceUidsAsync(string[] paths, CancellationToken cancellationToken = default)
+    {
+        if (paths is null || paths.Length == 0)
+            return Invalid("paths are required.");
+
+        if (godotOperationsRunner is not null)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["requestId"] = Guid.NewGuid().ToString(),
+                ["payload"] = new Dictionary<string, object>
+                {
+                    ["paths"] = paths
+                }
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            return await godotOperationsRunner.RunOperationAsync("update_uids", json, cancellationToken).ConfigureAwait(false);
+        }
+
+        return new ToolResult(false, "Operations runner not available.", SuggestedRemediation: "Enable GODOT_PATH or register an IGodotOperationsRunner in DI to run UID updates.");
+    }
+
+    // reimport_asset is implemented in GodotTools.Import.cs and prefers the
+    // operations runner when available; kept here for compatibility notes.
+
+
+
     [JsonRpcMethod("enable_plugin")]
     public async Task<ToolResult> EnablePluginAsync(string pluginName, bool enabled, CancellationToken cancellationToken = default)
     {

@@ -1,9 +1,16 @@
+using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Serialization;
+using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
+/// <summary>
+/// Tests for <see cref="GodotMCP.Infrastructure.Serialization.SceneSerializer"/>
+/// ensuring round-trips and correct parsing/serialization behavior.
+/// </summary>
 public class SceneSerializerTests
 {
     [Fact]
@@ -26,7 +33,7 @@ public class SceneSerializerTests
     {
         for (var i = 0; i < 40; i++)
         {
-            yield return [i];
+            yield return new object[] { i };
         }
     }
 

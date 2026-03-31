@@ -4,8 +4,8 @@ Use this checklist before creating a version tag (`vX.Y.Z`).
 
 ## Quality gates
 
-- [ ] `dotnet build GodotMCP.slnx -c Release`
-- [ ] `dotnet test GodotMCP.slnx -c Release`
+- [ ] `dotnet build` (solution) -c Release
+- [ ] `dotnet test` (all tests) -c Release
 - [ ] Verify no new diagnostics in edited files
 - [ ] Confirm stdio startup behavior (no protocol noise on stdout)
 

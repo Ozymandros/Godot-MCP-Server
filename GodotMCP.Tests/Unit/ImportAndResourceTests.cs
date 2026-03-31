@@ -1,11 +1,17 @@
+using System;
+using System.Collections.Generic;
 using FluentAssertions;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Serialization;
+using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
 public class ImportAndResourceTests
 {
+    /// <summary>
+    /// Unit tests for import file generation and resource serializer behavior.
+    /// </summary>
     [Fact]
     public void ImportGenerator_ShouldRenderExpectedSections()
     {

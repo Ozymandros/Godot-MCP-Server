@@ -51,6 +51,24 @@ Containerized development
 - Dev container configuration: see `.devcontainer/` and `Docs/vscontainer-setup.md`
 - Local compose entrypoint: `docker-compose.yml`
 
+Cross-platform & deployment notes
+
+- Godot binary discovery: the server prefers the `GODOT_PATH` environment variable but also searches `PATH` and common installation locations on Windows, macOS, and Linux. Examples:
+  - Windows: `C:\\Program Files\\Godot Engine\\godot.exe`
+  - macOS: `/Applications/Godot.app/Contents/MacOS/Godot`
+  - Linux: `/usr/bin/godot` or `/usr/local/bin/godot`
+
+- Environment examples (PowerShell):
+  - `$env:GODOT_PATH = 'C:\\Program Files\\Godot Engine\\godot.exe'`
+  - `$env:GODOT_PATH = '/usr/bin/godot'` (WSL or Linux)
+
+- Operations runner: complex operations that require Godot's internal APIs (UID assignment, PackedScene instantiation, resource re-saving) are executed by a headless Godot process using a bundled GDScript. This is intentionally optional — lightweight, fast edits are still performed by the .NET text-based serializers. Use the operations runner for safety-critical operations and the text-based path for bulk scaffolding.
+
+- CI / Tests: If CI needs to run Godot-dependent integration tests, set `GODOT_PATH` in the CI environment or run on a runner image that includes Godot. Tests that do not require Godot will continue to run on any platform.
+
+- Docker / multi-arch images: the repository's GitHub Actions workflow builds and publishes container images. The Docker build in CI is multi-architecture (for example `linux/amd64` and `linux/arm64`) so images can run on common Linux platforms. If you build locally, use Docker Buildx to build multi-arch images.
+
+
 Release artifacts
 
 - NuGet global tool package: `GodotMCP.Server`

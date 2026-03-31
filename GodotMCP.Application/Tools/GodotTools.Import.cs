@@ -50,6 +50,22 @@ public partial class GodotTools
             return new ToolResult(false, "Missing .import file for asset.");
         }
 
+        // Prefer engine-backed reimport via operations runner when available
+        if (godotOperationsRunner is not null)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["requestId"] = Guid.NewGuid().ToString(),
+                ["payload"] = new Dictionary<string, object>
+                {
+                    ["assetPath"] = assetPath
+                }
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            return await godotOperationsRunner.RunOperationAsync("reimport_asset", json, cancellationToken).ConfigureAwait(false);
+        }
+
         return await godotCliService.RunAsync($"--headless --quit --path \"{pathResolver.ProjectRoot}\"", cancellationToken).ConfigureAwait(false);
     }
 

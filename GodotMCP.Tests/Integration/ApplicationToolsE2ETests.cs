@@ -10,8 +10,17 @@ using GodotMCP.Tests.Fixtures;
 
 namespace GodotMCP.Tests.Integration;
 
+/// <summary>
+/// End-to-end integration tests that exercise the high-level GodotTools
+/// API against a real filesystem. These tests create temporary project
+/// directories and validate common workflows.
+/// </summary>
 public class ApplicationToolsE2ETests
 {
+    /// <summary>
+    /// Creates a temporary project and exercises scene/script creation and attachment
+    /// using the public GodotTools API.
+    /// </summary>
     [Fact]
     public async Task CreateProjectAndSceneFlow_ShouldSucceed()
     {
@@ -48,6 +57,9 @@ public class ApplicationToolsE2ETests
         }
     }
 
+    /// <summary>
+    /// Verifies that invalid resource paths are rejected gracefully by GodotTools.
+    /// </summary>
     [Fact]
     public async Task InvalidPath_ShouldFailGracefully()
     {
