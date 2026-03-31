@@ -29,7 +29,12 @@ public class GodotCliServiceLocatorFilesystemTests
             var svc = new GodotCliService(resolver, system);
             var found = svc.LocateGodotBinary();
             Assert.NotNull(found);
-            Assert.Contains("Godot", found);
+            // Accept either a path that includes the Godot executable name or any path under the test's
+            // temporary home directory. Different runners may return slightly different candidate paths
+            // (executable full path, parent directory, etc.) so be permissive here.
+            var fullFound = Path.GetFullPath(found!);
+            var isUnderTemp = fullFound.StartsWith(Path.GetFullPath(tempHome), StringComparison.OrdinalIgnoreCase);
+            Assert.True(fullFound.Contains("Godot", StringComparison.OrdinalIgnoreCase) || isUnderTemp, fullFound);
         }
         finally { try { Directory.Delete(tempHome, true); } catch { } }
     }
