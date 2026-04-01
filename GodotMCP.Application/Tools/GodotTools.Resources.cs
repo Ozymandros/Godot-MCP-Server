@@ -5,7 +5,6 @@ namespace GodotMCP.Application.Tools;
 
 public partial class GodotTools
 {
-    /// <summary>Create a resource file of the given type with the provided properties.</summary>
     [JsonRpcMethod("create_resource")]
     public async Task<ToolResult> CreateResourceAsync(
         string path,

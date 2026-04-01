@@ -3,22 +3,14 @@ using GodotMCP.Core.Models;
 
 namespace GodotMCP.Infrastructure.Integrations;
 
-/// <summary>
-/// Inspects a project for plugin/addon integrations and returns discovered
-/// metadata for each integration.
-/// </summary>
 public sealed class IntegrationInspector(IPathResolver pathResolver) : IIntegrationInspector
 {
-    /// <summary>
-    /// Discover installed integrations by looking for <c>plugin.cfg</c> files
-    /// under the project's <c>addons</c> directory.
-    /// </summary>
     public IReadOnlyList<IntegrationMetadata> Discover()
     {
         var addonsPath = Path.Combine(pathResolver.ProjectRoot, "addons");
         if (!Directory.Exists(addonsPath))
         {
-            return Array.Empty<IntegrationMetadata>();
+            return [];
         }
 
         var metadata = new List<IntegrationMetadata>();

@@ -7,15 +7,6 @@ The format is inspired by Keep a Changelog and follows semantic versioning.
 ## [Unreleased]
 
 ### Added
-
-### Changed
-
-### Fixed
-
-
-## [1.1.0] - 2026-04-01
-
-### Added
 - Health and server info RPC endpoints (`health_check`, `get_server_info`).
 - Docker/devcontainer/workflow hardening for stdio-compatible MCP usage.
 

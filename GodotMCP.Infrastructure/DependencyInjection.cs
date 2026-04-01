@@ -8,17 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GodotMCP.Infrastructure;
 
-/// <summary>
-/// Dependency injection helpers for wiring Godot infrastructure services into an <see cref="IServiceCollection"/>.
-/// </summary>
 public static class DependencyInjection
 {
-    /// <summary>
-    /// Register infrastructure services required by GodotMCP for the given project root.
-    /// </summary>
-    /// <param name="services">Service collection to extend.</param>
-    /// <param name="projectRoot">Absolute or relative project root path.</param>
-    /// <returns>The updated <see cref="IServiceCollection"/> for chaining.</returns>
     public static IServiceCollection AddGodotInfrastructure(this IServiceCollection services, string projectRoot)
     {
         services.AddSingleton<IPathResolver>(_ => new PathResolver(projectRoot));
@@ -28,7 +19,6 @@ public static class DependencyInjection
         services.AddSingleton<IImportFileGenerator, ImportFileGenerator>();
         services.AddSingleton<IProjectConfigService, ProjectConfigService>();
         services.AddSingleton<IGodotCliService, GodotCliService>();
-        services.AddSingleton<IGodotOperationsRunner, GodotOperationsRunner>();
         services.AddSingleton<IIntegrationInspector, IntegrationInspector>();
         return services;
     }

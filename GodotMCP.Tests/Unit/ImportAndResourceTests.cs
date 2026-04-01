@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
-using Xunit;
+using FluentAssertions;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Serialization;
-using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
 public class ImportAndResourceTests
 {
-    /// <summary>
-    /// Unit tests for import file generation and resource serializer behavior.
-    /// </summary>
     [Fact]
     public void ImportGenerator_ShouldRenderExpectedSections()
     {
@@ -25,8 +19,8 @@ public class ImportAndResourceTests
         model.Parameters["compress/mode"] = "\"lossy\"";
 
         var text = generator.Generate(model);
-        Assert.Contains("[remap]", text);
-        Assert.Contains("[params]", text);
+        text.Should().Contain("[remap]");
+        text.Should().Contain("[params]");
     }
 
     [Fact]
@@ -37,7 +31,7 @@ public class ImportAndResourceTests
         var text = serializer.Serialize("Resource", data);
         var parsed = serializer.Deserialize(text);
 
-        Assert.Equal("Vector2(1,1)", parsed["size"]);
+        parsed["size"].Should().Be("Vector2(1,1)");
     }
 
     public static IEnumerable<object[]> ImportCases()
@@ -55,6 +49,6 @@ public class ImportAndResourceTests
         var generator = new ImportFileGenerator();
         var model = new ImportFileModel { AssetPath = asset, Importer = "texture", Type = "Texture2D" };
         var output = generator.Generate(model);
-        Assert.Contains(asset, output);
+        output.Should().Contain(asset);
     }
 }

@@ -2,12 +2,8 @@ using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Config;
 
-/// <summary>
-/// Reads and writes small key/value configuration inside the project's <c>project.godot</c> file.
-/// </summary>
 public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectConfigService
 {
-    /// <inheritdoc/>
     public async Task<string> GetValueAsync(string section, string key, CancellationToken cancellationToken = default)
     {
         var (lines, _, value) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
@@ -15,7 +11,6 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
         return value ?? string.Empty;
     }
 
-    /// <inheritdoc/>
     public async Task SetValueAsync(string section, string key, string value, CancellationToken cancellationToken = default)
     {
         var (lines, sectionLine, existingValue) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
@@ -55,7 +50,6 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
         await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
     }
 
-    /// <inheritdoc/>
     public async Task RemoveKeyAsync(string section, string key, CancellationToken cancellationToken = default)
     {
         var (lines, sectionLine, _) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);

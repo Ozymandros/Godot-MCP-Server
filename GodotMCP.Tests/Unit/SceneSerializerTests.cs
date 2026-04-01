@@ -1,16 +1,9 @@
-using System;
-using System.Collections.Generic;
-using Xunit;
+using FluentAssertions;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Serialization;
-using Xunit;
 
 namespace GodotMCP.Tests.Unit;
 
-/// <summary>
-/// Tests for <see cref="GodotMCP.Infrastructure.Serialization.SceneSerializer"/>
-/// ensuring round-trips and correct parsing/serialization behavior.
-/// </summary>
 public class SceneSerializerTests
 {
     [Fact]
@@ -25,15 +18,15 @@ public class SceneSerializerTests
         var text = serializer.Serialize(scene);
         var parsed = serializer.Deserialize(text);
 
-        Assert.Equal(2, parsed.Nodes.Count);
-        Assert.Single(parsed.ExternalResources, x => x.Id == "1");
+        parsed.Nodes.Should().HaveCount(2);
+        parsed.ExternalResources.Should().ContainSingle(x => x.Id == "1");
     }
 
     public static IEnumerable<object[]> Cases()
     {
         for (var i = 0; i < 40; i++)
         {
-            yield return new object[] { i };
+            yield return [i];
         }
     }
 
@@ -46,7 +39,7 @@ public class SceneSerializerTests
         scene.Nodes.Add(new GodotNode { Name = $"Node{index}", Type = "Node" });
 
         var output = serializer.Serialize(scene);
-        Assert.Contains($"Node{index}", output);
+        output.Should().Contain($"Node{index}");
     }
 
     [Fact]
@@ -62,10 +55,10 @@ position = Vector2(10, 20)
 """;
 
         var parsed = serializer.Deserialize(input);
-        Assert.Single(parsed.ExternalResources);
-        Assert.Equal("res://my scenes/level one.tscn", parsed.ExternalResources[0].Path);
-        Assert.Single(parsed.Nodes);
-        Assert.Equal("Root Node", parsed.Nodes[0].Name);
+        parsed.ExternalResources.Should().ContainSingle();
+        parsed.ExternalResources[0].Path.Should().Be("res://my scenes/level one.tscn");
+        parsed.Nodes.Should().ContainSingle();
+        parsed.Nodes[0].Name.Should().Be("Root Node");
     }
 
     [Fact]
@@ -80,7 +73,11 @@ position = Vector2(10, 20)
         scene.Nodes.Add(new GodotNode { Name = "Root", Type = "Node" });
 
         var output = serializer.Serialize(scene);
-        Assert.True(output.IndexOf("id=\"2\"", StringComparison.Ordinal) < output.IndexOf("id=\"10\"", StringComparison.Ordinal));
-        Assert.True(output.IndexOf("[sub_resource type=\"Resource\" id=\"1\"]", StringComparison.Ordinal) < output.IndexOf("[sub_resource type=\"Resource\" id=\"5\"]", StringComparison.Ordinal));
+        output.IndexOf("id=\"2\"", StringComparison.Ordinal)
+            .Should()
+            .BeLessThan(output.IndexOf("id=\"10\"", StringComparison.Ordinal));
+        output.IndexOf("[sub_resource type=\"Resource\" id=\"1\"]", StringComparison.Ordinal)
+            .Should()
+            .BeLessThan(output.IndexOf("[sub_resource type=\"Resource\" id=\"5\"]", StringComparison.Ordinal));
     }
 }
