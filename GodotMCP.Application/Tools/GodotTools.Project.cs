@@ -5,6 +5,10 @@ namespace GodotMCP.Application.Tools;
 
 public partial class GodotTools
 {
+    /// <summary>
+    /// Create a minimal Godot project file (<c>project.godot</c>) and create standard
+    /// project folders (<c>scenes</c>, <c>scripts</c>, <c>addons</c>).
+    /// </summary>
     [JsonRpcMethod("create_godot_project")]
     public async Task<ToolResult> CreateGodotProjectAsync(string projectName, CancellationToken cancellationToken = default)
     {
@@ -39,6 +43,9 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Project '{projectName}' created.");
     }
 
+    /// <summary>
+    /// Read project information (name and main scene) from the project's configuration.
+    /// </summary>
     [JsonRpcMethod("get_project_info")]
     public async Task<ToolResult> GetProjectInfoAsync(CancellationToken cancellationToken = default)
     {
@@ -56,6 +63,9 @@ project/assembly_name="{{projectName}}"
         });
     }
 
+    /// <summary>
+    /// Configure or remove an autoload (singleton) entry in the project configuration.
+    /// </summary>
     [JsonRpcMethod("configure_autoload")]
     public async Task<ToolResult> ConfigureAutoloadAsync(string key, string value, bool enabled, CancellationToken cancellationToken = default)
     {
@@ -74,6 +84,10 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Autoload '{key}' removed.");
     }
 
+    /// <summary>
+    /// Enable a plugin in the project editor settings by adding it to the <c>editor_plugins</c>
+    /// section in <c>project.godot</c>.
+    /// </summary>
     [JsonRpcMethod("add_plugin")]
     public async Task<ToolResult> AddPluginAsync(string pluginName, CancellationToken cancellationToken = default)
     {

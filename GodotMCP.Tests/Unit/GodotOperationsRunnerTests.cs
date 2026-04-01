@@ -8,7 +8,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Services;
-using Xunit;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -21,34 +21,26 @@ public class GodotOperationsRunnerTests
     [Fact]
     public async Task RunOperationAsync_ShouldInvokeCliWithScriptAndPayload()
     {
-        var root = Path.Combine(Path.GetTempPath(), "godotops", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        try
+        var root = AssemblyStartup.CreateSandboxDirectory("godotops");
+        var resolver = new PathResolver(root);
+        string? capturedArgs = null;
+
+        IGodotCliService fakeCli = new FakeCliService((args) =>
         {
-            var resolver = new PathResolver(root);
-            string? capturedArgs = null;
+            capturedArgs = args;
+            // Simulate a Godot stdout response envelope
+            var stdout = "{\"schemaVersion\":\"1.0\",\"requestId\":\"rid\",\"success\":true,\"message\":\"ok\",\"data\":{\"scenePath\":\"res://scenes/Main.tscn\"}}";
+            return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = stdout }));
+        });
 
-            IGodotCliService fakeCli = new FakeCliService((args) =>
-            {
-                capturedArgs = args;
-                // Simulate a Godot stdout response envelope
-                var stdout = "{\"schemaVersion\":\"1.0\",\"requestId\":\"rid\",\"success\":true,\"message\":\"ok\",\"data\":{\"scenePath\":\"res://scenes/Main.tscn\"}}";
-                return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = stdout }));
-            });
+        var runner = new GodotOperationsRunner(fakeCli, resolver);
+        var payload = "{\"hello\":\"world\"}";
+        var res = await runner.RunOperationAsync("noop", payload);
 
-            var runner = new GodotOperationsRunner(fakeCli, resolver);
-            var payload = "{\"hello\":\"world\"}";
-            var res = await runner.RunOperationAsync("noop", payload);
-
-            Assert.True(res.Success);
-            Assert.NotNull(capturedArgs);
-            Assert.Contains("--script", capturedArgs!);
-            Assert.Contains("noop", capturedArgs);
-        }
-        finally
-        {
-            try { Directory.Delete(root, true); } catch { }
-        }
+        Assert.True(res.Success);
+        Assert.NotNull(capturedArgs);
+        Assert.Contains("--script", capturedArgs!);
+        Assert.Contains("noop", capturedArgs);
     }
 
     private sealed class FakeCliService : IGodotCliService

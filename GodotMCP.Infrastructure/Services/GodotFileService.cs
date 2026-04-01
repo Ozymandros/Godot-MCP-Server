@@ -25,12 +25,20 @@ public sealed class GodotFileService(IPathResolver pathResolver) : IGodotFileSer
     /// </summary>
     public bool ProjectExists() => File.Exists(Path.Combine(pathResolver.ProjectRoot, "project.godot"));
 
+    /// <summary>
+    /// Ensures the given resource directory exists inside the project.
+    /// </summary>
+    /// <param name="path">Resource path (eg. <c>res://addons/my</c>).</param>
     public void EnsureDirectory(string path)
     {
         var absolute = pathResolver.ResolveResPath(path);
         Directory.CreateDirectory(absolute);
     }
 
+    /// <summary>
+    /// Returns true when the given resource exists on disk inside the project.
+    /// </summary>
+    /// <param name="path">Resource path (eg. <c>res://scenes/Main.tscn</c>).</param>
     public bool Exists(string path) => File.Exists(pathResolver.ResolveResPath(path));
 
     /// <summary>

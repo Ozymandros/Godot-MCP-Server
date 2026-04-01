@@ -50,6 +50,34 @@ public sealed class GodotCliService(IPathResolver pathResolver, ISystemService? 
                         if (systemService.FileExists(candidate)) return candidate;
                     }
                     catch { }
+
+                    // On non-Windows platforms, also check for macOS-style .app bundles in /Applications and
+                    // the user's Applications folder. Use the injected systemService to allow tests to
+                    // override the user folder location (TestableSystemService).
+                    if (!isWindows)
+                    {
+                        var userPersonal = systemService.GetFolderPath(Environment.SpecialFolder.Personal) ?? Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+                        var macLocations = new[] { "/Applications", Path.Combine(userPersonal, "Applications") };
+                        foreach (var loc in macLocations)
+                        {
+                            try
+                            {
+                                if (!systemService.DirectoryExists(loc)) continue;
+                                foreach (var app in systemService.EnumerateDirectories(loc, "Godot*.app", SearchOption.TopDirectoryOnly))
+                                {
+                                    var exe = Path.Combine(app, "Contents", "MacOS");
+                                    if (systemService.DirectoryExists(exe))
+                                    {
+                                        foreach (var file in systemService.EnumerateFiles(exe, "*", SearchOption.TopDirectoryOnly))
+                                        {
+                                            if (systemService.FileExists(file)) return file;
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+                    }
                 }
 
                 if (!isWindows)

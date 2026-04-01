@@ -5,6 +5,9 @@ namespace GodotMCP.Application.Tools;
 
 public partial class GodotTools
 {
+    /// <summary>
+    /// Create a new scene file with a single root node.
+    /// </summary>
     [JsonRpcMethod("create_scene")]
     public async Task<ToolResult> CreateSceneAsync(string scenePath, string rootNodeName, string rootNodeType, CancellationToken cancellationToken = default)
     {
@@ -46,6 +49,9 @@ public partial class GodotTools
         return new ToolResult(true, $"Scene created at {scenePath}.");
     }
 
+    /// <summary>
+    /// Add a node to an existing scene under the specified parent path.
+    /// </summary>
     [JsonRpcMethod("add_node")]
     public async Task<ToolResult> AddNodeAsync(string scenePath, string parentPath, string nodeName, string nodeType, CancellationToken cancellationToken = default)
     {
@@ -87,6 +93,9 @@ public partial class GodotTools
         return new ToolResult(true, $"Node '{nodeName}' added.");
     }
 
+    /// <summary>
+    /// Set or update a property on a node inside a scene.
+    /// </summary>
     [JsonRpcMethod("set_node_property")]
     public async Task<ToolResult> SetNodePropertyAsync(
         string scenePath,
@@ -116,6 +125,9 @@ public partial class GodotTools
         return new ToolResult(true, $"Property '{propertyKey}' updated for '{nodeName}'.");
     }
 
+    /// <summary>
+    /// Remove a node (and its children) from the specified scene.
+    /// </summary>
     [JsonRpcMethod("remove_node")]
     public async Task<ToolResult> RemoveNodeAsync(string scenePath, string nodeName, CancellationToken cancellationToken = default)
     {
@@ -134,6 +146,9 @@ public partial class GodotTools
         return removed > 0 ? new ToolResult(true, $"Removed {removed} nodes.") : new ToolResult(false, "No matching nodes removed.");
     }
 
+    /// <summary>
+    /// Instantiate a packed scene into a target scene as a child of the given parent path.
+    /// </summary>
     [JsonRpcMethod("instantiate_packed_scene")]
     public async Task<ToolResult> InstantiatePackedSceneAsync(
         string targetScenePath,
@@ -161,6 +176,9 @@ public partial class GodotTools
         return new ToolResult(true, $"Packed scene instance '{instanceName}' added.");
     }
 
+    /// <summary>
+    /// Save a branch (node and its descendants) from a source scene to a new scene file.
+    /// </summary>
     [JsonRpcMethod("save_branch_as_scene")]
     public async Task<ToolResult> SaveBranchAsSceneAsync(
         string sourceScenePath,

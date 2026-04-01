@@ -7,6 +7,7 @@ using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Serialization;
 using GodotMCP.Infrastructure.Services;
 using GodotMCP.Tests.Fixtures;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Integration;
 
@@ -24,37 +25,26 @@ public class ApplicationToolsE2ETests
     [Fact]
     public async Task CreateProjectAndSceneFlow_ShouldSucceed()
     {
-        var root = Path.Combine(Path.GetTempPath(), "GodotMcpE2E", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        try
-        {
-            IPathResolver resolver = new PathResolver(root);
-            IGodotFileService files = new GodotFileService(resolver);
-            var tools = new GodotTools(
-                files,
-                resolver,
-                new SceneSerializer(),
-                new ResourceSerializer(),
-                new ImportFileGenerator(),
-                new ProjectConfigService(resolver),
-                new GodotCliService(resolver),
-                new IntegrationInspector(resolver));
+        var root = AssemblyStartup.CreateSandboxDirectory("e2e");
+        IPathResolver resolver = new PathResolver(root);
+        IGodotFileService files = new GodotFileService(resolver);
+        var tools = new GodotTools(
+            files,
+            resolver,
+            new SceneSerializer(),
+            new ResourceSerializer(),
+            new ImportFileGenerator(),
+            new ProjectConfigService(resolver),
+            new GodotCliService(resolver),
+            new IntegrationInspector(resolver));
 
-            Assert.True((await tools.CreateGodotProjectAsync("Demo")).Success);
-            Assert.True((await tools.CreateSceneAsync("res://scenes/Main.tscn", "Main", "Node2D")).Success);
-            Assert.True((await tools.AddNodeAsync("res://scenes/Main.tscn", ".", "Player", "Node2D")).Success);
-            Assert.True((await tools.CreateScriptAsync("res://scripts/Player.gd", "gd", "Node2D", "Player")).Success);
-            Assert.True((await tools.AttachScriptAsync("res://scenes/Main.tscn", "Player", "res://scripts/Player.gd")).Success);
-            Assert.True(tools.HealthCheck().Success);
-            Assert.True(tools.GetServerInfo().Success);
-        }
-        finally
-        {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, true);
-            }
-        }
+        Assert.True((await tools.CreateGodotProjectAsync("Demo")).Success);
+        Assert.True((await tools.CreateSceneAsync("res://scenes/Main.tscn", "Main", "Node2D")).Success);
+        Assert.True((await tools.AddNodeAsync("res://scenes/Main.tscn", ".", "Player", "Node2D")).Success);
+        Assert.True((await tools.CreateScriptAsync("res://scripts/Player.gd", "gd", "Node2D", "Player")).Success);
+        Assert.True((await tools.AttachScriptAsync("res://scenes/Main.tscn", "Player", "res://scripts/Player.gd")).Success);
+        Assert.True(tools.HealthCheck().Success);
+        Assert.True(tools.GetServerInfo().Success);
     }
 
     /// <summary>
@@ -63,32 +53,21 @@ public class ApplicationToolsE2ETests
     [Fact]
     public async Task InvalidPath_ShouldFailGracefully()
     {
-        var root = Path.Combine(Path.GetTempPath(), "GodotMcpE2E", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        try
-        {
-            IPathResolver resolver = new PathResolver(root);
-            IGodotFileService files = new GodotFileService(resolver);
-            var tools = new GodotTools(
-                files,
-                resolver,
-                new SceneSerializer(),
-                new ResourceSerializer(),
-                new ImportFileGenerator(),
-                new ProjectConfigService(resolver),
-                new GodotCliService(resolver),
-                new IntegrationInspector(resolver));
+        var root = AssemblyStartup.CreateSandboxDirectory("e2e");
+        IPathResolver resolver = new PathResolver(root);
+        IGodotFileService files = new GodotFileService(resolver);
+        var tools = new GodotTools(
+            files,
+            resolver,
+            new SceneSerializer(),
+            new ResourceSerializer(),
+            new ImportFileGenerator(),
+            new ProjectConfigService(resolver),
+            new GodotCliService(resolver),
+            new IntegrationInspector(resolver));
 
-            await tools.CreateGodotProjectAsync("Demo");
-            var result = await tools.CreateSceneAsync("../outside.tscn", "Main", "Node2D");
-            Assert.False(result.Success);
-        }
-        finally
-        {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, true);
-            }
-        }
+        await tools.CreateGodotProjectAsync("Demo");
+        var result = await tools.CreateSceneAsync("../outside.tscn", "Main", "Node2D");
+        Assert.False(result.Success);
     }
 }

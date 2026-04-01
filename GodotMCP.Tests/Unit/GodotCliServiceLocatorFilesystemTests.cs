@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using GodotMCP.Infrastructure.Process;
+using GodotMCP.Tests.TestIsolation;
 using Xunit;
 
 namespace GodotMCP.Tests.Unit;
@@ -15,28 +16,24 @@ public class GodotCliServiceLocatorFilesystemTests
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return; // skip on Windows
 
-        var tempHome = Path.Combine(Path.GetTempPath(), "godot-mock-home", Guid.NewGuid().ToString("N"));
+        var tempHome = AssemblyStartup.CreateSandboxDirectory("godot-mock-home");
         var appsDir = Path.Combine(tempHome, "Applications");
         var appBundle = Path.Combine(appsDir, "Godot.app", "Contents", "MacOS");
         Directory.CreateDirectory(appBundle);
         var exePath = Path.Combine(appBundle, "Godot");
         File.WriteAllText(exePath, "exe");
 
-        try
-        {
-            var system = new TestableSystemService(programFiles: null, personalFolder: tempHome);
-            var resolver = new GodotMCP.Infrastructure.Services.PathResolver(Path.GetTempPath());
-            var svc = new GodotCliService(resolver, system);
-            var found = svc.LocateGodotBinary();
-            Assert.NotNull(found);
-            // Accept either a path that includes the Godot executable name or any path under the test's
-            // temporary home directory. Different runners may return slightly different candidate paths
-            // (executable full path, parent directory, etc.) so be permissive here.
-            var fullFound = Path.GetFullPath(found!);
-            var isUnderTemp = fullFound.StartsWith(Path.GetFullPath(tempHome), StringComparison.OrdinalIgnoreCase);
-            Assert.True(fullFound.Contains("Godot", StringComparison.OrdinalIgnoreCase) || isUnderTemp, fullFound);
-        }
-        finally { try { Directory.Delete(tempHome, true); } catch { } }
+        var system = new TestableSystemService(programFiles: null, personalFolder: tempHome);
+        var resolver = new GodotMCP.Infrastructure.Services.PathResolver(AssemblyStartup.Root);
+        var svc = new GodotCliService(resolver, system);
+        var found = svc.LocateGodotBinary();
+        Assert.NotNull(found);
+        // Accept either a path that includes the Godot executable name or any path under the test's
+        // temporary home directory. Different runners may return slightly different candidate paths
+        // (executable full path, parent directory, etc.) so be permissive here.
+        var fullFound = Path.GetFullPath(found!);
+        var isUnderTemp = fullFound.StartsWith(Path.GetFullPath(tempHome), StringComparison.OrdinalIgnoreCase);
+        Assert.True(fullFound.Contains("Godot", StringComparison.OrdinalIgnoreCase) || isUnderTemp, fullFound);
     }
 
     [Fact]
@@ -45,34 +42,30 @@ public class GodotCliServiceLocatorFilesystemTests
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return;
 
-        var tempProgramFiles = Path.Combine(Path.GetTempPath(), "godot-program-files", Guid.NewGuid().ToString("N"));
+        var tempProgramFiles = AssemblyStartup.CreateSandboxDirectory("godot-program-files");
         var exeDir = Path.Combine(tempProgramFiles, "Godot");
         Directory.CreateDirectory(exeDir);
         var exePath = Path.Combine(exeDir, "Godot.exe");
         File.WriteAllText(exePath, "exe");
 
-        try
+        var system = new TestableSystemService(programFiles: tempProgramFiles, personalFolder: null);
+        var resolver = new GodotMCP.Infrastructure.Services.PathResolver(AssemblyStartup.Root);
+        var svc = new GodotCliService(resolver, system);
+        var found = svc.LocateGodotBinary();
+        // In some environments PATH may also contain a fake godot; accept both behaviors.
+        if (found is null)
         {
-            var system = new TestableSystemService(programFiles: tempProgramFiles, personalFolder: null);
-            var resolver = new GodotMCP.Infrastructure.Services.PathResolver(Path.GetTempPath());
-            var svc = new GodotCliService(resolver, system);
-            var found = svc.LocateGodotBinary();
-            // In some environments PATH may also contain a fake godot; accept both behaviors.
-            if (found is null)
-            {
-                // Try to locate by searching program files manually
-                var candidates = new[] { Path.Combine(tempProgramFiles, "Godot", "Godot.exe"), Path.Combine(tempProgramFiles, "Godot.exe") };
-                var any = candidates.Any(c => File.Exists(c));
-                Assert.True(any);
-            }
-            else
-            {
-                var full = Path.GetFullPath(found);
-                var expected = Path.GetFullPath(tempProgramFiles);
-                Assert.True(full.StartsWith(expected, StringComparison.OrdinalIgnoreCase) || full.Contains("godot-locator-path"));
-            }
+            // Try to locate by searching program files manually
+            var candidates = new[] { Path.Combine(tempProgramFiles, "Godot", "Godot.exe"), Path.Combine(tempProgramFiles, "Godot.exe") };
+            var any = candidates.Any(c => File.Exists(c));
+            Assert.True(any);
         }
-        finally { try { Directory.Delete(tempProgramFiles, true); } catch { } }
+        else
+        {
+            var full = Path.GetFullPath(found);
+            var expected = Path.GetFullPath(tempProgramFiles);
+            Assert.True(full.StartsWith(expected, StringComparison.OrdinalIgnoreCase) || full.Contains("godot-locator-path"));
+        }
     }
 }
 

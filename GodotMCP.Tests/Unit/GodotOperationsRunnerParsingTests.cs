@@ -8,7 +8,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Services;
-using Xunit;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -21,40 +21,35 @@ public class GodotOperationsRunnerParsingTests
     [Fact]
     public async Task Runner_Parses_AttachScript_Response()
     {
-        var root = Path.Combine(Path.GetTempPath(), "godotopsparse", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        try
+        var root = AssemblyStartup.CreateSandboxDirectory("godotopsparse");
+        var resolver = new PathResolver(root);
+        string? capturedArgs = null;
+
+        IGodotCliService fakeCli = new FakeCliService((args) =>
         {
-            var resolver = new PathResolver(root);
-            string? capturedArgs = null;
+            capturedArgs = args;
+            var stdout = "{\"schemaVersion\":\"1.0\",\"requestId\":\"rid-attach\",\"success\":true,\"message\":\"attached\",\"data\":{\"nodeName\":\"Player\"}}";
+            return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = stdout }));
+        });
 
-            IGodotCliService fakeCli = new FakeCliService((args) =>
+        var runner = new GodotOperationsRunner(fakeCli, resolver);
+        var payload = new Dictionary<string, object>
+        {
+            ["schemaVersion"] = "1.0",
+            ["requestId"] = "rid-attach",
+            ["payload"] = new Dictionary<string, object>
             {
-                capturedArgs = args;
-                var stdout = "{\"schemaVersion\":\"1.0\",\"requestId\":\"rid-attach\",\"success\":true,\"message\":\"attached\",\"data\":{\"nodeName\":\"Player\"}}";
-                return Task.FromResult(new ToolResult(true, "ok", new Dictionary<string,string> { ["stdout"] = stdout }));
-            });
+                ["scenePath"] = "res://scenes/Main.tscn",
+                ["nodeName"] = "Player",
+                ["scriptPath"] = "res://scripts/Player.gd"
+            }
+        };
 
-            var runner = new GodotOperationsRunner(fakeCli, resolver);
-            var payload = new Dictionary<string, object>
-            {
-                ["schemaVersion"] = "1.0",
-                ["requestId"] = "rid-attach",
-                ["payload"] = new Dictionary<string, object>
-                {
-                    ["scenePath"] = "res://scenes/Main.tscn",
-                    ["nodeName"] = "Player",
-                    ["scriptPath"] = "res://scripts/Player.gd"
-                }
-            };
-
-            var json = System.Text.Json.JsonSerializer.Serialize(payload);
-            var res = await runner.RunOperationAsync("attach_script", json);
-            Assert.True(res.Success);
-            Assert.True(res.Data?.ContainsKey("nodeName"));
-            Assert.Equal("Player", res.Data!["nodeName"]);
-        }
-        finally { try { Directory.Delete(root, true); } catch { } }
+        var json = System.Text.Json.JsonSerializer.Serialize(payload);
+        var res = await runner.RunOperationAsync("attach_script", json);
+        Assert.True(res.Success);
+        Assert.True(res.Data?.ContainsKey("nodeName"));
+        Assert.Equal("Player", res.Data!["nodeName"]);
     }
 
     private sealed class FakeCliService : IGodotCliService

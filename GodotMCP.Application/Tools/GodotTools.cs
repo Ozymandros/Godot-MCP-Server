@@ -22,6 +22,9 @@ public partial class GodotTools
     private readonly IGodotOperationsRunner? godotOperationsRunner;
     private readonly IIntegrationInspector integrationInspector;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GodotTools"/> class.
+    /// </summary>
     public GodotTools(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -91,6 +94,9 @@ public partial class GodotTools
         return new ToolResult(true, "Capabilities enumerated.", capabilities);
     }
 
+    /// <summary>
+    /// Checks the health of the server and returns a brief status payload.
+    /// </summary>
     [JsonRpcMethod("health_check")]
     public ToolResult HealthCheck()
     {
@@ -101,6 +107,9 @@ public partial class GodotTools
         });
     }
 
+    /// <summary>
+    /// Retrieve basic server information such as version and project root.
+    /// </summary>
     [JsonRpcMethod("get_server_info")]
     public ToolResult GetServerInfo()
     {

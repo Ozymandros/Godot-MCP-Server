@@ -2,7 +2,7 @@ using Xunit;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Infrastructure.Services;
-using Xunit;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -15,7 +15,7 @@ public class GodotCliServiceLocatorTests
     [Fact]
     public void LocateGodotBinary_ReturnsNull_WhenNothingPresent()
     {
-        var resolver = new PathResolver(Path.GetTempPath());
+        var resolver = new PathResolver(AssemblyStartup.Root);
         var svc = new GodotCliService(resolver);
         // Ensure calling the locator does not throw and returns either null or a path
         string? result = null;

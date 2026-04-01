@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 using GodotMCP.Core.Interfaces;
-using Xunit;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -21,29 +21,21 @@ public class GodotFileServiceTests
     [Fact]
     public async Task ReadWriteExistsDeleteEnumerate_Workflow()
     {
-        var root = Path.Combine(Path.GetTempPath(), "godotfilesvc", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
-        try
-        {
-            IPathResolver resolver = new GodotMCP.Infrastructure.Services.PathResolver(root);
-            var svc = new GodotMCP.Infrastructure.Services.GodotFileService(resolver);
+        var root = AssemblyStartup.CreateSandboxDirectory("godotfilesvc");
+        IPathResolver resolver = new GodotMCP.Infrastructure.Services.PathResolver(root);
+        var svc = new GodotMCP.Infrastructure.Services.GodotFileService(resolver);
 
-            var path = "res://assets/test.txt";
-            await svc.WriteAsync(path, "hello");
-            Assert.True(svc.Exists(path));
-            var content = await svc.ReadAsync(path);
-            Assert.Equal("hello", content);
+        var path = "res://assets/test.txt";
+        await svc.WriteAsync(path, "hello");
+        Assert.True(svc.Exists(path));
+        var content = await svc.ReadAsync(path);
+        Assert.Equal("hello", content);
 
-            var dir = "res://assets";
-            var files = svc.EnumerateFiles(dir, "*.txt", false).ToList();
-            Assert.True(files.Count >= 1);
+        var dir = "res://assets";
+        var files = svc.EnumerateFiles(dir, "*.txt", false).ToList();
+        Assert.True(files.Count >= 1);
 
-            await svc.DeleteAsync(path);
-            Assert.False(svc.Exists(path));
-        }
-        finally
-        {
-            try { Directory.Delete(root, true); } catch { }
-        }
+        await svc.DeleteAsync(path);
+        Assert.False(svc.Exists(path));
     }
 }

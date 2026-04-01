@@ -2,6 +2,7 @@ using Xunit;
 using System.Runtime.InteropServices;
 using GodotMCP.Infrastructure.Process;
 using GodotMCP.Infrastructure.Services;
+using GodotMCP.Tests.TestIsolation;
 
 namespace GodotMCP.Tests.Unit;
 
@@ -18,28 +19,20 @@ public class GodotCliServiceLocatorUnitTests
     [Fact]
     public void LocateGodotBinary_UsesGODOT_PATH_WhenSet()
     {
-        var root = Path.Combine(Path.GetTempPath(), "godot-locator-env", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
+        var root = AssemblyStartup.CreateSandboxDirectory("godot-locator-env");
         var fakeExe = Path.Combine(root, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "godot.exe" : "godot");
         File.WriteAllText(fakeExe, "fake");
+        var original = Environment.GetEnvironmentVariable("GODOT_PATH");
         try
         {
-            var original = Environment.GetEnvironmentVariable("GODOT_PATH");
-            try
-            {
-                Environment.SetEnvironmentVariable("GODOT_PATH", fakeExe);
-                var resolver = new PathResolver(root);
-                var svc = new GodotCliService(resolver);
-                var found = svc.LocateGodotBinary();
-                Assert.NotNull(found);
-                Assert.Equal(Path.GetFullPath(fakeExe), Path.GetFullPath(found!));
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable("GODOT_PATH", original);
-            }
+            Environment.SetEnvironmentVariable("GODOT_PATH", fakeExe);
+            var resolver = new PathResolver(root);
+            var svc = new GodotCliService(resolver);
+            var found = svc.LocateGodotBinary();
+            Assert.NotNull(found);
+            Assert.Equal(Path.GetFullPath(fakeExe), Path.GetFullPath(found!));
         }
-        finally { try { Directory.Delete(root, true); } catch { } }
+        finally { Environment.SetEnvironmentVariable("GODOT_PATH", original); }
     }
 
     /// <summary>
@@ -49,8 +42,7 @@ public class GodotCliServiceLocatorUnitTests
     [Fact]
     public void LocateGodotBinary_FindsOnPathCandidate()
     {
-        var root = Path.Combine(Path.GetTempPath(), "godot-locator-path", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(root);
+        var root = AssemblyStartup.CreateSandboxDirectory("godot-locator-path");
         var fname = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "godot.exe" : "godot";
         var fakeExe = Path.Combine(root, fname);
         File.WriteAllText(fakeExe, "fake");
@@ -71,7 +63,6 @@ public class GodotCliServiceLocatorUnitTests
         finally
         {
             Environment.SetEnvironmentVariable("PATH", originalPath);
-            try { Directory.Delete(root, true); } catch { }
         }
     }
 }
