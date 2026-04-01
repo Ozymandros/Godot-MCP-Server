@@ -1,14 +1,21 @@
-using System.Text;
-using System.Text.RegularExpressions;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GodotMCP.Infrastructure.Serialization;
 
+/// <summary>
+/// Serializer and deserializer for Godot scene (.tscn) text format into the <see cref="GodotScene"/> model.
+/// </summary>
 public sealed class SceneSerializer : ISceneSerializer
 {
     private static readonly Regex SectionRegex = new(@"^\[(?<tag>[a-z_]+)\s*(?<attrs>.*)\]$", RegexOptions.Compiled);
 
+    /// <summary>
+    /// Deserialize the textual representation of a Godot scene into a <see cref="GodotScene"/> model.
+    /// </summary>
+    /// <param name="content">Scene file content.</param>
     public GodotScene Deserialize(string content)
     {
         var scene = new GodotScene();
@@ -88,6 +95,10 @@ public sealed class SceneSerializer : ISceneSerializer
         return scene;
     }
 
+    /// <summary>
+    /// Serialize a <see cref="GodotScene"/> model back into the Godot scene text format.
+    /// </summary>
+    /// <param name="scene">Scene model to serialize.</param>
     public string Serialize(GodotScene scene)
     {
         var sb = new StringBuilder();

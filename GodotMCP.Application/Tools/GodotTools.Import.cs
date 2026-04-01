@@ -3,8 +3,12 @@ using StreamJsonRpc;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Godot import-related tools for generating .import files, reimporting assets, and creating new texture and audio assets with default import settings.
+/// </summary>
 public partial class GodotTools
 {
+    /// <summary>Generate a .import file for a given asset and importer settings.</summary>
     [JsonRpcMethod("generate_import_file")]
     public async Task<ToolResult> GenerateImportFileAsync(
         string assetPath,
@@ -37,6 +41,7 @@ public partial class GodotTools
         return new ToolResult(true, $"Generated {importPath}.");
     }
 
+    /// <summary>Reimport an asset using the project's .import file, preferring engine-backed reimport when available.</summary>
     [JsonRpcMethod("reimport_asset")]
     public async Task<ToolResult> ReimportAssetAsync(string assetPath, CancellationToken cancellationToken = default)
     {
@@ -50,9 +55,26 @@ public partial class GodotTools
             return new ToolResult(false, "Missing .import file for asset.");
         }
 
+        // Prefer engine-backed reimport via operations runner when available
+        if (godotOperationsRunner is not null)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["requestId"] = Guid.NewGuid().ToString(),
+                ["payload"] = new Dictionary<string, object>
+                {
+                    ["assetPath"] = assetPath
+                }
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            return await godotOperationsRunner.RunOperationAsync("reimport_asset", json, cancellationToken).ConfigureAwait(false);
+        }
+
         return await godotCliService.RunAsync($"--headless --quit --path \"{pathResolver.ProjectRoot}\"", cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Create a texture asset and an accompanying .import file.</summary>
     [JsonRpcMethod("create_texture")]
     public async Task<ToolResult> CreateTextureAsync(string texturePath, CancellationToken cancellationToken = default)
     {
@@ -69,6 +91,7 @@ public partial class GodotTools
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Create an audio asset and its .import file.</summary>
     [JsonRpcMethod("create_audio")]
     public async Task<ToolResult> CreateAudioAsync(string audioPath, CancellationToken cancellationToken = default)
     {

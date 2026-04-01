@@ -1,4 +1,5 @@
-using FluentAssertions;
+using System;
+using Xunit;
 using GodotMCP.Infrastructure.Config;
 using GodotMCP.Tests.Fixtures;
 
@@ -6,21 +7,17 @@ namespace GodotMCP.Tests.Unit;
 
 public class PathAndConfigTests
 {
+    /// <summary>
+    /// Unit tests for path resolution and project configuration service.
+    /// </summary>
     [Fact]
     public async Task ProjectConfigService_ShouldSetAndReadValues()
     {
-        var (root, resolver, _) = FixtureFactory.CreateProject();
-        try
-        {
-            var config = new ProjectConfigService(resolver);
-            await config.SetValueAsync("application", "config/name", "\"Demo\"");
-            var value = await config.GetValueAsync("application", "config/name");
-            value.Should().Be("\"Demo\"");
-        }
-        finally
-        {
-            FixtureFactory.Cleanup(root);
-        }
+        var (_, resolver, _) = FixtureFactory.CreateProject();
+        var config = new ProjectConfigService(resolver);
+        await config.SetValueAsync("application", "config/name", "\"Demo\"");
+        var value = await config.GetValueAsync("application", "config/name");
+        Assert.Equal("\"Demo\"", value);
     }
 
     public static IEnumerable<object[]> ResPathCases()
@@ -36,14 +33,7 @@ public class PathAndConfigTests
     public void PathResolver_ShouldResolveResPaths(string path)
     {
         var (root, resolver, _) = FixtureFactory.CreateProject();
-        try
-        {
-            var absolute = resolver.ResolveResPath(path);
-            absolute.Should().StartWith(root);
-        }
-        finally
-        {
-            FixtureFactory.Cleanup(root);
-        }
+        var absolute = resolver.ResolveResPath(path);
+        Assert.StartsWith(root, absolute);
     }
 }

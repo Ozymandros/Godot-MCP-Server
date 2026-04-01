@@ -5,6 +5,7 @@ namespace GodotMCP.Application.Tools;
 
 public partial class GodotTools
 {
+    /// <summary>Discover installed integrations/plugins under the project's addons folder.</summary>
     [JsonRpcMethod("discover_integrations")]
     public ToolResult DiscoverIntegrations()
     {
@@ -18,6 +19,40 @@ public partial class GodotTools
         return new ToolResult(true, $"Discovered {entries.Count} integration(s).", data);
     }
 
+    // attach_script is implemented in GodotTools.Scripts.cs; that RPC will prefer
+    // the operations runner when available and fall back to text-based edits.
+
+    /// <summary>Update resource UIDs for the provided resource paths using the operations runner when available.</summary>
+    [JsonRpcMethod("update_resource_uids")]
+    public async Task<ToolResult> UpdateResourceUidsAsync(string[] paths, CancellationToken cancellationToken = default)
+    {
+        if (paths is null || paths.Length == 0)
+            return Invalid("paths are required.");
+
+        if (godotOperationsRunner is not null)
+        {
+            var payload = new Dictionary<string, object>
+            {
+                ["schemaVersion"] = "1.0",
+                ["requestId"] = Guid.NewGuid().ToString(),
+                ["payload"] = new Dictionary<string, object>
+                {
+                    ["paths"] = paths
+                }
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(payload);
+            return await godotOperationsRunner.RunOperationAsync("update_uids", json, cancellationToken).ConfigureAwait(false);
+        }
+
+        return new ToolResult(false, "Operations runner not available.", SuggestedRemediation: "Enable GODOT_PATH or register an IGodotOperationsRunner in DI to run UID updates.");
+    }
+
+    // reimport_asset is implemented in GodotTools.Import.cs and prefers the
+    // operations runner when available; kept here for compatibility notes.
+
+
+
+    /// <summary>Enable or disable a plugin entry in the project's editor_plugins configuration.</summary>
     [JsonRpcMethod("enable_plugin")]
     public async Task<ToolResult> EnablePluginAsync(string pluginName, bool enabled, CancellationToken cancellationToken = default)
     {
@@ -38,6 +73,7 @@ public partial class GodotTools
         return new ToolResult(true, $"Plugin '{pluginName}' {(enabled ? "enabled" : "disabled")}.");
     }
 
+    /// <summary>Install a simple integration by creating an addons subfolder and plugin.cfg.</summary>
     [JsonRpcMethod("install_integration")]
     public async Task<ToolResult> InstallIntegrationAsync(
         string integrationName,
@@ -74,6 +110,14 @@ script="plugin.gd"
         });
     }
 
+    /// <summary>
+    /// List compatibility information for all discovered integrations.
+    /// </summary>
+    /// <returns>
+    /// A <see cref="ToolResult"/> containing a dictionary where each key is the
+    /// integration name and the value is a semicolon-separated compatibility string
+    /// (includes Godot version range, platform support, maintenance status and source).
+    /// </returns>
     [JsonRpcMethod("list_integration_compatibility")]
     public ToolResult ListIntegrationCompatibility()
     {
@@ -88,6 +132,14 @@ script="plugin.gd"
         return new ToolResult(true, $"Compatibility listed for {entries.Count} integration(s).", data);
     }
 
+    /// <summary>
+    /// Verify the health of an installed integration by name (case-insensitive).
+    /// </summary>
+    /// <param name="integrationName">Name of the integration/plugin to verify.</param>
+    /// <returns>
+    /// A <see cref="ToolResult"/> that is successful when the integration is found;
+    /// otherwise a failure result with a suggested remediation to run discovery and verify installation.
+    /// </returns>
     [JsonRpcMethod("verify_integration_health")]
     public ToolResult VerifyIntegrationHealth(string integrationName)
     {
