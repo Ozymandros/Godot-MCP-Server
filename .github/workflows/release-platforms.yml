@@ -21,9 +21,9 @@ jobs:
             rid: win-x64
           - os: windows-2022
             rid: win-arm64
-          - os: macos-13
+          - os: ubuntu-22.04
             rid: osx-x64
-          - os: macos-13
+          - os: ubuntu-22.04
             rid: osx-arm64
     steps:
       - name: Checkout
