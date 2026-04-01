@@ -1,5 +1,8 @@
 # Godot MCP Server
 
+[![CI](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/ci.yml/badge.svg)](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/ci.yml)
+[![Release](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/release.yml/badge.svg)](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/release.yml)
+
 `Godot MCP Server` is a .NET global tool that exposes automation capabilities for Godot 4.x projects over a simple MCP (Model Context Protocol) stdio JSON-RPC transport.
 
 Key features
