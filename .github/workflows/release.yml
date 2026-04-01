@@ -1,13 +1,20 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  packages: write
+  contents: read
 
 jobs:
   publish-nuget:
     runs-on: ubuntu-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -16,34 +23,8 @@ jobs:
       - name: Pack
         run: dotnet pack GodotMCP.Server/GodotMCP.Server.csproj -c Release -o ./artifacts
       - name: Publish NuGet
-        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
-
-  publish-container:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}/godot-mcp-server
-          tags: |
-            type=ref,event=tag
-            type=raw,value=latest
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+        if: env.NUGET_API_KEY != ''
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: NuGet publish skipped (missing key)
+        if: env.NUGET_API_KEY == ''
+        run: echo "NUGET_API_KEY is not configured. Skipping NuGet publish."
