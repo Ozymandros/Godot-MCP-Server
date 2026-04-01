@@ -51,6 +51,21 @@ jobs:
         uses: docker/setup-buildx-action@v2
         with:
           driver: docker-container
+      - name: Detect buildx driver and select platforms
+        id: detect_buildx
+        run: |
+          set -euo pipefail
+          echo "Checking buildx driver..."
+          if docker buildx version >/dev/null 2>&1; then
+            if docker buildx inspect --bootstrap 2>/dev/null | grep -q "Driver: docker-container"; then
+              echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+            else
+              echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "platforms=linux/amd64" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -59,7 +74,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ steps.detect_buildx.outputs.platforms }}
 
   create_release:
     runs-on: ubuntu-latest
