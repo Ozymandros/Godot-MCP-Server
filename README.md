@@ -11,6 +11,9 @@
 Key features
 
 - Godot-native scene, resource, and importer handling
+- Animation generation (AnimationPlayer, Libraries, Tracks, and Keys)
+- Scene comparison and structural diffing
+- Project linting (missing imports, broken dependencies)
 - Stdio JSON-RPC transport for local and CI automation
 - Headless CLI automation suitable for build servers and containers
 - SDK-aware plugin discovery and health checks

@@ -15,10 +15,11 @@ public static partial class GodotTools
         var capabilities = new Dictionary<string, string>
         {
             ["parity_doctrine"] = "mutatis-mutandis",
-            ["scenes"] = "create/edit/remove/instantiate",
+            ["scenes"] = "create/edit/remove/instantiate/diff",
+            ["animations"] = "player/add/track/keys",
             ["scripts"] = "gdscript/csharp/create/attach/validate",
             ["imports"] = ".import generation + reimport",
-            ["sdk_ecosystem"] = "discover + health verification",
+            ["sdk_ecosystem"] = "discover + health verification + linting",
             ["classification"] = string.Join(',', Enum.GetNames<ParityClassification>())
         };
 
