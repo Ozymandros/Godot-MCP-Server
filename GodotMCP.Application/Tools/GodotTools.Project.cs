@@ -1,12 +1,17 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
-    [JsonRpcMethod("create_godot_project")]
-    public async Task<ToolResult> CreateGodotProjectAsync(string projectName, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "create_godot_project"), Description("Create a new Godot 4.x project at the current working directory.")]
+    public static async Task<ToolResult> CreateGodotProjectAsync(
+        IGodotFileService fileService,
+        [Description("The name of the Godot project.")] string projectName, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectName))
         {
@@ -39,8 +44,11 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Project '{projectName}' created.");
     }
 
-    [JsonRpcMethod("get_project_info")]
-    public async Task<ToolResult> GetProjectInfoAsync(CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "get_project_info"), Description("Retrieve basic configuration from project.godot.")]
+    public static async Task<ToolResult> GetProjectInfoAsync(
+        IGodotFileService fileService,
+        IProjectConfigService projectConfigService,
+        CancellationToken cancellationToken = default)
     {
         if (!fileService.ProjectExists())
         {
@@ -56,8 +64,13 @@ project/assembly_name="{{projectName}}"
         });
     }
 
-    [JsonRpcMethod("configure_autoload")]
-    public async Task<ToolResult> ConfigureAutoloadAsync(string key, string value, bool enabled, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "configure_autoload"), Description("Enable or disable a singleton autoload in project.godot.")]
+    public static async Task<ToolResult> ConfigureAutoloadAsync(
+        IProjectConfigService projectConfigService,
+        [Description("The autoload unique key.")] string key, 
+        [Description("The resource path (res://...) to the script or scene.")] string value, 
+        [Description("Set to true to add, false to remove.")] bool enabled, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(key) || IsBlank(value))
         {
@@ -74,8 +87,11 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Autoload '{key}' removed.");
     }
 
-    [JsonRpcMethod("add_plugin")]
-    public async Task<ToolResult> AddPluginAsync(string pluginName, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "add_plugin"), Description("Register an editor plugin in project.godot.")]
+    public static async Task<ToolResult> AddPluginAsync(
+        IProjectConfigService projectConfigService,
+        [Description("The folder name of the plugin under res://addons/.")] string pluginName, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))
         {

@@ -1,15 +1,16 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
     private static bool IsBlank(string? value) => string.IsNullOrWhiteSpace(value);
 
-    private ToolResult Invalid(string message, string? remediation = null)
+    private static ToolResult Invalid(string message, string? remediation = null)
         => new(false, message, SuggestedRemediation: remediation);
 
-    private bool IsValidResPath(string path)
+    private static bool IsValidResPath(IPathResolver pathResolver, string path)
     {
         try
         {

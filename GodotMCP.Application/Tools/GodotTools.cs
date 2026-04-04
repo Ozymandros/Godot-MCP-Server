@@ -1,43 +1,16 @@
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 using System.Reflection;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+[McpServerToolType]
+public static partial class GodotTools
 {
-    private readonly IGodotFileService fileService;
-    private readonly IPathResolver pathResolver;
-    private readonly ISceneSerializer sceneSerializer;
-    private readonly IResourceSerializer resourceSerializer;
-    private readonly IImportFileGenerator importFileGenerator;
-    private readonly IProjectConfigService projectConfigService;
-    private readonly IGodotCliService godotCliService;
-    private readonly IIntegrationInspector integrationInspector;
-
-    public GodotTools(
-        IGodotFileService fileService,
-        IPathResolver pathResolver,
-        ISceneSerializer sceneSerializer,
-        IResourceSerializer resourceSerializer,
-        IImportFileGenerator importFileGenerator,
-        IProjectConfigService projectConfigService,
-        IGodotCliService godotCliService,
-        IIntegrationInspector integrationInspector)
-    {
-        this.fileService = fileService;
-        this.pathResolver = pathResolver;
-        this.sceneSerializer = sceneSerializer;
-        this.resourceSerializer = resourceSerializer;
-        this.importFileGenerator = importFileGenerator;
-        this.projectConfigService = projectConfigService;
-        this.godotCliService = godotCliService;
-        this.integrationInspector = integrationInspector;
-    }
-
-    [JsonRpcMethod("get_server_capabilities")]
-    public ToolResult GetServerCapabilities()
+    [McpServerTool(Name = "get_server_capabilities"), Description("Enumerate Godot MCP server capabilities and supported features.")]
+    public static ToolResult GetServerCapabilities()
     {
         var capabilities = new Dictionary<string, string>
         {
@@ -52,18 +25,18 @@ public partial class GodotTools
         return new ToolResult(true, "Capabilities enumerated.", capabilities);
     }
 
-    [JsonRpcMethod("health_check")]
-    public ToolResult HealthCheck()
+    [McpServerTool(Name = "health_check"), Description("Verify server health and transport status.")]
+    public static ToolResult HealthCheck()
     {
         return new ToolResult(true, "ok", new Dictionary<string, string>
         {
             ["status"] = "healthy",
-            ["transport"] = "stdio-jsonrpc"
+            ["transport"] = "stdio-mcp"
         });
     }
 
-    [JsonRpcMethod("get_server_info")]
-    public ToolResult GetServerInfo()
+    [McpServerTool(Name = "get_server_info"), Description("Get information about the Godot MCP server version and working directory.")]
+    public static ToolResult GetServerInfo(IPathResolver pathResolver)
     {
         var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
             ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()

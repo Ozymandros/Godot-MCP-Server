@@ -1,23 +1,27 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
-    [JsonRpcMethod("create_script")]
-    public async Task<ToolResult> CreateScriptAsync(
-        string path,
-        string language,
-        string baseType,
-        string className,
+    [McpServerTool(Name = "create_script"), Description("Create a new GDScript or C# script file with basic boilerplate.")]
+    public static async Task<ToolResult> CreateScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project path (res://...) for the new script.")] string path, 
+        [Description("Script language ('gd' for GDScript, 'cs' for C#).")] string language, 
+        [Description("Base Godot type to extend (e.g., Node, Node2D).")] string baseType, 
+        [Description("Name of the script class.")] string className, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(path) || IsBlank(language) || IsBlank(baseType) || IsBlank(className))
         {
             return Invalid("path, language, baseType and className are required.");
         }
-        if (!IsValidResPath(path))
+        if (!IsValidResPath(pathResolver, path))
         {
             return Invalid("path must be a valid project-relative path.");
         }
@@ -45,14 +49,17 @@ public partial class {{className}} : {{baseType}}
         return new ToolResult(true, $"Script created at {path}.");
     }
 
-    [JsonRpcMethod("attach_script")]
-    public async Task<ToolResult> AttachScriptAsync(
-        string scenePath,
-        string nodeName,
-        string scriptPath,
+    [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
+    public static async Task<ToolResult> AttachScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the scene file.")] string scenePath, 
+        [Description("Name of the target node.")] string nodeName, 
+        [Description("Project path (res://...) to the script to attach.")] string scriptPath, 
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName) || !IsValidResPath(scenePath) || !IsValidResPath(scriptPath))
+        if (IsBlank(nodeName) || !IsValidResPath(pathResolver, scenePath) || !IsValidResPath(pathResolver, scriptPath))
         {
             return Invalid("scenePath, scriptPath and nodeName are required and must be valid.");
         }
@@ -72,13 +79,16 @@ public partial class {{className}} : {{baseType}}
         return new ToolResult(true, $"Script '{scriptPath}' attached to '{nodeName}'.");
     }
 
-    [JsonRpcMethod("validate_script")]
-    public async Task<ToolResult> ValidateScriptAsync(
-        string scriptPath,
-        bool isCSharp,
+    [McpServerTool(Name = "validate_script"), Description("Perform static validation on a Godot script file.")]
+    public static async Task<ToolResult> ValidateScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        IGodotCliService godotCliService,
+        [Description("Project path (res://...) to the script file.")] string scriptPath, 
+        [Description("Set to true if the script is C#, false for GDScript.")] bool isCSharp, 
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(scriptPath))
+        if (!IsValidResPath(pathResolver, scriptPath))
         {
             return Invalid("scriptPath must be a valid project-relative path.");
         }

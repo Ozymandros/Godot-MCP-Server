@@ -1,12 +1,14 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
-    [JsonRpcMethod("discover_integrations")]
-    public ToolResult DiscoverIntegrations()
+    [McpServerTool(Name = "discover_integrations"), Description("Scan the project addons directory to find installed Godot integrations.")]
+    public static ToolResult DiscoverIntegrations(IIntegrationInspector integrationInspector)
     {
         var entries = integrationInspector.Discover();
         var data = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -18,8 +20,12 @@ public partial class GodotTools
         return new ToolResult(true, $"Discovered {entries.Count} integration(s).", data);
     }
 
-    [JsonRpcMethod("enable_plugin")]
-    public async Task<ToolResult> EnablePluginAsync(string pluginName, bool enabled, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "enable_plugin"), Description("Enable or disable a specific Godot editor plugin by its folder name.")]
+    public static async Task<ToolResult> EnablePluginAsync(
+        IProjectConfigService projectConfigService,
+        [Description("The addon folder name.")] string pluginName, 
+        [Description("Set to true to enable, false to disable.")] bool enabled, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))
         {
@@ -38,11 +44,13 @@ public partial class GodotTools
         return new ToolResult(true, $"Plugin '{pluginName}' {(enabled ? "enabled" : "disabled")}.");
     }
 
-    [JsonRpcMethod("install_integration")]
-    public async Task<ToolResult> InstallIntegrationAsync(
-        string integrationName,
-        string source,
-        IntegrationProfile profile,
+    [McpServerTool(Name = "install_integration"), Description("Stub an installation of a new Godot integration/addon.")]
+    public static async Task<ToolResult> InstallIntegrationAsync(
+        IGodotFileService fileService,
+        IProjectConfigService projectConfigService,
+        [Description("The human-readable name of the integration.")] string integrationName, 
+        [Description("Source URL or identifier for the integration.")] string source, 
+        [Description("The category of the integration.")] IntegrationProfile profile, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(integrationName) || IsBlank(source))
@@ -64,7 +72,7 @@ version="1.0.0"
 script="plugin.gd"
 """;
         await fileService.WriteAsync(pluginCfgPath, pluginCfg, cancellationToken).ConfigureAwait(false);
-        await EnablePluginAsync(safeName, true, cancellationToken).ConfigureAwait(false);
+        await EnablePluginAsync(projectConfigService, safeName, true, cancellationToken).ConfigureAwait(false);
 
         return new ToolResult(true, $"Integration '{integrationName}' installed as {profile}.", new Dictionary<string, string>
         {
@@ -74,8 +82,8 @@ script="plugin.gd"
         });
     }
 
-    [JsonRpcMethod("list_integration_compatibility")]
-    public ToolResult ListIntegrationCompatibility()
+    [McpServerTool(Name = "list_integration_compatibility"), Description("Check compatibility and maintenance status for all discovered integrations.")]
+    public static ToolResult ListIntegrationCompatibility(IIntegrationInspector integrationInspector)
     {
         var entries = integrationInspector.Discover();
         var data = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -88,8 +96,10 @@ script="plugin.gd"
         return new ToolResult(true, $"Compatibility listed for {entries.Count} integration(s).", data);
     }
 
-    [JsonRpcMethod("verify_integration_health")]
-    public ToolResult VerifyIntegrationHealth(string integrationName)
+    [McpServerTool(Name = "verify_integration_health"), Description("Validate that a specific integration is correctly installed and recognized.")]
+    public static ToolResult VerifyIntegrationHealth(
+        IIntegrationInspector integrationInspector,
+        [Description("The name of the integration.")] string integrationName)
     {
         if (IsBlank(integrationName))
         {

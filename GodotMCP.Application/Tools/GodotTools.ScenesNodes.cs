@@ -1,18 +1,27 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
-    [JsonRpcMethod("create_scene")]
-    public async Task<ToolResult> CreateSceneAsync(string scenePath, string rootNodeName, string rootNodeType, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "create_scene"), Description("Create a new Godot scene (.tscn) with a single root node.")]
+    public static async Task<ToolResult> CreateSceneAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) for the new scene.")] string scenePath, 
+        [Description("Name of the root node.")] string rootNodeName, 
+        [Description("Godot type of the root node (e.g., Node2D, Control, Node3D).")] string rootNodeType, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(rootNodeName) || IsBlank(rootNodeType))
         {
             return Invalid("rootNodeName and rootNodeType are required.");
         }
-        if (!IsValidResPath(scenePath))
+        if (!IsValidResPath(pathResolver, scenePath))
         {
             return Invalid("scenePath must be a valid project-relative path.", "Use paths like res://scenes/Main.tscn.");
         }
@@ -28,14 +37,22 @@ public partial class GodotTools
         return new ToolResult(true, $"Scene created at {scenePath}.");
     }
 
-    [JsonRpcMethod("add_node")]
-    public async Task<ToolResult> AddNodeAsync(string scenePath, string parentPath, string nodeName, string nodeType, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "add_node"), Description("Append a new child node to a specific parent path in a Godot scene.")]
+    public static async Task<ToolResult> AddNodeAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the scene file.")] string scenePath, 
+        [Description("The hierarchy path of the parent node (e.g., '.', 'Player').")] string parentPath, 
+        [Description("Name for the new node.")] string nodeName, 
+        [Description("Godot type for the new node.")] string nodeType, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(nodeType) || IsBlank(parentPath))
         {
             return Invalid("parentPath, nodeName and nodeType are required.");
         }
-        if (!IsValidResPath(scenePath))
+        if (!IsValidResPath(pathResolver, scenePath))
         {
             return Invalid("scenePath must be a valid project-relative path.");
         }
@@ -52,19 +69,22 @@ public partial class GodotTools
         return new ToolResult(true, $"Node '{nodeName}' added.");
     }
 
-    [JsonRpcMethod("set_node_property")]
-    public async Task<ToolResult> SetNodePropertyAsync(
-        string scenePath,
-        string nodeName,
-        string propertyKey,
-        string propertyValue,
+    [McpServerTool(Name = "set_node_property"), Description("Modify or add a property value on a specific node in a scene.")]
+    public static async Task<ToolResult> SetNodePropertyAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the scene file.")] string scenePath, 
+        [Description("Name of the node to modify.")] string nodeName, 
+        [Description("Property key (e.g., 'position', 'visible').")] string propertyKey, 
+        [Description("Raw text value for the property (e.g., 'Vector2(0, 0)').")] string propertyValue, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(propertyKey))
         {
             return Invalid("nodeName and propertyKey are required.");
         }
-        if (!IsValidResPath(scenePath))
+        if (!IsValidResPath(pathResolver, scenePath))
         {
             return Invalid("scenePath must be a valid project-relative path.");
         }
@@ -81,14 +101,20 @@ public partial class GodotTools
         return new ToolResult(true, $"Property '{propertyKey}' updated for '{nodeName}'.");
     }
 
-    [JsonRpcMethod("remove_node")]
-    public async Task<ToolResult> RemoveNodeAsync(string scenePath, string nodeName, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "remove_node"), Description("Remove a node and its recursive children from a Godot scene.")]
+    public static async Task<ToolResult> RemoveNodeAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the scene file.")] string scenePath, 
+        [Description("Name of the node to remove.")] string nodeName, 
+        CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName))
         {
             return Invalid("nodeName is required.");
         }
-        if (!IsValidResPath(scenePath))
+        if (!IsValidResPath(pathResolver, scenePath))
         {
             return Invalid("scenePath must be a valid project-relative path.");
         }
@@ -99,15 +125,18 @@ public partial class GodotTools
         return removed > 0 ? new ToolResult(true, $"Removed {removed} nodes.") : new ToolResult(false, "No matching nodes removed.");
     }
 
-    [JsonRpcMethod("instantiate_packed_scene")]
-    public async Task<ToolResult> InstantiatePackedSceneAsync(
-        string targetScenePath,
-        string parentPath,
-        string packedScenePath,
-        string instanceName,
+    [McpServerTool(Name = "instantiate_packed_scene"), Description("Instantiate an existing .tscn file as a node inside another scene.")]
+    public static async Task<ToolResult> InstantiatePackedSceneAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the scene file acting as the container.")] string targetScenePath, 
+        [Description("Parent path within the target scene.")] string parentPath, 
+        [Description("Project path (res://...) to the .tscn file to instantiate.")] string packedScenePath, 
+        [Description("Name for the new instance node.")] string instanceName, 
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(parentPath) || IsBlank(instanceName) || !IsValidResPath(targetScenePath) || !IsValidResPath(packedScenePath))
+        if (IsBlank(parentPath) || IsBlank(instanceName) || !IsValidResPath(pathResolver, targetScenePath) || !IsValidResPath(pathResolver, packedScenePath))
         {
             return Invalid("targetScenePath, packedScenePath, parentPath and instanceName are required and must be valid.");
         }
@@ -126,14 +155,17 @@ public partial class GodotTools
         return new ToolResult(true, $"Packed scene instance '{instanceName}' added.");
     }
 
-    [JsonRpcMethod("save_branch_as_scene")]
-    public async Task<ToolResult> SaveBranchAsSceneAsync(
-        string sourceScenePath,
-        string nodeName,
-        string destinationScenePath,
+    [McpServerTool(Name = "save_branch_as_scene"), Description("Export a subtree branch from one scene into a new independent .tscn file.")]
+    public static async Task<ToolResult> SaveBranchAsSceneAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project path (res://...) to the source scene file.")] string sourceScenePath, 
+        [Description("Root node name of the branch to export.")] string nodeName, 
+        [Description("Destination project path (res://...) for the exported scene.")] string destinationScenePath, 
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName) || !IsValidResPath(sourceScenePath) || !IsValidResPath(destinationScenePath))
+        if (IsBlank(nodeName) || !IsValidResPath(pathResolver, sourceScenePath) || !IsValidResPath(pathResolver, destinationScenePath))
         {
             return Invalid("sourceScenePath, destinationScenePath and nodeName are required and must be valid.");
         }

@@ -1,16 +1,25 @@
+using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
-using StreamJsonRpc;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
-public partial class GodotTools
+public static partial class GodotTools
 {
-    [JsonRpcMethod("run_editor_command")]
-    public Task<ToolResult> RunEditorCommandAsync(string arguments, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "run_editor_command"), Description("Execute a headless Godot CLI command with custom arguments.")]
+    public static Task<ToolResult> RunEditorCommandAsync(
+        IGodotCliService godotCliService,
+        [Description("Raw command line arguments.")] string arguments, 
+        CancellationToken cancellationToken = default)
         => godotCliService.RunAsync(arguments, cancellationToken);
 
-    [JsonRpcMethod("manage_export_presets")]
-    public async Task<ToolResult> ManageExportPresetsAsync(string presetName, string platform, CancellationToken cancellationToken = default)
+    [McpServerTool(Name = "manage_export_presets"), Description("Modify Godot export_presets.cfg to include a specific target platform.")]
+    public static async Task<ToolResult> ManageExportPresetsAsync(
+        IGodotFileService fileService,
+        [Description("Name of the export preset.")] string presetName, 
+        [Description("Godot target platform (e.g., Windows Desktop).")] string platform, 
+        CancellationToken cancellationToken = default)
     {
         var content = $$"""
 [preset.0]

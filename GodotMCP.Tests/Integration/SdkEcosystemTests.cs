@@ -23,30 +23,25 @@ public class SdkEcosystemTests
         {
             IPathResolver resolver = new PathResolver(root);
             IGodotFileService files = new GodotFileService(resolver);
-            var tools = new GodotTools(
-                files,
-                resolver,
-                new SceneSerializer(),
-                new ResourceSerializer(),
-                new ImportFileGenerator(),
-                new ProjectConfigService(resolver),
-                new GodotCliService(resolver),
-                new IntegrationInspector(resolver));
+            var config = new ProjectConfigService(resolver);
+            var inspector = new IntegrationInspector(resolver);
 
-            var result = tools.DiscoverIntegrations();
+            var result = GodotTools.DiscoverIntegrations(inspector);
             result.Success.Should().BeTrue();
             result.Data.Should().NotBeNull();
             result.Data!.Keys.Should().Contain("myplugin");
 
-            tools.VerifyIntegrationHealth("myplugin").Success.Should().BeTrue();
+            GodotTools.VerifyIntegrationHealth(inspector, "myplugin").Success.Should().BeTrue();
 
-            var installResult = await tools.InstallIntegrationAsync(
+            var installResult = await GodotTools.InstallIntegrationAsync(
+                files,
+                config,
                 "Analytics SDK",
                 "https://example.com/analytics",
                 Core.Models.IntegrationProfile.CommunitySdk);
             installResult.Success.Should().BeTrue();
 
-            var compatibility = tools.ListIntegrationCompatibility();
+            var compatibility = GodotTools.ListIntegrationCompatibility(inspector);
             compatibility.Success.Should().BeTrue();
             compatibility.Data.Should().NotBeNull();
             compatibility.Data!.Keys.Should().Contain("Analytics_SDK");
@@ -71,17 +66,9 @@ public class SdkEcosystemTests
         {
             IPathResolver resolver = new PathResolver(root);
             IGodotFileService files = new GodotFileService(resolver);
-            var tools = new GodotTools(
-                files,
-                resolver,
-                new SceneSerializer(),
-                new ResourceSerializer(),
-                new ImportFileGenerator(),
-                new ProjectConfigService(resolver),
-                new GodotCliService(resolver),
-                new IntegrationInspector(resolver));
+            var config = new ProjectConfigService(resolver);
 
-            var result = await tools.InstallIntegrationAsync("", "https://example.com", Core.Models.IntegrationProfile.VendorSdk);
+            var result = await GodotTools.InstallIntegrationAsync(files, config, "", "https://example.com", Core.Models.IntegrationProfile.VendorSdk);
             result.Success.Should().BeFalse();
         }
         finally
