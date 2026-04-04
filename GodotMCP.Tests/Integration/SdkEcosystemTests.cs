@@ -29,7 +29,7 @@ public class SdkEcosystemTests
             var result = GodotTools.DiscoverIntegrations(inspector);
             result.Success.Should().BeTrue();
             result.Data.Should().NotBeNull();
-            result.Data!.Keys.Should().Contain("myplugin");
+            ((Dictionary<string, string>)result.Data!).Keys.Should().Contain("myplugin");
 
             GodotTools.VerifyIntegrationHealth(inspector, "myplugin").Success.Should().BeTrue();
 
@@ -44,7 +44,7 @@ public class SdkEcosystemTests
             var compatibility = GodotTools.ListIntegrationCompatibility(inspector);
             compatibility.Success.Should().BeTrue();
             compatibility.Data.Should().NotBeNull();
-            compatibility.Data!.Keys.Should().Contain("Analytics_SDK");
+            ((Dictionary<string, string>)compatibility.Data!).Keys.Should().Contain("Analytics_SDK");
         }
         finally
         {

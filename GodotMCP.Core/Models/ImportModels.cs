@@ -21,5 +21,5 @@ public sealed class IntegrationMetadata
 public sealed record ToolResult(
     bool Success,
     string Message,
-    Dictionary<string, string>? Data = null,
+    object? Data = null,
     string? SuggestedRemediation = null);
