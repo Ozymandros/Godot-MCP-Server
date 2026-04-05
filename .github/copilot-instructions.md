@@ -10,13 +10,15 @@ Persistent guidance for this repository. Adjust as the project evolves. For how 
 
 ## Solution layout
 
-| Area | Project / path |
-|------|----------------|
-| Host, CLI, DI | `GodotMCP.Server/` |
-| Use cases, commands | `GodotMCP.Application/` |
-| Domain | `GodotMCP.Core/` |
+
+| Area                         | Project / path             |
+| ---------------------------- | -------------------------- |
+| Host, CLI, DI                | `GodotMCP.Server/`         |
+| Use cases, commands          | `GodotMCP.Application/`    |
+| Domain                       | `GodotMCP.Core/`           |
 | Filesystem, config, platform | `GodotMCP.Infrastructure/` |
-| Tests | `GodotMCP.Tests/` |
+| Tests                        | `GodotMCP.Tests/`          |
+
 
 Solution file: `GodotMCP.slnx`.
 
@@ -50,3 +52,4 @@ Docker image check (optional): `docker build -t godot-mcp-server:local .` from r
 - If requirements are ambiguous, **ask** rather than guessing behavior or public API shape.
 - Call out **limitations and risks** of generated code; users should review and test before release.
 - Treat **credentials, tokens, and signing material** as sensitive — never commit them; use existing configuration patterns.
+
