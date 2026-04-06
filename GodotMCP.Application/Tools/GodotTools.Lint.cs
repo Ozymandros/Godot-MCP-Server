@@ -45,37 +45,37 @@ public static partial class GodotTools
             var resPath = pathResolver.ToResPath(sceneFile);
             try
             {
-                 var content = await fileService.ReadAsync(resPath, cancellationToken).ConfigureAwait(false);
-                 var scene = sceneSerializer.Deserialize(content);
-                 
-                 foreach (var ext in scene.ExternalResources)
-                 {
-                      if (!IsValidResPath(pathResolver, ext.Path))
-                      {
-                           issues.Add(new LintIssue
-                           {
+                var content = await fileService.ReadAsync(resPath, cancellationToken).ConfigureAwait(false);
+                var scene = sceneSerializer.Deserialize(content);
+
+                foreach (var ext in scene.ExternalResources)
+                {
+                    if (!IsValidResPath(pathResolver, ext.Path))
+                    {
+                        issues.Add(new LintIssue
+                        {
+                            Path = resPath,
+                            Severity = "Error",
+                            Message = $"External resource '{ext.Path}' is missing or has an invalid path.",
+                            SuggestedFix = "Check res:// path correctly or update ExtResource path."
+                        });
+                    }
+                    else
+                    {
+                        // Check if the file actually exists on disk.
+                        var fullPath = pathResolver.ResolveResPath(ext.Path);
+                        if (!File.Exists(fullPath))
+                        {
+                            issues.Add(new LintIssue
+                            {
                                 Path = resPath,
-                                Severity = "Error",
-                                Message = $"External resource '{ext.Path}' is missing or has an invalid path.",
-                                SuggestedFix = "Check res:// path correctly or update ExtResource path."
-                           });
-                      }
-                      else
-                      {
-                           // Check if the file actually exists on disk.
-                           var fullPath = pathResolver.ResolveResPath(ext.Path);
-                           if (!File.Exists(fullPath))
-                           {
-                                issues.Add(new LintIssue
-                                {
-                                     Path = resPath,
-                                     Severity = "Warning",
-                                     Message = $"External resource '{ext.Path}' defined in scene does not exist on disk.",
-                                     SuggestedFix = "Ensure the resource file exists at the specified path."
-                                });
-                           }
-                      }
-                 }
+                                Severity = "Warning",
+                                Message = $"External resource '{ext.Path}' defined in scene does not exist on disk.",
+                                SuggestedFix = "Ensure the resource file exists at the specified path."
+                            });
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {

@@ -25,9 +25,9 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath, 
-        [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer", 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath,
+        [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(parentPath))
@@ -41,14 +41,14 @@ public static partial class GodotTools
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
         var scene = sceneSerializer.Deserialize(sceneText);
-        
+
         scene.Nodes.Add(new GodotNode
         {
             Name = nodeName,
             Type = "AnimationPlayer",
             Parent = parentPath
         });
-        
+
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"AnimationPlayer '{nodeName}' added to {scenePath}.");
     }
@@ -71,11 +71,11 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("The name of the AnimationPlayer node."), Required] string playerNodeName, 
-        [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName, 
-        [Description("Duration of the animation in seconds."), Required] float length, 
-        [Description("Whether the animation loops."), Required] bool loop = false, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The name of the AnimationPlayer node."), Required] string playerNodeName,
+        [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName,
+        [Description("Duration of the animation in seconds."), Required] float length,
+        [Description("Whether the animation loops."), Required] bool loop = false,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(playerNodeName) || IsBlank(animName))
@@ -110,7 +110,7 @@ public static partial class GodotTools
         // Link animation to player (using AnimationLibrary "")
         // Godot usually uses an AnimationLibrary sub-resource to hold animations.
         // For simplicity, we'll check if a library already exists or create one.
-        
+
         var libId = "AnimationLibrary_default";
         var libSub = scene.SubResources.FirstOrDefault(s => s.Type == "AnimationLibrary");
         if (libSub == null)
@@ -129,13 +129,13 @@ public static partial class GodotTools
         // Real implementation should parse the Godot dictionary.
         if (libSub.Properties.TryGetValue("_data", out var currentData))
         {
-             // Append to existing: { "a": res, "b": res } -> { "a": res, "b": res, "new": res }
-             var inner = currentData.Trim().Trim('{', '}').Trim();
-             libSub.Properties["_data"] = $"{{ {inner}, \"{animName}\": SubResource(\"{animId}\") }}";
+            // Append to existing: { "a": res, "b": res } -> { "a": res, "b": res, "new": res }
+            var inner = currentData.Trim().Trim('{', '}').Trim();
+            libSub.Properties["_data"] = $"{{ {inner}, \"{animName}\": SubResource(\"{animId}\") }}";
         }
         else
         {
-             libSub.Properties["_data"] = $"{{ \"{animName}\": SubResource(\"{animId}\") }}";
+            libSub.Properties["_data"] = $"{{ \"{animName}\": SubResource(\"{animId}\") }}";
         }
 
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
@@ -160,11 +160,11 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("The resource_name of the animation."), Required] string animName, 
-        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath, 
-        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value", 
-        [Description("Array of key points: {Time, Value, Transition}."), Required, MinLength(1)] List<KeyPoint>? keys = null, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The resource_name of the animation."), Required] string animName,
+        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath,
+        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value",
+        [Description("Array of key points: {Time, Value, Transition}."), Required, MinLength(1)] List<KeyPoint>? keys = null,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(animName) || IsBlank(targetPath))

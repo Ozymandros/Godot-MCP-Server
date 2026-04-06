@@ -368,11 +368,11 @@ public sealed class CameraService(
             Current: current);
     }
 
-            /// <summary>
-            /// Checks whether near/far clip values are either absent or logically valid.
-            /// </summary>
-            /// <param name="info">Camera descriptor to inspect.</param>
-            /// <returns><see langword="true" /> when valid; otherwise, <see langword="false" />.</returns>
+    /// <summary>
+    /// Checks whether near/far clip values are either absent or logically valid.
+    /// </summary>
+    /// <param name="info">Camera descriptor to inspect.</param>
+    /// <returns><see langword="true" /> when valid; otherwise, <see langword="false" />.</returns>
     private static bool HasValidNearFar(CameraNodeInfo info)
     {
         if (!info.Near.HasValue || !info.Far.HasValue)

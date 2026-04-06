@@ -24,9 +24,9 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) for the new scene."), Required] string scenePath, 
-        [Description("Name of the root node."), Required] string rootNodeName, 
-        [Description("Godot type of the root node (e.g., Node2D, Control, Node3D)."), Required] string rootNodeType, 
+        [Description("Project path (res://...) for the new scene."), Required] string scenePath,
+        [Description("Name of the root node."), Required] string rootNodeName,
+        [Description("Godot type of the root node (e.g., Node2D, Control, Node3D)."), Required] string rootNodeType,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(rootNodeName) || IsBlank(rootNodeType))
@@ -66,10 +66,10 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("The hierarchy path of the parent node (e.g., '.', 'Player')."), Required] string parentPath, 
-        [Description("Name for the new node."), Required] string nodeName, 
-        [Description("Godot type for the new node."), Required] string nodeType, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The hierarchy path of the parent node (e.g., '.', 'Player')."), Required] string parentPath,
+        [Description("Name for the new node."), Required] string nodeName,
+        [Description("Godot type for the new node."), Required] string nodeType,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(nodeType) || IsBlank(parentPath))
@@ -110,10 +110,10 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("Name of the node to modify."), Required] string nodeName, 
-        [Description("Property key (e.g., 'position', 'visible')."), Required] string propertyKey, 
-        [Description("Raw text value for the property (e.g., 'Vector2(0, 0)')."), Required] string propertyValue, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Name of the node to modify."), Required] string nodeName,
+        [Description("Property key (e.g., 'position', 'visible')."), Required] string propertyKey,
+        [Description("Raw text value for the property (e.g., 'Vector2(0, 0)')."), Required] string propertyValue,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(propertyKey))
@@ -152,8 +152,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("Name of the node to remove."), Required] string nodeName, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Name of the node to remove."), Required] string nodeName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName))
@@ -188,10 +188,10 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file acting as the container."), Required] string targetScenePath, 
-        [Description("Parent path within the target scene."), Required] string parentPath, 
-        [Description("Project path (res://...) to the .tscn file to instantiate."), Required] string packedScenePath, 
-        [Description("Name for the new instance node."), Required] string instanceName, 
+        [Description("Project path (res://...) to the scene file acting as the container."), Required] string targetScenePath,
+        [Description("Parent path within the target scene."), Required] string parentPath,
+        [Description("Project path (res://...) to the .tscn file to instantiate."), Required] string packedScenePath,
+        [Description("Name for the new instance node."), Required] string instanceName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(parentPath) || IsBlank(instanceName) || !IsValidResPath(pathResolver, targetScenePath) || !IsValidResPath(pathResolver, packedScenePath))
@@ -229,9 +229,9 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the source scene file."), Required] string sourceScenePath, 
-        [Description("Root node name of the branch to export."), Required] string nodeName, 
-        [Description("Destination project path (res://...) for the exported scene."), Required] string destinationScenePath, 
+        [Description("Project path (res://...) to the source scene file."), Required] string sourceScenePath,
+        [Description("Root node name of the branch to export."), Required] string nodeName,
+        [Description("Destination project path (res://...) for the exported scene."), Required] string destinationScenePath,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || !IsValidResPath(pathResolver, sourceScenePath) || !IsValidResPath(pathResolver, destinationScenePath))

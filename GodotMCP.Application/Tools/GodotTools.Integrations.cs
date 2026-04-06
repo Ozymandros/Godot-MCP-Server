@@ -37,8 +37,8 @@ public static partial class GodotTools
     [McpServerTool(Name = "enable_plugin"), Description("Enable or disable a specific Godot editor plugin by its folder name.")]
     public static async Task<ToolResult> EnablePluginAsync(
         IProjectConfigService projectConfigService,
-        [Description("The addon folder name."), Required] string pluginName, 
-        [Description("Set to true to enable, false to disable."), Required] bool enabled, 
+        [Description("The addon folder name."), Required] string pluginName,
+        [Description("Set to true to enable, false to disable."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))
@@ -72,9 +72,9 @@ public static partial class GodotTools
     public static async Task<ToolResult> InstallIntegrationAsync(
         IGodotFileService fileService,
         IProjectConfigService projectConfigService,
-        [Description("The human-readable name of the integration."), Required] string integrationName, 
-        [Description("Source URL or identifier for the integration."), Required] string source, 
-        [Description("The category of the integration."), Required] IntegrationProfile profile, 
+        [Description("The human-readable name of the integration."), Required] string integrationName,
+        [Description("Source URL or identifier for the integration."), Required] string source,
+        [Description("The category of the integration."), Required] IntegrationProfile profile,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(integrationName) || IsBlank(source))

@@ -23,10 +23,10 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project path (res://...) for the new script."), Required] string path, 
-        [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language, 
-        [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType, 
-        [Description("Name of the script class."), Required] string className, 
+        [Description("Project path (res://...) for the new script."), Required] string path,
+        [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language,
+        [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
+        [Description("Name of the script class."), Required] string className,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(path) || IsBlank(language) || IsBlank(baseType) || IsBlank(className))
@@ -77,9 +77,9 @@ public partial class {{className}} : {{baseType}}
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
-        [Description("Name of the target node."), Required] string nodeName, 
-        [Description("Project path (res://...) to the script to attach."), Required] string scriptPath, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Name of the target node."), Required] string nodeName,
+        [Description("Project path (res://...) to the script to attach."), Required] string scriptPath,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || !IsValidResPath(pathResolver, scenePath) || !IsValidResPath(pathResolver, scriptPath))
@@ -117,8 +117,8 @@ public partial class {{className}} : {{baseType}}
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project path (res://...) to the script file."), Required] string scriptPath, 
-        [Description("Set to true if the script is C#, false for GDScript."), Required] bool isCSharp, 
+        [Description("Project path (res://...) to the script file."), Required] string scriptPath,
+        [Description("Set to true if the script is C#, false for GDScript."), Required] bool isCSharp,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, scriptPath))

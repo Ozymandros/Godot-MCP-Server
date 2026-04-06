@@ -18,7 +18,7 @@ public static partial class GodotTools
     [McpServerTool(Name = "create_godot_project"), Description("Create a new Godot 4.x project at the current working directory.")]
     public static async Task<ToolResult> CreateGodotProjectAsync(
         IGodotFileService fileService,
-        [Description("The name of the Godot project."), Required] string projectName, 
+        [Description("The name of the Godot project."), Required] string projectName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectName))
@@ -91,9 +91,9 @@ project/assembly_name="{{projectName}}"
     [McpServerTool(Name = "configure_autoload"), Description("Enable or disable a singleton autoload in project.godot.")]
     public static async Task<ToolResult> ConfigureAutoloadAsync(
         IProjectConfigService projectConfigService,
-        [Description("The autoload unique key."), Required] string key, 
-        [Description("The resource path (res://...) to the script or scene."), Required] string value, 
-        [Description("Set to true to add, false to remove."), Required] bool enabled, 
+        [Description("The autoload unique key."), Required] string key,
+        [Description("The resource path (res://...) to the script or scene."), Required] string value,
+        [Description("Set to true to add, false to remove."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(key) || IsBlank(value))
@@ -121,7 +121,7 @@ project/assembly_name="{{projectName}}"
     [McpServerTool(Name = "add_plugin"), Description("Register an editor plugin in project.godot.")]
     public static async Task<ToolResult> AddPluginAsync(
         IProjectConfigService projectConfigService,
-        [Description("The folder name of the plugin under res://addons/."), Required] string pluginName, 
+        [Description("The folder name of the plugin under res://addons/."), Required] string pluginName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))

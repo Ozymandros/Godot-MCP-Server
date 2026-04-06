@@ -24,8 +24,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the first scene file."), Required] string scenePathA, 
-        [Description("Project path (res://...) to the second scene file."), Required] string scenePathB, 
+        [Description("Project path (res://...) to the first scene file."), Required] string scenePathA,
+        [Description("Project path (res://...) to the second scene file."), Required] string scenePathB,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, scenePathA) || !IsValidResPath(pathResolver, scenePathB))
@@ -39,7 +39,7 @@ public static partial class GodotTools
         var sceneB = sceneSerializer.Deserialize(sceneBText);
 
         var diff = new SceneDiffModel();
-        
+
         // Node changes
         var nodesA = sceneA.Nodes.ToDictionary(n => n.Name, n => n);
         var nodesB = sceneB.Nodes.ToDictionary(n => n.Name, n => n);
@@ -58,24 +58,24 @@ public static partial class GodotTools
             var nodeB = nodesB[nodeName];
             if (nodeA.Type != nodeB.Type || nodeA.Parent != nodeB.Parent || nodeA.Instance != nodeB.Instance)
             {
-                 diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = "Core Attributes", OldValue = "Modified" });
+                diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = "Core Attributes", OldValue = "Modified" });
             }
-            
+
             // Compare properties
             foreach (var prop in nodeA.Properties.Keys.Except(nodeB.Properties.Keys))
             {
-                 diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = nodeA.Properties[prop], NewValue = null });
+                diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = nodeA.Properties[prop], NewValue = null });
             }
             foreach (var prop in nodeB.Properties.Keys.Except(nodeA.Properties.Keys))
             {
-                 diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = null, NewValue = nodeB.Properties[prop] });
+                diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = null, NewValue = nodeB.Properties[prop] });
             }
             foreach (var prop in nodeA.Properties.Keys.Intersect(nodeB.Properties.Keys))
             {
-                 if (nodeA.Properties[prop] != nodeB.Properties[prop])
-                 {
-                      diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = nodeA.Properties[prop], NewValue = nodeB.Properties[prop] });
-                 }
+                if (nodeA.Properties[prop] != nodeB.Properties[prop])
+                {
+                    diff.ModifiedNodes.Add(new PropertyChange { Target = nodeName, Property = prop, OldValue = nodeA.Properties[prop], NewValue = nodeB.Properties[prop] });
+                }
             }
         }
 

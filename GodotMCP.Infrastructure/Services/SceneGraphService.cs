@@ -332,11 +332,11 @@ public sealed class SceneGraphService(
             properties);
     }
 
-            /// <summary>
-            /// Builds fast lookup indexes over the scene nodes for path-based operations.
-            /// </summary>
-            /// <param name="scene">Scene model to index.</param>
-            /// <returns>Scene index containing entries and path lookup map.</returns>
+    /// <summary>
+    /// Builds fast lookup indexes over the scene nodes for path-based operations.
+    /// </summary>
+    /// <param name="scene">Scene model to index.</param>
+    /// <returns>Scene index containing entries and path lookup map.</returns>
     private static SceneIndex BuildIndex(GodotScene scene)
     {
         var root = scene.Nodes.FirstOrDefault(n => string.IsNullOrWhiteSpace(n.Parent));
@@ -441,12 +441,12 @@ public sealed class SceneGraphService(
             Comparer.Equals(x.Node.Name, candidateName));
     }
 
-            /// <summary>
-            /// Converts a boxed primitive value into a deterministic scene property string.
-            /// </summary>
-            /// <param name="value">Input value to convert.</param>
-            /// <param name="serialized">Serialized scene value when conversion succeeds.</param>
-            /// <returns><see langword="true"/> when the value type is supported; otherwise <see langword="false"/>.</returns>
+    /// <summary>
+    /// Converts a boxed primitive value into a deterministic scene property string.
+    /// </summary>
+    /// <param name="value">Input value to convert.</param>
+    /// <param name="serialized">Serialized scene value when conversion succeeds.</param>
+    /// <returns><see langword="true"/> when the value type is supported; otherwise <see langword="false"/>.</returns>
     private static bool TryFormatPropertyValue(object? value, out string serialized)
     {
         serialized = string.Empty;
