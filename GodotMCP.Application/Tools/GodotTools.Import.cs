@@ -2,6 +2,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace GodotMCP.Application.Tools;
 
@@ -12,10 +13,10 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) to the asset.")] string assetPath, 
-        [Description("The Godot importer (e.g., texture, wav).")] string importer, 
-        [Description("The resource type (e.g., Texture2D, AudioStreamWAV).")] string type, 
-        [Description("Optional importer parameters.")] Dictionary<string, string>? parameters = null, 
+        [Description("Project path (res://...) to the asset."), Required] string assetPath, 
+        [Description("The Godot importer (e.g., texture, wav)."), Required] string importer, 
+        [Description("The resource type (e.g., Texture2D, AudioStreamWAV)."), Required] string type, 
+        [Description("Optional importer parameters."), Required, MinLength(1)] Dictionary<string, string>? parameters = null, 
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, assetPath) || IsBlank(importer) || IsBlank(type))
@@ -47,7 +48,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project path (res://...) to the asset to reimport.")] string assetPath, 
+        [Description("Project path (res://...) to the asset to reimport."), Required] string assetPath, 
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, assetPath))
@@ -68,7 +69,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new texture.")] string texturePath, 
+        [Description("Project path (res://...) for the new texture."), Required] string texturePath, 
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, texturePath))
@@ -89,7 +90,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new audio file.")] string audioPath, 
+        [Description("Project path (res://...) for the new audio file."), Required] string audioPath, 
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, audioPath))

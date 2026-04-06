@@ -2,6 +2,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace GodotMCP.Application.Tools;

@@ -20,6 +20,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Fixtures\Scenes\**\*.tscn">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GodotMCP.Application\GodotMCP.Application.csproj" />
     <ProjectReference Include="..\GodotMCP.Infrastructure\GodotMCP.Infrastructure.csproj" />
     <ProjectReference Include="..\GodotMCP.Core\GodotMCP.Core.csproj" />

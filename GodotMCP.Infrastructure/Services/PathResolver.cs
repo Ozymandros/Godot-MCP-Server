@@ -27,9 +27,14 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
 
     public void EnsureInsideProject(string absolutePath)
     {
-        var root = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            + Path.DirectorySeparatorChar;
-        if (!Path.GetFullPath(absolutePath).StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        var fullPath = Path.GetFullPath(absolutePath)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedRoot = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var rootWithSeparator = normalizedRoot + Path.DirectorySeparatorChar;
+
+        var isProjectRoot = string.Equals(fullPath, normalizedRoot, StringComparison.OrdinalIgnoreCase);
+        var isInsideProject = fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase);
+        if (!isProjectRoot && !isInsideProject)
         {
             throw new InvalidOperationException($"Path escapes project root: {absolutePath}");
         }

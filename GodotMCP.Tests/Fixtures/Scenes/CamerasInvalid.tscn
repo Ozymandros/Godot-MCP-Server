@@ -1,0 +1,21 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Root" type="Node3D"]
+
+[node name="CameraA" type="Camera3D" parent="."]
+current = true
+near = 0.05
+far = 100
+projection = 0
+
+[node name="CameraB" type="Camera3D" parent="."]
+current = true
+near = 1
+far = 0.5
+projection = 7
+
+[node name="Orphan" type="Camera3D" parent="MissingParent"]
+current = false
+near = 0.1
+far = 100
+projection = 0

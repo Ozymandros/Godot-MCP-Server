@@ -2,6 +2,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace GodotMCP.Application.Tools;
@@ -13,9 +14,9 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The hierarchy path of the parent node (e.g., '.', 'Root').")] string parentPath, 
-        [Description("Name for the new AnimationPlayer node.")] string nodeName = "AnimationPlayer", 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
+        [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath, 
+        [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer", 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(parentPath))
@@ -46,11 +47,11 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The name of the AnimationPlayer node.")] string playerNodeName, 
-        [Description("The name for the new animation (e.g., 'fade_out').")] string animName, 
-        [Description("Duration of the animation in seconds.")] float length, 
-        [Description("Whether the animation loops.")] bool loop = false, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
+        [Description("The name of the AnimationPlayer node."), Required] string playerNodeName, 
+        [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName, 
+        [Description("Duration of the animation in seconds."), Required] float length, 
+        [Description("Whether the animation loops."), Required] bool loop = false, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(playerNodeName) || IsBlank(animName))
@@ -122,11 +123,11 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The resource_name of the animation.")] string animName, 
-        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position').")] string targetPath, 
-        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'.")] string trackType = "value", 
-        [Description("Array of key points: {Time, Value, Transition}. Value should be Godot-formatted string (e.g. 'Vector2(0, 0)').")] List<KeyPoint>? keys = null, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath, 
+        [Description("The resource_name of the animation."), Required] string animName, 
+        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath, 
+        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value", 
+        [Description("Array of key points: {Time, Value, Transition}."), Required, MinLength(1)] List<KeyPoint>? keys = null, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(animName) || IsBlank(targetPath))

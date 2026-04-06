@@ -2,6 +2,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace GodotMCP.Application.Tools;
 
@@ -23,8 +24,8 @@ public static partial class GodotTools
     [McpServerTool(Name = "enable_plugin"), Description("Enable or disable a specific Godot editor plugin by its folder name.")]
     public static async Task<ToolResult> EnablePluginAsync(
         IProjectConfigService projectConfigService,
-        [Description("The addon folder name.")] string pluginName, 
-        [Description("Set to true to enable, false to disable.")] bool enabled, 
+        [Description("The addon folder name."), Required] string pluginName, 
+        [Description("Set to true to enable, false to disable."), Required] bool enabled, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))
@@ -48,9 +49,9 @@ public static partial class GodotTools
     public static async Task<ToolResult> InstallIntegrationAsync(
         IGodotFileService fileService,
         IProjectConfigService projectConfigService,
-        [Description("The human-readable name of the integration.")] string integrationName, 
-        [Description("Source URL or identifier for the integration.")] string source, 
-        [Description("The category of the integration.")] IntegrationProfile profile, 
+        [Description("The human-readable name of the integration."), Required] string integrationName, 
+        [Description("Source URL or identifier for the integration."), Required] string source, 
+        [Description("The category of the integration."), Required] IntegrationProfile profile, 
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(integrationName) || IsBlank(source))
@@ -99,7 +100,7 @@ script="plugin.gd"
     [McpServerTool(Name = "verify_integration_health"), Description("Validate that a specific integration is correctly installed and recognized.")]
     public static ToolResult VerifyIntegrationHealth(
         IIntegrationInspector integrationInspector,
-        [Description("The name of the integration.")] string integrationName)
+        [Description("The name of the integration."), Required] string integrationName)
     {
         if (IsBlank(integrationName))
         {

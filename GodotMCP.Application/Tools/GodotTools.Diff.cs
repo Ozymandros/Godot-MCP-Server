@@ -2,6 +2,7 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace GodotMCP.Application.Tools;
@@ -13,8 +14,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the first scene file.")] string scenePathA, 
-        [Description("Project path (res://...) to the second scene file.")] string scenePathB, 
+        [Description("Project path (res://...) to the first scene file."), Required] string scenePathA, 
+        [Description("Project path (res://...) to the second scene file."), Required] string scenePathB, 
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, scenePathA) || !IsValidResPath(pathResolver, scenePathB))

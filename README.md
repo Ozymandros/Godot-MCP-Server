@@ -12,6 +12,7 @@ Key features
 
 - Godot-native scene, resource, and importer handling
 - Animation generation (AnimationPlayer, Libraries, Tracks, and Keys)
+- Camera tooling (list/create/update/validate across scenes)
 - Scene comparison and structural diffing
 - Project linting (missing imports, broken dependencies)
 - Stdio JSON-RPC transport for local and CI automation
@@ -59,6 +60,15 @@ Containerized development
 - Runtime container: see `Dockerfile` and `Docs/docker-mcp-setup.md`
 - Dev container configuration: see `.devcontainer/` and `Docs/vscontainer-setup.md`
 - Local compose entrypoint: `docker-compose.yml`
+
+Camera Tools
+
+The server includes headless camera commands that operate directly on `.tscn` files without launching the Godot runtime:
+
+- `camera.list`: scans scenes and returns all Camera2D and Camera3D nodes with scene path, node path, type, fov/size, near/far, projection, and current flag.
+- `camera.create`: inserts a Camera2D/Camera3D node in a scene and supports `cinematic`, `orthographic-ui`, and `fps` presets.
+- `camera.update`: updates only the provided camera properties with validation for property names and value types.
+- `camera.validate`: returns lint-style issues for multiple current cameras in one scene, invalid near/far ranges, missing parents, and unsupported projection modes.
 
 Release artifacts
 
