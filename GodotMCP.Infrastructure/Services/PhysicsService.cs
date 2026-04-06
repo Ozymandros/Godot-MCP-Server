@@ -18,13 +18,13 @@ public sealed class PhysicsService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<PhysicsBodyInfo>> ListAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = NormalizeDirectoryToResPath(rootPath);
+        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
         var bodies = new List<PhysicsBodyInfo>();
         foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
         {
             var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
             var nodes = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
-            bodies.AddRange(Flatten(nodes)
+            bodies.AddRange(ServiceHelpers.FlattenNodes(nodes)
                 .Where(IsPhysicsBody)
                 .Select(x => ToBodyInfo(sceneResPath, x)));
         }
@@ -108,13 +108,13 @@ public sealed class PhysicsService(
     public async Task<IReadOnlyList<PhysicsValidationIssue>> ValidateAsync(string rootPath, CancellationToken cancellationToken = default)
     {
         var issues = new List<PhysicsValidationIssue>();
-        var rootResPath = NormalizeDirectoryToResPath(rootPath);
+        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
 
         foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
         {
             var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
             var roots = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
-            var nodes = Flatten(roots).ToList();
+            var nodes = ServiceHelpers.FlattenNodes(roots).ToList();
 
             foreach (var node in nodes.Where(IsPhysicsBody))
             {
@@ -205,7 +205,7 @@ public sealed class PhysicsService(
     private async Task<PhysicsBodyInfo?> FindBodyAsync(string scenePath, string nodePath, CancellationToken cancellationToken)
     {
         var roots = await sceneGraphService.ListNodesAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var node = Flatten(roots).FirstOrDefault(x => x.NodePath == nodePath);
+        var node = ServiceHelpers.FlattenNodes(roots).FirstOrDefault(x => x.NodePath == nodePath);
         return node is null || !IsPhysicsBody(node) ? null : ToBodyInfo(scenePath, node);
     }
 
@@ -279,48 +279,6 @@ public sealed class PhysicsService(
         var expectedType = bodyType.EndsWith("2D", StringComparison.Ordinal) ? "CollisionShape2D" : "CollisionShape3D";
         var prefix = bodyPath + "/";
         return nodes.Any(x => x.Type == expectedType && x.NodePath.StartsWith(prefix, StringComparison.Ordinal));
-    }
-
-    /// <summary>
-    /// Normalizes a root path into a canonical <c>res://</c> directory path.
-    /// </summary>
-    /// <param name="rootPath">Input root path that may be absolute or project-relative.</param>
-    /// <returns>Normalized <c>res://</c> directory path.</returns>
-    private string NormalizeDirectoryToResPath(string rootPath)
-    {
-        if (Path.IsPathRooted(rootPath))
-        {
-            pathResolver.EnsureInsideProject(rootPath);
-            var resPath = pathResolver.ToResPath(rootPath);
-            return resPath.EndsWith("/", StringComparison.Ordinal) ? resPath.TrimEnd('/') : resPath;
-        }
-
-        var normalized = rootPath.Replace('\\', '/');
-        if (string.Equals(normalized, "res://", StringComparison.Ordinal))
-        {
-            return "res://";
-        }
-
-        var absolute = pathResolver.ResolveResPath(normalized);
-        var res = pathResolver.ToResPath(absolute);
-        return res.EndsWith("/", StringComparison.Ordinal) ? res.TrimEnd('/') : res;
-    }
-
-    /// <summary>
-    /// Flattens recursive scene graph roots into a single enumerable sequence.
-    /// </summary>
-    /// <param name="nodes">Root nodes to traverse.</param>
-    /// <returns>Flattened recursive node stream.</returns>
-    private static IEnumerable<SceneGraphNodeInfo> Flatten(IReadOnlyList<SceneGraphNodeInfo> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            yield return node;
-            foreach (var child in Flatten(node.Children))
-            {
-                yield return child;
-            }
-        }
     }
 
     /// <summary>

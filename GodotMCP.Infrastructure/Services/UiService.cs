@@ -38,7 +38,7 @@ public sealed class UiService(ISceneGraphService sceneGraphService) : IUiService
     {
         var nodes = await sceneGraphService.ListNodesAsync(scenePath, cancellationToken).ConfigureAwait(false);
         var controls = new List<UiControlInfo>();
-        foreach (var node in Flatten(nodes))
+        foreach (var node in ServiceHelpers.FlattenNodes(nodes))
         {
             if (!IsUiNode(node.Type))
             {
@@ -221,20 +221,4 @@ public sealed class UiService(ISceneGraphService sceneGraphService) : IUiService
     private static string ResolveChildPath(string parentPath, string childName)
         => parentPath is "." or "" ? childName : $"{parentPath}/{childName}";
 
-    /// <summary>
-    /// Flattens recursive scene graph nodes into a single sequence.
-    /// </summary>
-    /// <param name="children">Root nodes to traverse.</param>
-    /// <returns>Flattened recursive node sequence.</returns>
-    private static IEnumerable<SceneGraphNodeInfo> Flatten(IReadOnlyList<SceneGraphNodeInfo> children)
-    {
-        foreach (var child in children)
-        {
-            yield return child;
-            foreach (var descendant in Flatten(child.Children))
-            {
-                yield return descendant;
-            }
-        }
-    }
 }

@@ -20,14 +20,14 @@ public sealed class LightingService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<LightNodeInfo>> ListAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = NormalizeDirectoryToResPath(rootPath);
+        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
         var lights = new List<LightNodeInfo>();
 
         foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
         {
             var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
             var nodes = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
-            lights.AddRange(Flatten(nodes)
+            lights.AddRange(ServiceHelpers.FlattenNodes(nodes)
                 .Where(IsLightNode)
                 .Select(x => ToLightInfo(sceneResPath, x)));
         }
@@ -222,7 +222,7 @@ public sealed class LightingService(
     private async Task<LightNodeInfo?> FindLightAsync(string scenePath, string lightPath, CancellationToken cancellationToken)
     {
         var nodes = await sceneGraphService.ListNodesAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var node = Flatten(nodes).FirstOrDefault(x => x.NodePath == lightPath);
+        var node = ServiceHelpers.FlattenNodes(nodes).FirstOrDefault(x => x.NodePath == lightPath);
         if (node is null || !IsLightNode(node))
         {
             return null;
@@ -265,48 +265,6 @@ public sealed class LightingService(
             },
             _ => new Dictionary<string, object?>(StringComparer.Ordinal)
         };
-    }
-
-    /// <summary>
-    /// Normalizes a root path into a canonical <c>res://</c> directory path.
-    /// </summary>
-    /// <param name="rootPath">Input root path that may be absolute or project-relative.</param>
-    /// <returns>Normalized <c>res://</c> directory path.</returns>
-    private string NormalizeDirectoryToResPath(string rootPath)
-    {
-        if (Path.IsPathRooted(rootPath))
-        {
-            pathResolver.EnsureInsideProject(rootPath);
-            var resPath = pathResolver.ToResPath(rootPath);
-            return resPath.EndsWith("/", StringComparison.Ordinal) ? resPath.TrimEnd('/') : resPath;
-        }
-
-        var normalized = rootPath.Replace('\\', '/');
-        if (string.Equals(normalized, "res://", StringComparison.Ordinal))
-        {
-            return "res://";
-        }
-
-        var absolute = pathResolver.ResolveResPath(normalized);
-        var res = pathResolver.ToResPath(absolute);
-        return res.EndsWith("/", StringComparison.Ordinal) ? res.TrimEnd('/') : res;
-    }
-
-    /// <summary>
-    /// Flattens recursive scene graph roots into a single node sequence.
-    /// </summary>
-    /// <param name="nodes">Root nodes to traverse.</param>
-    /// <returns>Flattened recursive node sequence.</returns>
-    private static IEnumerable<SceneGraphNodeInfo> Flatten(IReadOnlyList<SceneGraphNodeInfo> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            yield return node;
-            foreach (var child in Flatten(node.Children))
-            {
-                yield return child;
-            }
-        }
     }
 
     /// <summary>

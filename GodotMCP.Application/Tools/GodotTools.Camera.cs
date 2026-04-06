@@ -274,22 +274,6 @@ public static partial class GodotTools
                 return false;
         }
     }
-
-    /// <summary>
-    /// Converts a JSON element into a primitive CLR value used by camera updates.
-    /// </summary>
-    /// <param name="value">JSON value to convert.</param>
-    /// <returns>A primitive value when conversion succeeds; otherwise <see langword="null" />.</returns>
-    private static object? ToPrimitiveValue(JsonElement value)
-        => value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var i) => i,
-            JsonValueKind.Number when value.TryGetDouble(out var d) => d,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => null
-        };
 }
 
 /// <summary>

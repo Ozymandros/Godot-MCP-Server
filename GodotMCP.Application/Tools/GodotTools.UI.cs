@@ -169,7 +169,7 @@ public static partial class GodotTools
                 return null;
             }
 
-            var primitive = ToUiPrimitiveValue(value);
+            var primitive = ToPrimitiveValue(value);
             if (primitive is null)
             {
                 errorMessage = $"Property '{key}' must be a primitive JSON value (string, number, or boolean).";
@@ -181,23 +181,6 @@ public static partial class GodotTools
 
         return normalized;
     }
-
-    /// <summary>
-    /// Converts a JSON element into a primitive CLR value for UI updates.
-    /// </summary>
-    /// <param name="value">JSON value to convert.</param>
-    /// <returns>Primitive CLR value when supported; otherwise, <see langword="null"/>.</returns>
-    private static object? ToUiPrimitiveValue(JsonElement value)
-        => value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var i) => i,
-            JsonValueKind.Number when value.TryGetDouble(out var d) => d,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => null
-        };
-
     /// <summary>
     /// Converts a UI mutation result into an MCP tool result payload.
     /// </summary>

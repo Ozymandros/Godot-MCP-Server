@@ -230,7 +230,7 @@ public static partial class GodotTools
                 return Invalid("Property keys must be non-empty strings.");
             }
 
-            var normalizedValue = ToScenePrimitiveValue(value);
+            var normalizedValue = ToPrimitiveValue(value);
             if (normalizedValue is null)
             {
                 return Invalid($"Property '{key}' must be a primitive JSON value (string, number, or boolean).");
@@ -288,21 +288,6 @@ public static partial class GodotTools
     private static int CountNodes(SceneGraphNodeInfo node)
         => 1 + node.Children.Sum(CountNodes);
 
-    /// <summary>
-    /// Converts a JSON element into a primitive CLR value used by property update flows.
-    /// </summary>
-    /// <param name="value">JSON value to convert.</param>
-    /// <returns>Primitive value when supported; otherwise <see langword="null"/>.</returns>
-    private static object? ToScenePrimitiveValue(JsonElement value)
-        => value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var i) => i,
-            JsonValueKind.Number when value.TryGetDouble(out var d) => d,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => null
-        };
 }
 
 /// <summary>

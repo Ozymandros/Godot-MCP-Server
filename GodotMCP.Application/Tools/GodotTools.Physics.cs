@@ -107,7 +107,7 @@ public static partial class GodotTools
                 return Invalid("Property keys must be non-empty strings.");
             }
 
-            var primitive = ToPhysicsPrimitiveValue(value);
+            var primitive = ToPrimitiveValue(value);
             if (primitive is null)
             {
                 return Invalid($"Property '{key}' must be a primitive JSON value (string, number, or boolean).");
@@ -149,23 +149,6 @@ public static partial class GodotTools
             .ToList();
         return new ToolResult(true, $"Physics validation completed. Found {dto.Count} issue(s).", dto);
     }
-
-    /// <summary>
-    /// Converts a JSON element into a primitive CLR value for physics property updates.
-    /// </summary>
-    /// <param name="value">JSON value to convert.</param>
-    /// <returns>Primitive CLR value when supported; otherwise, <see langword="null"/>.</returns>
-    private static object? ToPhysicsPrimitiveValue(JsonElement value)
-        => value.ValueKind switch
-        {
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var i) => i,
-            JsonValueKind.Number when value.TryGetDouble(out var d) => d,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => null
-        };
-
     /// <summary>
     /// Maps a domain physics body model into a transport DTO.
     /// </summary>
