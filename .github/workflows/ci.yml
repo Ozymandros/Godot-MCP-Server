@@ -23,8 +23,10 @@ jobs:
           dotnet-version: 10.0.x
       - name: Restore
         run: dotnet restore GodotMCP.slnx
-      - name: Build
-        run: dotnet build GodotMCP.slnx -c Release --no-restore
+      - name: Format (verify)
+        run: dotnet format GodotMCP.slnx --verify-no-changes --no-restore
+      - name: Build (analyzers)
+        run: dotnet build GodotMCP.slnx -c Release --no-restore -p:RunAnalyzers=true -p:EnforceCodeStyleInBuild=true -warnaserror
       - name: Test
         run: dotnet test GodotMCP.slnx -c Release --no-build
 
