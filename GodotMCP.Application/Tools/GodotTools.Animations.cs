@@ -9,6 +9,17 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Adds an <c>AnimationPlayer</c> node to a scene under a target parent path.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="parentPath">Parent node path where the AnimationPlayer is inserted.</param>
+    /// <param name="nodeName">AnimationPlayer node name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation_player"), Description("Append an AnimationPlayer node to a scene.")]
     public static async Task<ToolResult> AddAnimationPlayerAsync(
         IGodotFileService fileService,
@@ -42,6 +53,19 @@ public static partial class GodotTools
         return new ToolResult(true, $"AnimationPlayer '{nodeName}' added to {scenePath}.");
     }
 
+    /// <summary>
+    /// Adds an animation sub-resource to an existing AnimationPlayer.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="playerNodeName">AnimationPlayer node name.</param>
+    /// <param name="animName">Animation name.</param>
+    /// <param name="length">Animation duration in seconds.</param>
+    /// <param name="loop">Whether the animation should loop.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation"), Description("Create and add an animation sub-resource to an AnimationPlayer in a scene.")]
     public static async Task<ToolResult> AddAnimationAsync(
         IGodotFileService fileService,
@@ -118,6 +142,19 @@ public static partial class GodotTools
         return new ToolResult(true, $"Animation '{animName}' added to {playerNodeName}. Use 'add_animation_track' to add keys.");
     }
 
+    /// <summary>
+    /// Adds a track with optional key points to an existing animation resource.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="animName">Target animation resource name.</param>
+    /// <param name="targetPath">NodePath target expression for the track.</param>
+    /// <param name="trackType">Track type identifier.</param>
+    /// <param name="keys">Optional key points for the track.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation_track"), Description("Add a property track with keys to an existing animation inside a scene.")]
     public static async Task<ToolResult> AddAnimationTrackAsync(
         IGodotFileService fileService,
@@ -172,6 +209,11 @@ public static partial class GodotTools
         return new ToolResult(true, $"Track for '{targetPath}' added to animation '{animName}' at index {trackIdx}.");
     }
 
+    /// <summary>
+    /// Builds Godot's serialized dictionary payload for track keys.
+    /// </summary>
+    /// <param name="keys">Track key points to encode.</param>
+    /// <returns>Serialized Godot dictionary string for <c>tracks/*/keys</c>.</returns>
     private static string GetTrackKeysGodotString(List<KeyPoint> keys)
     {
         var times = string.Join(", ", keys.Select(k => k.Time.ToString("0.0#")));

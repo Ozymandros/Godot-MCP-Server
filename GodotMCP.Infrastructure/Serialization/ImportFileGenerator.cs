@@ -4,8 +4,12 @@ using GodotMCP.Core.Models;
 
 namespace GodotMCP.Infrastructure.Serialization;
 
+/// <summary>
+/// Generates Godot <c>.import</c> file contents.
+/// </summary>
 public sealed class ImportFileGenerator : IImportFileGenerator
 {
+    /// <inheritdoc />
     public string Generate(ImportFileModel model)
     {
         var sb = new StringBuilder();

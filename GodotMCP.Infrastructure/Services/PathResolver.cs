@@ -2,10 +2,16 @@ using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Services;
 
+/// <summary>
+/// Resolves project-relative paths and enforces project-root boundaries.
+/// </summary>
+/// <param name="projectRoot">Project root directory.</param>
 public sealed class PathResolver(string projectRoot) : IPathResolver
 {
+    /// <inheritdoc />
     public string ProjectRoot { get; } = Path.GetFullPath(projectRoot);
 
+    /// <inheritdoc />
     public string ResolveResPath(string path)
     {
         var normalized = path.Replace('\\', '/');
@@ -17,6 +23,7 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
         return absolute;
     }
 
+    /// <inheritdoc />
     public string ToResPath(string absolutePath)
     {
         var full = Path.GetFullPath(absolutePath);
@@ -25,6 +32,7 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
         return $"res://{relative}";
     }
 
+    /// <inheritdoc />
     public void EnsureInsideProject(string absolutePath)
     {
         var fullPath = Path.GetFullPath(absolutePath)

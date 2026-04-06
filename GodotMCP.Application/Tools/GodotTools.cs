@@ -1,9 +1,8 @@
+using System.ComponentModel;
+using System.Reflection;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using System.Reflection;
 
 namespace GodotMCP.Application.Tools;
 
@@ -16,7 +15,11 @@ public static partial class GodotTools
         var capabilities = new Dictionary<string, string>
         {
             ["parity_doctrine"] = "mutatis-mutandis",
-            ["scenes"] = "create/edit/remove/instantiate/diff",
+            ["scenes"] = "create/edit/remove/instantiate/diff/scene-graph",
+            ["resources"] = "create/read/write/update/remove-property",
+            ["ui"] = "list/add/set-layout/set-properties",
+            ["lighting"] = "list/create/update/validate",
+            ["physics"] = "list/create/update/validate",
             ["animations"] = "player/add/track/keys",
             ["scripts"] = "gdscript/csharp/create/attach/validate",
             ["imports"] = ".import generation + reimport",

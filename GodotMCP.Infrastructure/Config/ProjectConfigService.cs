@@ -2,8 +2,13 @@ using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Config;
 
+/// <summary>
+/// Provides filesystem-backed read/write operations for <c>project.godot</c> values.
+/// </summary>
+/// <param name="pathResolver">Project path resolver.</param>
 public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectConfigService
 {
+    /// <inheritdoc />
     public async Task<string> GetValueAsync(string section, string key, CancellationToken cancellationToken = default)
     {
         var (lines, _, value) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
@@ -11,6 +16,7 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
         return value ?? string.Empty;
     }
 
+    /// <inheritdoc />
     public async Task SetValueAsync(string section, string key, string value, CancellationToken cancellationToken = default)
     {
         var (lines, sectionLine, existingValue) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
@@ -50,6 +56,7 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
         await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task RemoveKeyAsync(string section, string key, CancellationToken cancellationToken = default)
     {
         var (lines, sectionLine, _) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
@@ -82,6 +89,13 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
         await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Reads project config text and locates a section/key pair.
+    /// </summary>
+    /// <param name="section">Section to locate.</param>
+    /// <param name="key">Key to locate within the section.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tuple with all lines, section index, and existing key value when present.</returns>
     private async Task<(List<string> lines, int sectionIndex, string? value)> ReadAndLocateAsync(
         string section,
         string key,

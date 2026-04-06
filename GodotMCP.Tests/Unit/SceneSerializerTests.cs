@@ -1,11 +1,13 @@
-using FluentAssertions;
-using GodotMCP.Core.Models;
-using GodotMCP.Infrastructure.Serialization;
-
 namespace GodotMCP.Tests.Unit;
 
+/// <summary>
+/// Unit tests for <see cref="SceneSerializer"/> parsing and deterministic output behavior.
+/// </summary>
 public class SceneSerializerTests
 {
+    /// <summary>
+    /// Verifies scene serialization and deserialization round-trips core node and resource data.
+    /// </summary>
     [Fact]
     public void SerializeAndDeserialize_ShouldRoundTripNodeData()
     {
@@ -22,6 +24,10 @@ public class SceneSerializerTests
         parsed.ExternalResources.Should().ContainSingle(x => x.Id == "1");
     }
 
+    /// <summary>
+    /// Provides numeric node name cases used by serializer stability tests.
+    /// </summary>
+    /// <returns>MemberData payload for theory execution.</returns>
     public static IEnumerable<object[]> Cases()
     {
         for (var i = 0; i < 40; i++)
@@ -30,6 +36,10 @@ public class SceneSerializerTests
         }
     }
 
+    /// <summary>
+    /// Verifies serializer handles many different node names without dropping content.
+    /// </summary>
+    /// <param name="index">Node suffix index under test.</param>
     [Theory]
     [MemberData(nameof(Cases))]
     public void Serializer_ShouldHandleManyNodeNames(int index)
@@ -42,6 +52,9 @@ public class SceneSerializerTests
         output.Should().Contain($"Node{index}");
     }
 
+    /// <summary>
+    /// Verifies deserialization preserves quoted attribute values containing spaces.
+    /// </summary>
     [Fact]
     public void Deserialize_ShouldHandleQuotedAttributesWithSpaces()
     {
@@ -61,6 +74,9 @@ position = Vector2(10, 20)
         parsed.Nodes[0].Name.Should().Be("Root Node");
     }
 
+    /// <summary>
+    /// Verifies deterministic ordering by numeric resource identifiers during serialization.
+    /// </summary>
     [Fact]
     public void Serialize_ShouldOrderResourcesByNumericId()
     {

@@ -1,17 +1,13 @@
-using FluentAssertions;
-using GodotMCP.Application.Tools;
-using GodotMCP.Core.Interfaces;
-using GodotMCP.Infrastructure.Config;
-using GodotMCP.Infrastructure.Integrations;
-using GodotMCP.Infrastructure.Process;
-using GodotMCP.Infrastructure.Serialization;
-using GodotMCP.Infrastructure.Services;
-using GodotMCP.Tests.Fixtures;
-
 namespace GodotMCP.Tests.Integration;
 
+/// <summary>
+/// End-to-end integration tests for core application tool flows.
+/// </summary>
 public class ApplicationToolsE2ETests
 {
+    /// <summary>
+    /// Verifies a happy-path flow from project creation to scene and script wiring.
+    /// </summary>
     [Fact]
     public async Task CreateProjectAndSceneFlow_ShouldSucceed()
     {
@@ -45,6 +41,9 @@ public class ApplicationToolsE2ETests
         }
     }
 
+    /// <summary>
+    /// Verifies invalid scene paths fail without crashing tool execution.
+    /// </summary>
     [Fact]
     public async Task InvalidPath_ShouldFailGracefully()
     {

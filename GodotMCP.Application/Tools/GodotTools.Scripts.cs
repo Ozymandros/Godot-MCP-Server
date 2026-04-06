@@ -1,13 +1,24 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 
 namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Creates a script file with basic boilerplate in GDScript or C#.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="path">Destination script path.</param>
+    /// <param name="language">Script language token.</param>
+    /// <param name="baseType">Base Godot type to extend.</param>
+    /// <param name="className">Script class name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_script"), Description("Create a new GDScript or C# script file with basic boilerplate.")]
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
@@ -50,6 +61,17 @@ public partial class {{className}} : {{baseType}}
         return new ToolResult(true, $"Script created at {path}.");
     }
 
+    /// <summary>
+    /// Attaches an existing script resource to a node in a scene.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="nodeName">Target node name.</param>
+    /// <param name="scriptPath">Script resource path.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing attachment status.</returns>
     [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
     public static async Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
@@ -80,6 +102,16 @@ public partial class {{className}} : {{baseType}}
         return new ToolResult(true, $"Script '{scriptPath}' attached to '{nodeName}'.");
     }
 
+    /// <summary>
+    /// Performs lightweight static validation for script files.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="godotCliService">Godot CLI service for GDScript validation.</param>
+    /// <param name="scriptPath">Script path to validate.</param>
+    /// <param name="isCSharp">Whether the script is C#.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing validation status.</returns>
     [McpServerTool(Name = "validate_script"), Description("Perform static validation on a Godot script file.")]
     public static async Task<ToolResult> ValidateScriptAsync(
         IGodotFileService fileService,

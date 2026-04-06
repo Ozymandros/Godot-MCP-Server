@@ -1,8 +1,4 @@
 using GodotMCP.Core.Interfaces;
-using GodotMCP.Infrastructure.Config;
-using GodotMCP.Infrastructure.Integrations;
-using GodotMCP.Infrastructure.Process;
-using GodotMCP.Infrastructure.Serialization;
 using GodotMCP.Infrastructure.Services;
 
 namespace GodotMCP.Tests.Fixtures;

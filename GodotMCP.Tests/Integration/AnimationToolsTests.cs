@@ -1,18 +1,13 @@
-using FluentAssertions;
-using GodotMCP.Application.Tools;
-using GodotMCP.Core.Interfaces;
-using GodotMCP.Core.Models;
-using GodotMCP.Infrastructure.Config;
-using GodotMCP.Infrastructure.Integrations;
-using GodotMCP.Infrastructure.Process;
-using GodotMCP.Infrastructure.Serialization;
-using GodotMCP.Infrastructure.Services;
-using Xunit;
-
 namespace GodotMCP.Tests.Integration;
 
+/// <summary>
+/// Integration tests for animation, diff, and lint tool flows.
+/// </summary>
 public class AnimationToolsTests
 {
+    /// <summary>
+    /// Verifies that animation player, animation resource, and animation track creation succeed.
+    /// </summary>
     [Fact]
     public async Task AddAnimation_ShouldSucceed()
     {
@@ -54,6 +49,9 @@ public class AnimationToolsTests
         }
     }
 
+    /// <summary>
+    /// Verifies that scene diff detects added nodes between two scenes.
+    /// </summary>
     [Fact]
     public async Task DiffScenes_ShouldDetectChanges()
     {
@@ -84,6 +82,9 @@ public class AnimationToolsTests
         }
     }
 
+    /// <summary>
+    /// Verifies that project linting reports missing import sidecars.
+    /// </summary>
     [Fact]
     public async Task LintProject_ShouldIdentifyMissingImports()
     {

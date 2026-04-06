@@ -3,8 +3,13 @@ using GodotMCP.Core.Models;
 
 namespace GodotMCP.Infrastructure.Integrations;
 
+/// <summary>
+/// Discovers integration metadata by scanning addon plugin configurations.
+/// </summary>
+/// <param name="pathResolver">Project path resolver.</param>
 public sealed class IntegrationInspector(IPathResolver pathResolver) : IIntegrationInspector
 {
+    /// <inheritdoc />
     public IReadOnlyList<IntegrationMetadata> Discover()
     {
         var addonsPath = Path.Combine(pathResolver.ProjectRoot, "addons");

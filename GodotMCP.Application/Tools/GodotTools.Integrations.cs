@@ -1,13 +1,18 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 
 namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Discovers installed integrations under the project addons directory.
+    /// </summary>
+    /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <returns>Tool result containing discovered integration metadata.</returns>
     [McpServerTool(Name = "discover_integrations"), Description("Scan the project addons directory to find installed Godot integrations.")]
     public static ToolResult DiscoverIntegrations(IIntegrationInspector integrationInspector)
     {
@@ -21,6 +26,14 @@ public static partial class GodotTools
         return new ToolResult(true, $"Discovered {entries.Count} integration(s).", data);
     }
 
+    /// <summary>
+    /// Enables or disables an editor plugin entry by addon folder name.
+    /// </summary>
+    /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="pluginName">Addon folder name.</param>
+    /// <param name="enabled">Whether plugin should be enabled.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "enable_plugin"), Description("Enable or disable a specific Godot editor plugin by its folder name.")]
     public static async Task<ToolResult> EnablePluginAsync(
         IProjectConfigService projectConfigService,
@@ -45,6 +58,16 @@ public static partial class GodotTools
         return new ToolResult(true, $"Plugin '{pluginName}' {(enabled ? "enabled" : "disabled")}.");
     }
 
+    /// <summary>
+    /// Installs an integration stub into addons and enables it in project config.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="integrationName">Human-friendly integration name.</param>
+    /// <param name="source">Integration source URL or identifier.</param>
+    /// <param name="profile">Integration profile category.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing install status and metadata.</returns>
     [McpServerTool(Name = "install_integration"), Description("Stub an installation of a new Godot integration/addon.")]
     public static async Task<ToolResult> InstallIntegrationAsync(
         IGodotFileService fileService,
@@ -83,6 +106,11 @@ script="plugin.gd"
         });
     }
 
+    /// <summary>
+    /// Lists compatibility and maintenance metadata for discovered integrations.
+    /// </summary>
+    /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <returns>Tool result containing compatibility records.</returns>
     [McpServerTool(Name = "list_integration_compatibility"), Description("Check compatibility and maintenance status for all discovered integrations.")]
     public static ToolResult ListIntegrationCompatibility(IIntegrationInspector integrationInspector)
     {
@@ -97,6 +125,12 @@ script="plugin.gd"
         return new ToolResult(true, $"Compatibility listed for {entries.Count} integration(s).", data);
     }
 
+    /// <summary>
+    /// Verifies a specific integration can be discovered and appears healthy.
+    /// </summary>
+    /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <param name="integrationName">Integration name to verify.</param>
+    /// <returns>Tool result indicating health status.</returns>
     [McpServerTool(Name = "verify_integration_health"), Description("Validate that a specific integration is correctly installed and recognized.")]
     public static ToolResult VerifyIntegrationHealth(
         IIntegrationInspector integrationInspector,
