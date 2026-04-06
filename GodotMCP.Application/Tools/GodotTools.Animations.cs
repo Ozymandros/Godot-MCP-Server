@@ -3,6 +3,7 @@ using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text;
 
 namespace GodotMCP.Application.Tools;
@@ -100,7 +101,7 @@ public static partial class GodotTools
         var animId = $"Animation_{Guid.NewGuid().ToString("N")[..8]}";
         var animSub = new SubResource { Id = animId, Type = "Animation" };
         animSub.Properties["resource_name"] = $"\"{animName}\"";
-        animSub.Properties["length"] = length.ToString("0.0#");
+        animSub.Properties["length"] = length.ToString("0.0#", CultureInfo.InvariantCulture);
         if (loop)
         {
             animSub.Properties["loop_mode"] = "1";
@@ -216,8 +217,8 @@ public static partial class GodotTools
     /// <returns>Serialized Godot dictionary string for <c>tracks/*/keys</c>.</returns>
     private static string GetTrackKeysGodotString(List<KeyPoint> keys)
     {
-        var times = string.Join(", ", keys.Select(k => k.Time.ToString("0.0#")));
-        var trans = string.Join(", ", keys.Select(k => k.Transition.ToString("0.0#")));
+        var times = string.Join(", ", keys.Select(k => k.Time.ToString("0.0#", CultureInfo.InvariantCulture)));
+        var trans = string.Join(", ", keys.Select(k => k.Transition.ToString("0.0#", CultureInfo.InvariantCulture)));
         var values = string.Join(", ", keys.Select(k => k.Value));
         var update = keys.FirstOrDefault()?.Update ?? 0;
 

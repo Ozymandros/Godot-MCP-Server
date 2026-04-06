@@ -38,7 +38,7 @@ public class AnimationToolsTests
             sceneText.Should().Contain("[sub_resource type=\"AnimationLibrary\" id=\"AnimationLibrary_default\"]");
             sceneText.Should().Contain("resource_name = \"fade\"");
             sceneText.Should().Contain("tracks/0/path = NodePath(\"Sprite2D:position\")");
-            sceneText.Should().Contain("PackedFloat32Array(0,0, 1,0)");
+            sceneText.Should().Contain("PackedFloat32Array(0.0, 1.0)");
         }
         finally
         {
