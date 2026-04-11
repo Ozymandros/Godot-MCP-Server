@@ -1,16 +1,24 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Creates a new Godot project structure and minimal <c>project.godot</c> file.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="projectName">Project display name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing project creation status.</returns>
     [McpServerTool(Name = "create_godot_project"), Description("Create a new Godot 4.x project at the current working directory.")]
     public static async Task<ToolResult> CreateGodotProjectAsync(
         IGodotFileService fileService,
-        [Description("The name of the Godot project.")] string projectName, 
+        [Description("The name of the Godot project."), Required] string projectName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectName))
@@ -44,6 +52,13 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Project '{projectName}' created.");
     }
 
+    /// <summary>
+    /// Reads basic project configuration values from <c>project.godot</c>.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result containing project name and main scene fields.</returns>
     [McpServerTool(Name = "get_project_info"), Description("Retrieve basic configuration from project.godot.")]
     public static async Task<ToolResult> GetProjectInfoAsync(
         IGodotFileService fileService,
@@ -64,12 +79,21 @@ project/assembly_name="{{projectName}}"
         });
     }
 
+    /// <summary>
+    /// Adds or removes an autoload singleton entry in project configuration.
+    /// </summary>
+    /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="key">Autoload key.</param>
+    /// <param name="value">Autoload resource path.</param>
+    /// <param name="enabled">Whether to add or remove the key.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "configure_autoload"), Description("Enable or disable a singleton autoload in project.godot.")]
     public static async Task<ToolResult> ConfigureAutoloadAsync(
         IProjectConfigService projectConfigService,
-        [Description("The autoload unique key.")] string key, 
-        [Description("The resource path (res://...) to the script or scene.")] string value, 
-        [Description("Set to true to add, false to remove.")] bool enabled, 
+        [Description("The autoload unique key."), Required] string key,
+        [Description("The resource path (res://...) to the script or scene."), Required] string value,
+        [Description("Set to true to add, false to remove."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(key) || IsBlank(value))
@@ -87,10 +111,17 @@ project/assembly_name="{{projectName}}"
         return new ToolResult(true, $"Autoload '{key}' removed.");
     }
 
+    /// <summary>
+    /// Enables an editor plugin entry in project configuration.
+    /// </summary>
+    /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="pluginName">Plugin folder name under <c>res://addons</c>.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing plugin enablement status.</returns>
     [McpServerTool(Name = "add_plugin"), Description("Register an editor plugin in project.godot.")]
     public static async Task<ToolResult> AddPluginAsync(
         IProjectConfigService projectConfigService,
-        [Description("The folder name of the plugin under res://addons/.")] string pluginName, 
+        [Description("The folder name of the plugin under res://addons/."), Required] string pluginName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(pluginName))

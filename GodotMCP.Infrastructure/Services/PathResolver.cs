@@ -2,10 +2,16 @@ using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Services;
 
+/// <summary>
+/// Resolves project-relative paths and enforces project-root boundaries.
+/// </summary>
+/// <param name="projectRoot">Project root directory.</param>
 public sealed class PathResolver(string projectRoot) : IPathResolver
 {
+    /// <inheritdoc />
     public string ProjectRoot { get; } = Path.GetFullPath(projectRoot);
 
+    /// <inheritdoc />
     public string ResolveResPath(string path)
     {
         var normalized = path.Replace('\\', '/');
@@ -17,6 +23,7 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
         return absolute;
     }
 
+    /// <inheritdoc />
     public string ToResPath(string absolutePath)
     {
         var full = Path.GetFullPath(absolutePath);
@@ -25,11 +32,17 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
         return $"res://{relative}";
     }
 
+    /// <inheritdoc />
     public void EnsureInsideProject(string absolutePath)
     {
-        var root = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-            + Path.DirectorySeparatorChar;
-        if (!Path.GetFullPath(absolutePath).StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        var fullPath = Path.GetFullPath(absolutePath)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedRoot = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var rootWithSeparator = normalizedRoot + Path.DirectorySeparatorChar;
+
+        var isProjectRoot = string.Equals(fullPath, normalizedRoot, StringComparison.OrdinalIgnoreCase);
+        var isInsideProject = fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase);
+        if (!isProjectRoot && !isInsideProject)
         {
             throw new InvalidOperationException($"Path escapes project root: {absolutePath}");
         }

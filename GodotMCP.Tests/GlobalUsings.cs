@@ -1,0 +1,16 @@
+global using System;
+global using System.Collections.Generic;
+global using System.IO;
+global using System.Linq;
+global using System.Threading.Tasks;
+global using FluentAssertions;
+global using GodotMCP.Application.Tools;
+global using GodotMCP.Core.Interfaces;
+global using GodotMCP.Core.Models;
+global using GodotMCP.Infrastructure.Config;
+global using GodotMCP.Infrastructure.Integrations;
+global using GodotMCP.Infrastructure.Process;
+global using GodotMCP.Infrastructure.Serialization;
+global using GodotMCP.Infrastructure.Services;
+global using GodotMCP.Tests.Fixtures;
+global using Xunit;

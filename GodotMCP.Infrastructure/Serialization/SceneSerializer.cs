@@ -5,10 +5,17 @@ using GodotMCP.Core.Models;
 
 namespace GodotMCP.Infrastructure.Serialization;
 
+/// <summary>
+/// Parses and serializes Godot scene files.
+/// </summary>
 public sealed class SceneSerializer : ISceneSerializer
 {
+    /// <summary>
+    /// Matches section headers in serialized scene text.
+    /// </summary>
     private static readonly Regex SectionRegex = new(@"^\[(?<tag>[a-z_]+)\s*(?<attrs>.*)\]$", RegexOptions.Compiled);
 
+    /// <inheritdoc />
     public GodotScene Deserialize(string content)
     {
         var scene = new GodotScene();
@@ -88,6 +95,7 @@ public sealed class SceneSerializer : ISceneSerializer
         return scene;
     }
 
+    /// <inheritdoc />
     public string Serialize(GodotScene scene)
     {
         var sb = new StringBuilder();
@@ -131,6 +139,11 @@ public sealed class SceneSerializer : ISceneSerializer
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Parses section attributes from a scene header line.
+    /// </summary>
+    /// <param name="attrs">Raw attribute text.</param>
+    /// <returns>Parsed key-value attributes.</returns>
     private static Dictionary<string, string> ParseAttrs(string attrs)
     {
         var dict = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -204,8 +217,20 @@ public sealed class SceneSerializer : ISceneSerializer
         return dict;
     }
 
+    /// <summary>
+    /// Parses numeric identifiers for deterministic ordering.
+    /// </summary>
+    /// <param name="id">Identifier text.</param>
+    /// <returns>Numeric value or <see cref="int.MaxValue"/> when non-numeric.</returns>
     private static int ParseNumericId(string id) => int.TryParse(id, out var number) ? number : int.MaxValue;
 
+    /// <summary>
+    /// Gets an attribute value with fallback behavior.
+    /// </summary>
+    /// <param name="attrs">Attribute dictionary.</param>
+    /// <param name="key">Key to read.</param>
+    /// <param name="fallback">Fallback value when key is missing.</param>
+    /// <returns>Resolved attribute value.</returns>
     private static string Get(Dictionary<string, string> attrs, string key, string fallback = "")
         => attrs.TryGetValue(key, out var value) ? value : fallback;
 }

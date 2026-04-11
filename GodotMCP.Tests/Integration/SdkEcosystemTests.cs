@@ -1,16 +1,13 @@
-using FluentAssertions;
-using GodotMCP.Application.Tools;
-using GodotMCP.Core.Interfaces;
-using GodotMCP.Infrastructure.Config;
-using GodotMCP.Infrastructure.Integrations;
-using GodotMCP.Infrastructure.Process;
-using GodotMCP.Infrastructure.Serialization;
-using GodotMCP.Infrastructure.Services;
-
 namespace GodotMCP.Tests.Integration;
 
+/// <summary>
+/// Integration tests for SDK ecosystem discovery and installation tools.
+/// </summary>
 public class SdkEcosystemTests
 {
+    /// <summary>
+    /// Verifies discovery, health verification, install stub, and compatibility listing flows.
+    /// </summary>
     [Fact]
     public async Task DiscoverIntegrations_ShouldFindPluginCfg()
     {
@@ -55,6 +52,9 @@ public class SdkEcosystemTests
         }
     }
 
+    /// <summary>
+    /// Verifies integration installation fails when required name input is blank.
+    /// </summary>
     [Fact]
     public async Task InstallIntegration_WithEmptyName_ShouldFail()
     {

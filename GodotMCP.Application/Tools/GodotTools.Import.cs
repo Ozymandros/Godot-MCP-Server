@@ -1,21 +1,34 @@
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
 
 namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Generates a Godot <c>.import</c> file for an asset path.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="importFileGenerator">Import file generator.</param>
+    /// <param name="assetPath">Asset path to import.</param>
+    /// <param name="importer">Importer identifier.</param>
+    /// <param name="type">Target Godot resource type.</param>
+    /// <param name="parameters">Optional import parameters.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing generation status.</returns>
     [McpServerTool(Name = "generate_import_file"), Description("Generate a Godot .import file for a given asset path.")]
     public static async Task<ToolResult> GenerateImportFileAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) to the asset.")] string assetPath, 
-        [Description("The Godot importer (e.g., texture, wav).")] string importer, 
-        [Description("The resource type (e.g., Texture2D, AudioStreamWAV).")] string type, 
-        [Description("Optional importer parameters.")] Dictionary<string, string>? parameters = null, 
+        [Description("Project path (res://...) to the asset."), Required] string assetPath,
+        [Description("The Godot importer (e.g., texture, wav)."), Required] string importer,
+        [Description("The resource type (e.g., Texture2D, AudioStreamWAV)."), Required] string type,
+        [Description("Optional importer parameters."), Required, MinLength(1)] Dictionary<string, string>? parameters = null,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, assetPath) || IsBlank(importer) || IsBlank(type))
@@ -42,12 +55,21 @@ public static partial class GodotTools
         return new ToolResult(true, $"Generated {importPath}.");
     }
 
+    /// <summary>
+    /// Requests a headless Godot reimport pass for an asset.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="godotCliService">Godot CLI service.</param>
+    /// <param name="assetPath">Asset path to reimport.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing reimport command status.</returns>
     [McpServerTool(Name = "reimport_asset"), Description("Trigger a headless Godot reimport of an asset.")]
     public static async Task<ToolResult> ReimportAssetAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project path (res://...) to the asset to reimport.")] string assetPath, 
+        [Description("Project path (res://...) to the asset to reimport."), Required] string assetPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, assetPath))
@@ -63,12 +85,21 @@ public static partial class GodotTools
         return await godotCliService.RunAsync($"--headless --quit --path \"{pathResolver.ProjectRoot}\"", cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Creates a placeholder texture file and matching import configuration.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="importFileGenerator">Import file generator.</param>
+    /// <param name="texturePath">Texture file path to create.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_texture"), Description("Create a dummy texture file and its .import configuration.")]
     public static async Task<ToolResult> CreateTextureAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new texture.")] string texturePath, 
+        [Description("Project path (res://...) for the new texture."), Required] string texturePath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, texturePath))
@@ -84,12 +115,21 @@ public static partial class GodotTools
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Creates a placeholder audio file and matching import configuration.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="importFileGenerator">Import file generator.</param>
+    /// <param name="audioPath">Audio file path to create.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_audio"), Description("Create a dummy audio file and its .import configuration.")]
     public static async Task<ToolResult> CreateAudioAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new audio file.")] string audioPath, 
+        [Description("Project path (res://...) for the new audio file."), Required] string audioPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidResPath(pathResolver, audioPath))

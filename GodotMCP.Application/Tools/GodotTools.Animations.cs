@@ -2,20 +2,33 @@ using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text;
 
 namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Adds an <c>AnimationPlayer</c> node to a scene under a target parent path.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="parentPath">Parent node path where the AnimationPlayer is inserted.</param>
+    /// <param name="nodeName">AnimationPlayer node name.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation_player"), Description("Append an AnimationPlayer node to a scene.")]
     public static async Task<ToolResult> AddAnimationPlayerAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The hierarchy path of the parent node (e.g., '.', 'Root').")] string parentPath, 
-        [Description("Name for the new AnimationPlayer node.")] string nodeName = "AnimationPlayer", 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath,
+        [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(parentPath))
@@ -29,28 +42,41 @@ public static partial class GodotTools
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
         var scene = sceneSerializer.Deserialize(sceneText);
-        
+
         scene.Nodes.Add(new GodotNode
         {
             Name = nodeName,
             Type = "AnimationPlayer",
             Parent = parentPath
         });
-        
+
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"AnimationPlayer '{nodeName}' added to {scenePath}.");
     }
 
+    /// <summary>
+    /// Adds an animation sub-resource to an existing AnimationPlayer.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="playerNodeName">AnimationPlayer node name.</param>
+    /// <param name="animName">Animation name.</param>
+    /// <param name="length">Animation duration in seconds.</param>
+    /// <param name="loop">Whether the animation should loop.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation"), Description("Create and add an animation sub-resource to an AnimationPlayer in a scene.")]
     public static async Task<ToolResult> AddAnimationAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The name of the AnimationPlayer node.")] string playerNodeName, 
-        [Description("The name for the new animation (e.g., 'fade_out').")] string animName, 
-        [Description("Duration of the animation in seconds.")] float length, 
-        [Description("Whether the animation loops.")] bool loop = false, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The name of the AnimationPlayer node."), Required] string playerNodeName,
+        [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName,
+        [Description("Duration of the animation in seconds."), Required] float length,
+        [Description("Whether the animation loops."), Required] bool loop = false,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(playerNodeName) || IsBlank(animName))
@@ -75,7 +101,7 @@ public static partial class GodotTools
         var animId = $"Animation_{Guid.NewGuid().ToString("N")[..8]}";
         var animSub = new SubResource { Id = animId, Type = "Animation" };
         animSub.Properties["resource_name"] = $"\"{animName}\"";
-        animSub.Properties["length"] = length.ToString("0.0#");
+        animSub.Properties["length"] = length.ToString("0.0#", CultureInfo.InvariantCulture);
         if (loop)
         {
             animSub.Properties["loop_mode"] = "1";
@@ -85,7 +111,7 @@ public static partial class GodotTools
         // Link animation to player (using AnimationLibrary "")
         // Godot usually uses an AnimationLibrary sub-resource to hold animations.
         // For simplicity, we'll check if a library already exists or create one.
-        
+
         var libId = "AnimationLibrary_default";
         var libSub = scene.SubResources.FirstOrDefault(s => s.Type == "AnimationLibrary");
         if (libSub == null)
@@ -104,29 +130,42 @@ public static partial class GodotTools
         // Real implementation should parse the Godot dictionary.
         if (libSub.Properties.TryGetValue("_data", out var currentData))
         {
-             // Append to existing: { "a": res, "b": res } -> { "a": res, "b": res, "new": res }
-             var inner = currentData.Trim().Trim('{', '}').Trim();
-             libSub.Properties["_data"] = $"{{ {inner}, \"{animName}\": SubResource(\"{animId}\") }}";
+            // Append to existing: { "a": res, "b": res } -> { "a": res, "b": res, "new": res }
+            var inner = currentData.Trim().Trim('{', '}').Trim();
+            libSub.Properties["_data"] = $"{{ {inner}, \"{animName}\": SubResource(\"{animId}\") }}";
         }
         else
         {
-             libSub.Properties["_data"] = $"{{ \"{animName}\": SubResource(\"{animId}\") }}";
+            libSub.Properties["_data"] = $"{{ \"{animName}\": SubResource(\"{animId}\") }}";
         }
 
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"Animation '{animName}' added to {playerNodeName}. Use 'add_animation_track' to add keys.");
     }
 
+    /// <summary>
+    /// Adds a track with optional key points to an existing animation resource.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="animName">Target animation resource name.</param>
+    /// <param name="targetPath">NodePath target expression for the track.</param>
+    /// <param name="trackType">Track type identifier.</param>
+    /// <param name="keys">Optional key points for the track.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation_track"), Description("Add a property track with keys to an existing animation inside a scene.")]
     public static async Task<ToolResult> AddAnimationTrackAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file.")] string scenePath, 
-        [Description("The resource_name of the animation.")] string animName, 
-        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position').")] string targetPath, 
-        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'.")] string trackType = "value", 
-        [Description("Array of key points: {Time, Value, Transition}. Value should be Godot-formatted string (e.g. 'Vector2(0, 0)').")] List<KeyPoint>? keys = null, 
+        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("The resource_name of the animation."), Required] string animName,
+        [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath,
+        [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value",
+        [Description("Array of key points: {Time, Value, Transition}."), Required, MinLength(1)] List<KeyPoint>? keys = null,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(animName) || IsBlank(targetPath))
@@ -171,10 +210,15 @@ public static partial class GodotTools
         return new ToolResult(true, $"Track for '{targetPath}' added to animation '{animName}' at index {trackIdx}.");
     }
 
+    /// <summary>
+    /// Builds Godot's serialized dictionary payload for track keys.
+    /// </summary>
+    /// <param name="keys">Track key points to encode.</param>
+    /// <returns>Serialized Godot dictionary string for <c>tracks/*/keys</c>.</returns>
     private static string GetTrackKeysGodotString(List<KeyPoint> keys)
     {
-        var times = string.Join(", ", keys.Select(k => k.Time.ToString("0.0#")));
-        var trans = string.Join(", ", keys.Select(k => k.Transition.ToString("0.0#")));
+        var times = string.Join(", ", keys.Select(k => k.Time.ToString("0.0#", CultureInfo.InvariantCulture)));
+        var trans = string.Join(", ", keys.Select(k => k.Transition.ToString("0.0#", CultureInfo.InvariantCulture)));
         var values = string.Join(", ", keys.Select(k => k.Value));
         var update = keys.FirstOrDefault()?.Update ?? 0;
 

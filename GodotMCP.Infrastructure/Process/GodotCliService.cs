@@ -3,8 +3,13 @@ using GodotMCP.Core.Models;
 
 namespace GodotMCP.Infrastructure.Process;
 
+/// <summary>
+/// Executes Godot headless CLI commands.
+/// </summary>
+/// <param name="pathResolver">Project path resolver used as working directory context.</param>
 public sealed class GodotCliService(IPathResolver pathResolver) : IGodotCliService
 {
+    /// <inheritdoc />
     public async Task<ToolResult> RunAsync(string arguments, CancellationToken cancellationToken = default)
     {
         var godotBinary = Environment.GetEnvironmentVariable("GODOT_PATH");
