@@ -37,8 +37,12 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore GodotMCP.slnx
+      - name: Build
+        run: dotnet build GodotMCP.slnx -c Release --no-restore
       - name: Pack
-        run: dotnet pack GodotMCP.Server/GodotMCP.Server.csproj -c Release -o ./artifacts
+        run: dotnet pack GodotMCP.Server/GodotMCP.Server.csproj -c Release -o ./artifacts --no-build --no-restore
       - name: Publish NuGet
         if: env.NUGET_API_KEY != ''
         run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
