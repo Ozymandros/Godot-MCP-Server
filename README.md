@@ -59,6 +59,54 @@ Solution layout
 - `GodotMCP.Core` — domain models and interfaces
 - `GodotMCP.Infrastructure` — filesystem, configuration, serializer, and platform integrations
 - `GodotMCP.Tests` — unit and integration tests
+- `docs/` — DocFX configuration and **conceptual** Markdown (for example `articles/`, `toc.yml`, `index.md`)
+- `Documentation/` — MSBuild project (`Documentation.csproj`) that runs the DocFX pipeline when built **on its own** (see below)
+
+API and documentation site (DocFX)
+
+The public .NET API reference and the static documentation site are generated with [DocFX](https://dotnet.github.io/docfx/) from `docs/docfx.json`. Generated output is written to `_site/` at the repository root. That folder and `docs/api/` (intermediate YAML from metadata) are **gitignored**; they must be produced locally or by CI.
+
+**Keeping docs up to date (maintainers)**
+
+1. **Restore the doc tool** (once per clone or after manifest changes):
+
+   ```powershell
+   dotnet tool restore
+   ```
+
+2. **Build the solution** so XML documentation files exist for all projects (DocFX consumes the compiler-generated XML):
+
+   ```powershell
+   dotnet build GodotMCP.slnx -c Release
+   ```
+
+3. **Regenerate the full site** (API metadata + HTML). From the repository root, prefer the top-level DocFX entrypoint so metadata always runs:
+
+   ```powershell
+   dotnet docfx docs/docfx.json
+   ```
+
+   Alternatively, build only the documentation project (this runs the same pipeline; it does **not** run when building the whole solution, to keep normal builds fast):
+
+   ```powershell
+   dotnet build Documentation/Documentation.csproj -c Release
+   ```
+
+4. **Preview** the site over **HTTP**, not by double‑clicking `_site/index.html`. DocFX’s navigation and search load extra files (`toc.html`, search index, web workers) with JavaScript; most browsers block those requests from the `file://` protocol, which leaves the top nav empty and can make the page look almost blank even though the HTML file contains the article body.
+
+   ```powershell
+   dotnet docfx docs/docfx.json --serve
+   ```
+
+   Then open the URL shown in the terminal (for example `http://localhost:8080`). To use another port: `dotnet docfx docs/docfx.json --serve --port 8090`.
+
+5. **Conceptual pages** live under `docs/` (for example `docs/articles/`). Edit Markdown and `docs/toc.yml` as needed; API namespaces and types come from the projects listed in `docs/docfx.json`—add a new project there only if you introduce a new documented assembly.
+
+6. **Published site**: pushes to the default branch that touch documentation-related paths trigger `.github/workflows/docs.yml`, which builds the site and deploys to GitHub Pages (configure the **github-pages** environment in the repository if required).
+
+7. **Agents**: the MCP tool `query_system_documentation` searches `_site/manifest.json` and conceptual Markdown under `docs/` after a local build.
+
+More detail for editors is in [`docs/index.md`](docs/index.md).
 
 Containerized development
 

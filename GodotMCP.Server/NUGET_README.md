@@ -22,4 +22,4 @@ godot-mcp
 ### Source and docs
 
 - Repository: https://github.com/Ozymandros/Godot-MCP-Server
-- Main documentation: see `README.md` in the repository root
+- Main documentation: see `README.md` in the repository root (includes **DocFX** setup, regenerating the API/conceptual site, and maintainer notes)
