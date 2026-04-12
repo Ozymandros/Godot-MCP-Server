@@ -3,6 +3,9 @@
 <!-- Build -->
 [![CI](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/ci.yml/badge.svg)](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/ci.yml) [![Release](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/release.yml/badge.svg)](https://github.com/Ozymandros/Godot-MCP-Server/actions/workflows/release.yml)
 
+<!-- Documentation (DocFX on GitHub Pages) -->
+[![Documentation](https://img.shields.io/badge/documentation-GitHub%20Pages-0366d6?logo=github)](https://ozymandros.github.io/Godot-MCP-Server/)
+
 <!-- Package -->
 [![NuGet](https://img.shields.io/nuget/v/GodotMCP.Server.svg)](https://www.nuget.org/packages/GodotMCP.Server/) [![.NET](https://img.shields.io/badge/.NET-10-512BD4.svg?logo=.net)](https://dotnet.microsoft.com/)
 
@@ -66,6 +69,8 @@ API and documentation site (DocFX)
 
 The public .NET API reference and the static documentation site are generated with [DocFX](https://dotnet.github.io/docfx/) from `docs/docfx.json`. Generated output is written to `_site/` at the repository root. That folder and `docs/api/` (intermediate YAML from metadata) are **gitignored**; they must be produced locally or by CI.
 
+**Live site:** [https://ozymandros.github.io/Godot-MCP-Server/](https://ozymandros.github.io/Godot-MCP-Server/) — same target as the **Documentation** badge under the title. The DocFX output is deployed by [`.github/workflows/docs.yml`](.github/workflows/docs.yml) when you push; if the URL does not load yet, [enable GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) for this repository.
+
 **Keeping docs up to date (maintainers)**
 
 1. **Restore the doc tool** (once per clone or after manifest changes):
@@ -102,7 +107,7 @@ The public .NET API reference and the static documentation site are generated wi
 
 5. **Conceptual pages** live under `docs/` (for example `docs/articles/`). Edit Markdown and `docs/toc.yml` as needed; API namespaces and types come from the projects listed in `docs/docfx.json`—add a new project there only if you introduce a new documented assembly.
 
-6. **Published site**: pushes to the default branch that touch documentation-related paths trigger `.github/workflows/docs.yml`, which builds the site and deploys to GitHub Pages (configure the **github-pages** environment in the repository if required).
+6. **Published site**: pushes to the default branch that touch documentation-related paths trigger [`.github/workflows/docs.yml`](.github/workflows/docs.yml). The deployed site is **[https://ozymandros.github.io/Godot-MCP-Server/](https://ozymandros.github.io/Godot-MCP-Server/)** (configure the **github-pages** environment and [publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) if needed).
 
 7. **Agents**: the MCP tool `query_system_documentation` searches `_site/manifest.json` and conceptual Markdown under `docs/` after a local build.
 

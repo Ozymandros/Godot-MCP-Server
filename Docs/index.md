@@ -4,6 +4,8 @@ Automated API documentation for the **Godot MCP Server** solution, generated wit
 
 Use the navigation bar to browse conceptual articles and the .NET API reference.
 
+**Published site:** [https://ozymandros.github.io/Godot-MCP-Server/](https://ozymandros.github.io/Godot-MCP-Server/) — deployed from the default branch via [`.github/workflows/docs.yml`](https://github.com/Ozymandros/Godot-MCP-Server/blob/main/.github/workflows/docs.yml) when documentation-related paths change. If the URL does not resolve, [configure GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) for [`Ozymandros/Godot-MCP-Server`](https://github.com/Ozymandros/Godot-MCP-Server).
+
 **Preview locally:** do not rely on opening `_site/index.html` via `file://`. Use `dotnet docfx docs/docfx.json --serve` and browse the printed `http://localhost` URL so the table of contents, navbar, and search load correctly.
 
 ## Maintainer workflow
