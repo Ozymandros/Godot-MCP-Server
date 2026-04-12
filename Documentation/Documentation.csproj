@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.134">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Full path to repository root (parent of this folder). -->
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\'))</RepoRoot>
+  </PropertyGroup>
+
+  <!-- Skip DocFX when the solution is built as a whole; run when this project is built directly (dotnet build Documentation/Documentation.csproj). -->
+  <Target Name="GenerateDocumentationSite" AfterTargets="Build" Condition="'$(BuildingSolutionFile)' != 'true'">
+    <!-- Build the host project so Core/Application/Infrastructure XML is produced without rebuilding this Documentation project (avoids recursion). -->
+    <Exec Command="dotnet build &quot;$(RepoRoot)GodotMCP.Server\GodotMCP.Server.csproj&quot; -c $(Configuration)" WorkingDirectory="$(RepoRoot)" />
+    <Exec Command="dotnet tool restore" WorkingDirectory="$(RepoRoot)" />
+    <Exec Command="dotnet docfx docs/docfx.json" WorkingDirectory="$(RepoRoot)" />
+  </Target>
+
+</Project>

@@ -1,0 +1,56 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [ "*.csproj" ],
+          "src": "../GodotMCP.Core"
+        },
+        {
+          "files": [ "*.csproj" ],
+          "src": "../GodotMCP.Application"
+        },
+        {
+          "files": [ "*.csproj" ],
+          "src": "../GodotMCP.Infrastructure"
+        },
+        {
+          "files": [ "*.csproj" ],
+          "src": "../GodotMCP.Server"
+        }
+      ],
+      "dest": "api",
+      "disableGitFeatures": true,
+      "properties": {
+        "TargetFramework": "net10.0"
+      }
+    }
+  ],
+  "build": {
+    "globalMetadata": {
+      "_appTitle": "Godot MCP Server",
+      "_appName": "Godot MCP Server",
+      "_enableSearch": true
+    },
+    "content": [
+      {
+        "files": [ "**/*.md", "**/toc.yml" ],
+        "exclude": [ "**/obj/**", "**/api/**" ]
+      },
+      {
+        "files": [ "*.yml" ],
+        "exclude": [ "toc.yml", "**/obj/**" ],
+        "src": "api",
+        "dest": "api"
+      }
+    ],
+    "resource": [
+      {
+        "files": [ "images/**" ]
+      }
+    ],
+    "dest": "../_site",
+    "template": [ "default", "modern" ],
+    "markdownEngineName": "markdig"
+  }
+}

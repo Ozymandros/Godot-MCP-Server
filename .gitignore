@@ -54,3 +54,7 @@ TestResult.xml
 nunit-*.xml
 
 .vs
+
+# DocFX (generated site and API YAML; rebuild with dotnet docfx docs/docfx.json)
+_site/
+docs/api/

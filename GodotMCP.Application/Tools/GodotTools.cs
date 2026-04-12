@@ -24,6 +24,7 @@ public static partial class GodotTools
             ["scripts"] = "gdscript/csharp/create/attach/validate",
             ["imports"] = ".import generation + reimport",
             ["sdk_ecosystem"] = "discover + health verification + linting",
+            ["documentation"] = "query_system_documentation (DocFX manifest + docs/)",
             ["classification"] = string.Join(',', Enum.GetNames<ParityClassification>())
         };
 
