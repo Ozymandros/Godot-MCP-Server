@@ -115,8 +115,8 @@ More detail for editors is in [`docs/index.md`](docs/index.md).
 
 Containerized development
 
-- Runtime container: see `Dockerfile` and `Docs/docker-mcp-setup.md`
-- Dev container configuration: see `.devcontainer/` and `Docs/vscontainer-setup.md`
+- Runtime container: see `Dockerfile` and `docs/docker-mcp-setup.md`
+- Dev container configuration: see `.devcontainer/` and `docs/vscontainer-setup.md`
 - Local compose entrypoint: `docker-compose.yml`
 
 Camera Tools
@@ -184,11 +184,11 @@ Release artifacts
 Release process
 
 - Changelog: `CHANGELOG.md`
-- Release checklist: `Docs/release-checklist.md`
+- Release checklist: `docs/release-checklist.md`
 
 Contributing
 
-If you plan to contribute, read `Docs/contributing.md` for guidelines, tests, and code style. Create small, focused pull requests and include tests where appropriate.
+If you plan to contribute, read `docs/contributing.md` for guidelines, tests, and code style. Create small, focused pull requests and include tests where appropriate.
 
 License
 
