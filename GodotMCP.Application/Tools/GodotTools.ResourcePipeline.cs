@@ -20,12 +20,18 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceReadAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Resource path (res://...) ending in .tres or .res."), Required] string resourcePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, resourcePath))
+        string resourcePath;
+        try
         {
-            return Invalid("resourcePath must be a valid project-relative path.");
+            resourcePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         try
@@ -53,19 +59,30 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceWriteAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Resource path (res://...) ending in .tres or .res."), Required] string resourcePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Godot resource type (for example: Resource, Environment, StandardMaterial3D)."), Required] string type,
         [Description("Resource property dictionary."), Required] Dictionary<string, string>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, resourcePath) || IsBlank(type))
+        if (IsBlank(type))
         {
-            return Invalid("resourcePath and type are required.");
+            return Invalid("type is required.");
         }
 
         if (properties is null)
         {
             return Invalid("properties are required.");
+        }
+
+        string resourcePath;
+        try
+        {
+            resourcePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         try
@@ -94,18 +111,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceUpdatePropertiesAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Resource path (res://...) ending in .tres or .res."), Required] string resourcePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Property updates to apply."), Required, MinLength(1)] Dictionary<string, string>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, resourcePath))
-        {
-            return Invalid("resourcePath must be a valid project-relative path.");
-        }
-
         if (properties is null || properties.Count == 0)
         {
             return Invalid("properties must contain at least one entry.");
+        }
+
+        string resourcePath;
+        try
+        {
+            resourcePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         try
@@ -134,13 +157,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceRemovePropertyAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Resource path (res://...) ending in .tres or .res."), Required] string resourcePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Property key to remove."), Required] string propertyKey,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, resourcePath) || IsBlank(propertyKey))
+        if (IsBlank(propertyKey))
         {
-            return Invalid("resourcePath and propertyKey are required.");
+            return Invalid("propertyKey is required.");
+        }
+
+        string resourcePath;
+        try
+        {
+            resourcePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         try

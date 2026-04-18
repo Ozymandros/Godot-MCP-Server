@@ -21,15 +21,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsListBodiesAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var bodies = await physicsService.ListAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var bodies = await physicsService.ListAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = bodies.Select(MapBody).ToList();
         return new ToolResult(true, $"Found {dto.Count} physics body node(s).", dto);
     }
@@ -50,16 +50,26 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsCreateBodyAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) where the body will be created."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path where the body is added."), Required] string parentNodePath,
         [Description("Body type: StaticBody3D, RigidBody3D, CharacterBody3D, Area3D, StaticBody2D, RigidBody2D, CharacterBody2D, Area2D."), Required] string bodyType,
         [Description("Name for the new body node."), Required] string nodeName,
         [Description("When true, also creates a CollisionShape child node.")] bool addCollisionShape = true,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(parentNodePath) || IsBlank(bodyType) || IsBlank(nodeName))
+        if (IsBlank(parentNodePath) || IsBlank(bodyType) || IsBlank(nodeName))
         {
-            return Invalid("scenePath, parentNodePath, bodyType, and nodeName are required.");
+            return Invalid("projectPath, fileName, parentNodePath, bodyType, and nodeName are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await physicsService
@@ -83,15 +93,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsUpdateBodyAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) containing the body."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Body node path to update."), Required] string nodePath,
         [Description("Properties to update. Supported: collision_layer, collision_mask, gravity_scale, lock_rotation."), Required]
         Dictionary<string, JsonElement>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (properties is null || properties.Count == 0)
@@ -135,15 +155,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsValidateAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var issues = await physicsService.ValidateAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var issues = await physicsService.ValidateAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = issues
             .Select(x => new PhysicsValidationIssueDto(x.Path, x.Severity, x.Message, x.SuggestedFix, x.Rule, x.ScenePath, x.NodePath))
             .ToList();

@@ -14,8 +14,20 @@ public static partial class GodotTools
     /// <param name="integrationInspector">Integration inspector service.</param>
     /// <returns>Tool result containing discovered integration metadata.</returns>
     [McpServerTool(Name = "discover_integrations"), Description("Scan the project addons directory to find installed Godot integrations.")]
-    public static ToolResult DiscoverIntegrations(IIntegrationInspector integrationInspector)
+    public static ToolResult DiscoverIntegrations(
+        IIntegrationInspector integrationInspector,
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath)
     {
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
         var entries = integrationInspector.Discover();
         var data = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in entries)
@@ -36,14 +48,24 @@ public static partial class GodotTools
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "enable_plugin"), Description("Enable or disable a specific Godot editor plugin by its folder name.")]
     public static async Task<ToolResult> EnablePluginAsync(
+        IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The addon folder name."), Required] string pluginName,
         [Description("Set to true to enable, false to disable."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(pluginName))
+        if (IsBlank(projectPath) || IsBlank(pluginName))
         {
-            return Invalid("pluginName is required.");
+            return Invalid("projectPath and pluginName are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (enabled)
@@ -71,15 +93,25 @@ public static partial class GodotTools
     [McpServerTool(Name = "install_integration"), Description("Stub an installation of a new Godot integration/addon.")]
     public static async Task<ToolResult> InstallIntegrationAsync(
         IGodotFileService fileService,
+        IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The human-readable name of the integration."), Required] string integrationName,
         [Description("Source URL or identifier for the integration."), Required] string source,
         [Description("The category of the integration."), Required] IntegrationProfile profile,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(integrationName) || IsBlank(source))
+        if (IsBlank(projectPath) || IsBlank(integrationName) || IsBlank(source))
         {
-            return Invalid("integrationName and source are required.");
+            return Invalid("projectPath, integrationName and source are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var safeName = integrationName.Replace(' ', '_');
@@ -96,7 +128,7 @@ version="1.0.0"
 script="plugin.gd"
 """;
         await fileService.WriteAsync(pluginCfgPath, pluginCfg, cancellationToken).ConfigureAwait(false);
-        await EnablePluginAsync(projectConfigService, safeName, true, cancellationToken).ConfigureAwait(false);
+        await EnablePluginAsync(pathResolver, projectConfigService, projectPath, safeName, true, cancellationToken).ConfigureAwait(false);
 
         return new ToolResult(true, $"Integration '{integrationName}' installed as {profile}.", new Dictionary<string, string>
         {
@@ -112,8 +144,20 @@ script="plugin.gd"
     /// <param name="integrationInspector">Integration inspector service.</param>
     /// <returns>Tool result containing compatibility records.</returns>
     [McpServerTool(Name = "list_integration_compatibility"), Description("Check compatibility and maintenance status for all discovered integrations.")]
-    public static ToolResult ListIntegrationCompatibility(IIntegrationInspector integrationInspector)
+    public static ToolResult ListIntegrationCompatibility(
+        IIntegrationInspector integrationInspector,
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath)
     {
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
         var entries = integrationInspector.Discover();
         var data = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in entries)
@@ -134,11 +178,21 @@ script="plugin.gd"
     [McpServerTool(Name = "verify_integration_health"), Description("Validate that a specific integration is correctly installed and recognized.")]
     public static ToolResult VerifyIntegrationHealth(
         IIntegrationInspector integrationInspector,
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The name of the integration."), Required] string integrationName)
     {
-        if (IsBlank(integrationName))
+        if (IsBlank(projectPath) || IsBlank(integrationName))
         {
-            return Invalid("integrationName is required.");
+            return Invalid("projectPath and integrationName are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var item = integrationInspector.Discover().FirstOrDefault(x => x.Name.Equals(integrationName, StringComparison.OrdinalIgnoreCase));

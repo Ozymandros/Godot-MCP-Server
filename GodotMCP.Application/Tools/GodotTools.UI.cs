@@ -21,12 +21,18 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiListControlsAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to inspect."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var controls = await uiService.ListControlsAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -50,16 +56,26 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiAddControlAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path (for example: ., UI, UI/HUD)."), Required] string parentNodePath,
         [Description("Control type (for example: Control, Button, Label, PanelContainer)."), Required] string controlType,
         [Description("Control name."), Required] string controlName,
         [Description("Optional initial property map. Values must be primitive JSON values.")] Dictionary<string, JsonElement>? properties = null,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(parentNodePath) || IsBlank(controlType) || IsBlank(controlName))
+        if (IsBlank(parentNodePath) || IsBlank(controlType) || IsBlank(controlName))
         {
-            return Invalid("scenePath, parentNodePath, controlType, and controlName are required.");
+            return Invalid("projectPath, fileName, parentNodePath, controlType, and controlName are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         string? errorMessage = null;
@@ -92,14 +108,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiSetLayoutPresetAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Preset name: full_rect, top_left, or center."), Required] string preset,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(controlNodePath) || IsBlank(preset))
+        if (IsBlank(controlNodePath) || IsBlank(preset))
         {
-            return Invalid("scenePath, controlNodePath, and preset are required.");
+            return Invalid("projectPath, fileName, controlNodePath, and preset are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await uiService
@@ -123,14 +149,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiSetControlPropertiesAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required] Dictionary<string, JsonElement>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(controlNodePath))
+        if (IsBlank(controlNodePath))
         {
-            return Invalid("scenePath and controlNodePath are required.");
+            return Invalid("projectPath, fileName and controlNodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (properties is null || properties.Count == 0)

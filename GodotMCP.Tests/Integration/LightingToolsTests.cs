@@ -22,7 +22,8 @@ public class LightingToolsTests
             var result = await GodotTools.LightCreateAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 ".",
                 "DirectionalLight3D",
                 "Sun",
@@ -50,7 +51,7 @@ public class LightingToolsTests
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
             ILightingService service = new LightingService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
-            await GodotTools.LightCreateAsync(service, resolver, "res://scenes/Main.tscn", ".", "OmniLight3D", "Lamp");
+            await GodotTools.LightCreateAsync(service, resolver, "res://", "scenes/Main.tscn", ".", "OmniLight3D", "Lamp");
 
             using var payload = JsonDocument.Parse("""
 {
@@ -66,7 +67,8 @@ public class LightingToolsTests
             var result = await GodotTools.LightUpdateAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Lamp",
                 properties);
 
@@ -92,7 +94,7 @@ public class LightingToolsTests
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
             ILightingService service = new LightingService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
-            await GodotTools.LightCreateAsync(service, resolver, "res://scenes/Main.tscn", ".", "OmniLight3D", "Lamp");
+            await GodotTools.LightCreateAsync(service, resolver, "res://", "scenes/Main.tscn", ".", "OmniLight3D", "Lamp");
 
             using var payload = JsonDocument.Parse("""
 {
@@ -102,7 +104,7 @@ public class LightingToolsTests
             var properties = payload.RootElement
                 .EnumerateObject()
                 .ToDictionary(x => x.Name, x => x.Value.Clone(), StringComparer.Ordinal);
-            await GodotTools.LightUpdateAsync(service, resolver, "res://scenes/Main.tscn", "Lamp", properties);
+            await GodotTools.LightUpdateAsync(service, resolver, "res://", "scenes/Main.tscn", "Lamp", properties);
 
             var result = await GodotTools.LightValidateAsync(service, resolver, "res://");
 

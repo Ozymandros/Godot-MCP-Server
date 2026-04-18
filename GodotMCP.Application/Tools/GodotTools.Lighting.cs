@@ -21,15 +21,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightListAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var lights = await lightingService.ListAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var lights = await lightingService.ListAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = lights.Select(MapLight).ToList();
         return new ToolResult(true, $"Found {dto.Count} light node(s).", dto);
     }
@@ -50,16 +50,26 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightCreateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) where the light will be created."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path where the light is added."), Required] string parentNodePath,
         [Description("Light type: DirectionalLight3D, OmniLight3D, SpotLight3D, PointLight2D."), Required] string lightType,
         [Description("Name for the new light node."), Required] string nodeName,
         [Description("Optional preset: sun, fill, spot.")] string? preset = null,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(parentNodePath) || IsBlank(lightType) || IsBlank(nodeName))
+        if (IsBlank(parentNodePath) || IsBlank(lightType) || IsBlank(nodeName))
         {
-            return Invalid("scenePath, parentNodePath, lightType, and nodeName are required.");
+            return Invalid("projectPath, fileName, parentNodePath, lightType, and nodeName are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await lightingService
@@ -83,15 +93,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightUpdateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) containing the light."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Light node path to update."), Required] string nodePath,
         [Description("Light properties to update. Supported: light_energy, light_color, shadow_enabled, light_specular."), Required]
         Dictionary<string, JsonElement>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (properties is null || properties.Count == 0)
@@ -135,15 +155,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightValidateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var issues = await lightingService.ValidateAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var issues = await lightingService.ValidateAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = issues
             .Select(x => new LightValidationIssueDto(x.Path, x.Severity, x.Message, x.SuggestedFix, x.Rule, x.ScenePath, x.NodePath))
             .ToList();

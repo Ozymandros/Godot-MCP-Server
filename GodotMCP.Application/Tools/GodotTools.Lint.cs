@@ -13,10 +13,19 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
+        [Description("Project root path to lint (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         var issues = new List<LintIssue>();
-        var root = pathResolver.ProjectRoot;
+        string root;
+        try
+        {
+            root = pathResolver.ResolveResPath(NormalizeProjectPath(pathResolver, projectPath));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
 
         // Check for missing .import files for common asset types.
         var assetExtensions = new[] { ".png", ".jpg", ".wav", ".mp3", ".ogg", ".fbx", ".obj", ".glb", ".gltf" };

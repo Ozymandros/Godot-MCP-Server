@@ -19,7 +19,7 @@ public class SceneGraphToolsTests
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
-            var result = await GodotTools.SceneListNodesAsync(service, resolver, "res://scenes/Main.tscn");
+            var result = await GodotTools.SceneListNodesAsync(service, resolver, "res://", "scenes/Main.tscn");
 
             result.Success.Should().BeTrue();
             var nodes = (List<SceneGraphNodeDto>)result.Data!;
@@ -48,7 +48,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneMoveNodeAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 "UI");
 
@@ -77,7 +78,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player",
                 "Node3D",
                 "WeaponAnchor");
@@ -107,7 +109,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneRemoveNodeAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player");
 
             result.Success.Should().BeTrue();
@@ -136,7 +139,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneRenameNodeAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player/CameraRig",
                 "Rig");
 
@@ -165,7 +169,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera");
 
             result.Success.Should().BeTrue();
@@ -207,7 +212,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 properties);
 
@@ -238,7 +244,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "MissingNode");
 
             result.Success.Should().BeFalse();
@@ -275,7 +282,8 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://scenes/Main.tscn",
+                "res://",
+                "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 properties);
 

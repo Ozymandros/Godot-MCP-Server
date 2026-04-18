@@ -8,6 +8,17 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    // Backward-compatible overload for legacy single-path contract.
+    public static Task<ToolResult> CreateScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        string path,
+        string language,
+        string baseType,
+        string className,
+        CancellationToken cancellationToken = default)
+        => CreateScriptAsync(fileService, pathResolver, DefaultProjectPath, ToProjectFileName(path), language, baseType, className, cancellationToken);
+
     /// <summary>
     /// Creates a script file with basic boilerplate in GDScript or C#.
     /// </summary>
@@ -23,19 +34,26 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project path (res://...) for the new script."), Required] string path,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language,
         [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
         [Description("Name of the script class."), Required] string className,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(path) || IsBlank(language) || IsBlank(baseType) || IsBlank(className))
+        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(language) || IsBlank(baseType) || IsBlank(className))
         {
-            return Invalid("path, language, baseType and className are required.");
+            return Invalid("projectPath, fileName, language, baseType and className are required.");
         }
-        if (!IsValidResPath(pathResolver, path))
+
+        string path;
+        try
         {
-            return Invalid("path must be a valid project-relative path.");
+            path = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         string content;
@@ -72,19 +90,42 @@ public partial class {{className}} : {{baseType}}
     /// <param name="scriptPath">Script resource path.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing attachment status.</returns>
+    public static Task<ToolResult> AttachScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        string scenePath,
+        string nodeName,
+        string scriptPath,
+        CancellationToken cancellationToken = default)
+        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, DefaultProjectPath, ToProjectFileName(scenePath), nodeName, ToProjectFileName(scriptPath), cancellationToken);
+
     [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
     public static async Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the target node."), Required] string nodeName,
-        [Description("Project path (res://...) to the script to attach."), Required] string scriptPath,
+        [Description("Script file name or relative path under projectPath."), Required] string scriptFileName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName) || !IsValidResPath(pathResolver, scenePath) || !IsValidResPath(pathResolver, scriptPath))
+        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(scriptFileName) || IsBlank(nodeName))
         {
-            return Invalid("scenePath, scriptPath and nodeName are required and must be valid.");
+            return Invalid("projectPath, fileName, scriptFileName and nodeName are required.");
+        }
+
+        string scenePath;
+        string scriptPath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scriptPath = ResolveProjectFilePath(pathResolver, projectPath, scriptFileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
@@ -112,18 +153,38 @@ public partial class {{className}} : {{baseType}}
     /// <param name="isCSharp">Whether the script is C#.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing validation status.</returns>
+    public static Task<ToolResult> ValidateScriptAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        IGodotCliService godotCliService,
+        string scriptPath,
+        bool isCSharp,
+        CancellationToken cancellationToken = default)
+        => ValidateScriptAsync(fileService, pathResolver, godotCliService, DefaultProjectPath, ToProjectFileName(scriptPath), isCSharp, cancellationToken);
+
     [McpServerTool(Name = "validate_script"), Description("Perform static validation on a Godot script file.")]
     public static async Task<ToolResult> ValidateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project path (res://...) to the script file."), Required] string scriptPath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Set to true if the script is C#, false for GDScript."), Required] bool isCSharp,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scriptPath))
+        if (IsBlank(projectPath) || IsBlank(fileName))
         {
-            return Invalid("scriptPath must be a valid project-relative path.");
+            return Invalid("projectPath and fileName are required.");
+        }
+
+        string scriptPath;
+        try
+        {
+            scriptPath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (isCSharp)

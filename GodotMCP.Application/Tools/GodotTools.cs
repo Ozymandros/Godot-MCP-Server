@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
@@ -10,8 +11,14 @@ namespace GodotMCP.Application.Tools;
 public static partial class GodotTools
 {
     [McpServerTool(Name = "get_server_capabilities"), Description("Enumerate Godot MCP server capabilities and supported features.")]
-    public static ToolResult GetServerCapabilities()
+    public static ToolResult GetServerCapabilities(
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath)
     {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
         var capabilities = new Dictionary<string, string>
         {
             ["parity_doctrine"] = "mutatis-mutandis",
@@ -32,8 +39,14 @@ public static partial class GodotTools
     }
 
     [McpServerTool(Name = "health_check"), Description("Verify server health and transport status.")]
-    public static ToolResult HealthCheck()
+    public static ToolResult HealthCheck(
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath)
     {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
         return new ToolResult(true, "ok", new Dictionary<string, string>
         {
             ["status"] = "healthy",
@@ -42,8 +55,15 @@ public static partial class GodotTools
     }
 
     [McpServerTool(Name = "get_server_info"), Description("Get information about the Godot MCP server version and working directory.")]
-    public static ToolResult GetServerInfo(IPathResolver pathResolver)
+    public static ToolResult GetServerInfo(
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath)
     {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
         var version = Assembly.GetEntryAssembly()?.GetName().Version?.ToString()
             ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
             ?? "0.0.0";

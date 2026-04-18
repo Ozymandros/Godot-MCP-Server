@@ -22,7 +22,8 @@ public class ResourcePipelineToolsTests
             var write = await GodotTools.ResourceWriteAsync(
                 service,
                 resolver,
-                "res://materials/Hud.tres",
+                "res://",
+                "materials/Hud.tres",
                 "Resource",
                 new Dictionary<string, string>
                 {
@@ -32,7 +33,7 @@ public class ResourcePipelineToolsTests
 
             write.Success.Should().BeTrue();
 
-            var read = await GodotTools.ResourceReadAsync(service, resolver, "res://materials/Hud.tres");
+            var read = await GodotTools.ResourceReadAsync(service, resolver, "res://", "materials/Hud.tres");
             read.Success.Should().BeTrue();
             var payload = (ResourceDocumentDto)read.Data!;
             payload.Type.Should().Be("Resource");
@@ -59,7 +60,8 @@ public class ResourcePipelineToolsTests
             var result = await GodotTools.ResourceUpdatePropertiesAsync(
                 service,
                 resolver,
-                "res://materials/Test.tres",
+                "res://",
+                "materials/Test.tres",
                 new Dictionary<string, string>
                 {
                     ["value"] = "2",
@@ -92,7 +94,8 @@ public class ResourcePipelineToolsTests
             var result = await GodotTools.ResourceRemovePropertyAsync(
                 service,
                 resolver,
-                "res://materials/Test.tres",
+                "res://",
+                "materials/Test.tres",
                 "remove");
 
             result.Success.Should().BeTrue();
@@ -120,7 +123,7 @@ public class ResourcePipelineToolsTests
                 resolver,
                 new ResourceSerializer());
 
-            var result = await GodotTools.ResourceReadAsync(service, resolver, "res://materials/Missing.tres");
+            var result = await GodotTools.ResourceReadAsync(service, resolver, "res://", "materials/Missing.tres");
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain("not found");

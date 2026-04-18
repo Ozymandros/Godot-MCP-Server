@@ -18,9 +18,17 @@ public static partial class GodotTools
     [McpServerTool(Name = "run_editor_command"), Description("Execute a headless Godot CLI command with custom arguments.")]
     public static Task<ToolResult> RunEditorCommandAsync(
         IGodotCliService godotCliService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("Raw command line arguments."), Required] string arguments,
         CancellationToken cancellationToken = default)
-        => godotCliService.RunAsync(arguments, cancellationToken);
+    {
+        if (IsBlank(projectPath))
+        {
+            return Task.FromResult(Invalid("projectPath is required."));
+        }
+
+        return godotCliService.RunAsync(arguments, cancellationToken);
+    }
 
     /// <summary>
     /// Writes a simple export preset configuration file for a target platform.
@@ -33,10 +41,21 @@ public static partial class GodotTools
     [McpServerTool(Name = "manage_export_presets"), Description("Modify Godot export_presets.cfg to include a specific target platform.")]
     public static async Task<ToolResult> ManageExportPresetsAsync(
         IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("Name of the export preset."), Required] string presetName,
         [Description("Godot target platform (e.g., Windows Desktop)."), Required] string platform,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
         var content = $$"""
 [preset.0]
 name="{{presetName}}"

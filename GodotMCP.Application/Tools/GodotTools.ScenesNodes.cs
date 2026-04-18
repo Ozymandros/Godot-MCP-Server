@@ -24,7 +24,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) for the new scene."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the root node."), Required] string rootNodeName,
         [Description("Godot type of the root node (e.g., Node2D, Control, Node3D)."), Required] string rootNodeType,
         CancellationToken cancellationToken = default)
@@ -33,9 +34,14 @@ public static partial class GodotTools
         {
             return Invalid("rootNodeName and rootNodeType are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.", "Use paths like res://scenes/Main.tscn.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message, "Use projectPath plus a relative fileName such as scenes/Main.tscn.");
         }
 
         var scene = new GodotScene();
@@ -66,7 +72,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("The hierarchy path of the parent node (e.g., '.', 'Player')."), Required] string parentPath,
         [Description("Name for the new node."), Required] string nodeName,
         [Description("Godot type for the new node."), Required] string nodeType,
@@ -76,9 +83,14 @@ public static partial class GodotTools
         {
             return Invalid("parentPath, nodeName and nodeType are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -110,7 +122,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the node to modify."), Required] string nodeName,
         [Description("Property key (e.g., 'position', 'visible')."), Required] string propertyKey,
         [Description("Raw text value for the property (e.g., 'Vector2(0, 0)')."), Required] string propertyValue,
@@ -120,9 +133,14 @@ public static partial class GodotTools
         {
             return Invalid("nodeName and propertyKey are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
@@ -152,7 +170,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the node to remove."), Required] string nodeName,
         CancellationToken cancellationToken = default)
     {
@@ -160,9 +179,14 @@ public static partial class GodotTools
         {
             return Invalid("nodeName is required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
@@ -188,15 +212,27 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file acting as the container."), Required] string targetScenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Target scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent path within the target scene."), Required] string parentPath,
-        [Description("Project path (res://...) to the .tscn file to instantiate."), Required] string packedScenePath,
+        [Description("Packed scene file name or relative path under projectPath."), Required] string packedSceneFileName,
         [Description("Name for the new instance node."), Required] string instanceName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(parentPath) || IsBlank(instanceName) || !IsValidResPath(pathResolver, targetScenePath) || !IsValidResPath(pathResolver, packedScenePath))
+        if (IsBlank(parentPath) || IsBlank(instanceName))
         {
-            return Invalid("targetScenePath, packedScenePath, parentPath and instanceName are required and must be valid.");
+            return Invalid("projectPath, fileName, packedSceneFileName, parentPath and instanceName are required.");
+        }
+        string targetScenePath;
+        string packedScenePath;
+        try
+        {
+            targetScenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            packedScenePath = ResolveProjectFilePath(pathResolver, projectPath, packedSceneFileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(targetScenePath, cancellationToken).ConfigureAwait(false));
@@ -229,14 +265,26 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the source scene file."), Required] string sourceScenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Source scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Root node name of the branch to export."), Required] string nodeName,
-        [Description("Destination project path (res://...) for the exported scene."), Required] string destinationScenePath,
+        [Description("Destination scene file name or relative path under projectPath."), Required] string destinationFileName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName) || !IsValidResPath(pathResolver, sourceScenePath) || !IsValidResPath(pathResolver, destinationScenePath))
+        if (IsBlank(nodeName))
         {
-            return Invalid("sourceScenePath, destinationScenePath and nodeName are required and must be valid.");
+            return Invalid("projectPath, fileName, destinationFileName and nodeName are required.");
+        }
+        string sourceScenePath;
+        string destinationScenePath;
+        try
+        {
+            sourceScenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            destinationScenePath = ResolveProjectFilePath(pathResolver, projectPath, destinationFileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sourceScene = sceneSerializer.Deserialize(await fileService.ReadAsync(sourceScenePath, cancellationToken).ConfigureAwait(false));

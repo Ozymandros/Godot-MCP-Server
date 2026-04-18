@@ -25,15 +25,26 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) to the asset."), Required] string assetPath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Asset file name or relative path under projectPath."), Required] string fileName,
         [Description("The Godot importer (e.g., texture, wav)."), Required] string importer,
         [Description("The resource type (e.g., Texture2D, AudioStreamWAV)."), Required] string type,
         [Description("Optional importer parameters."), Required, MinLength(1)] Dictionary<string, string>? parameters = null,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, assetPath) || IsBlank(importer) || IsBlank(type))
+        if (IsBlank(importer) || IsBlank(type))
         {
-            return Invalid("assetPath, importer and type are required and must be valid.");
+            return Invalid("projectPath, fileName, importer and type are required.");
+        }
+
+        string assetPath;
+        try
+        {
+            assetPath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var model = new ImportFileModel
@@ -69,12 +80,18 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project path (res://...) to the asset to reimport."), Required] string assetPath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Asset file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, assetPath))
+        string assetPath;
+        try
         {
-            return Invalid("assetPath must be a valid project-relative path.");
+            assetPath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (!fileService.Exists($"{assetPath}.import"))
@@ -99,16 +116,22 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new texture."), Required] string texturePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Texture file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, texturePath))
+        string texturePath;
+        try
         {
-            return Invalid("texturePath must be a valid project-relative path.");
+            texturePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         await fileService.WriteAsync(texturePath, string.Empty, cancellationToken).ConfigureAwait(false);
-        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, texturePath, "texture", "Texture2D", new Dictionary<string, string>
+        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "texture", "Texture2D", new Dictionary<string, string>
         {
             ["compress/mode"] = "\"lossy\"",
             ["detect_3d/compress_to"] = "\"vrct\""
@@ -129,16 +152,22 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project path (res://...) for the new audio file."), Required] string audioPath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Audio file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, audioPath))
+        string audioPath;
+        try
         {
-            return Invalid("audioPath must be a valid project-relative path.");
+            audioPath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         await fileService.WriteAsync(audioPath, string.Empty, cancellationToken).ConfigureAwait(false);
-        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, audioPath, "wav", "AudioStreamWAV", new Dictionary<string, string>
+        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "wav", "AudioStreamWAV", new Dictionary<string, string>
         {
             ["force/8_bit"] = "false",
             ["edit/trim"] = "true"

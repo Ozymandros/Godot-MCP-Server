@@ -24,13 +24,21 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the first scene file."), Required] string scenePathA,
-        [Description("Project path (res://...) to the second scene file."), Required] string scenePathB,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("First scene file name or relative path under projectPath."), Required] string fileNameA,
+        [Description("Second scene file name or relative path under projectPath."), Required] string fileNameB,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePathA) || !IsValidResPath(pathResolver, scenePathB))
+        string scenePathA;
+        string scenePathB;
+        try
         {
-            return Invalid("Both paths must be valid project-relative paths.");
+            scenePathA = ResolveProjectFilePath(pathResolver, projectPath, fileNameA);
+            scenePathB = ResolveProjectFilePath(pathResolver, projectPath, fileNameB);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sceneAText = await fileService.ReadAsync(scenePathA, cancellationToken).ConfigureAwait(false);

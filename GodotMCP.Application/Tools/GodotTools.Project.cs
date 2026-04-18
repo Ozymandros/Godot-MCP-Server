@@ -18,12 +18,22 @@ public static partial class GodotTools
     [McpServerTool(Name = "create_godot_project"), Description("Create a new Godot 4.x project at the current working directory.")]
     public static async Task<ToolResult> CreateGodotProjectAsync(
         IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The name of the Godot project."), Required] string projectName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(projectName))
+        if (IsBlank(projectName) || IsBlank(projectPath))
         {
-            return Invalid("projectName is required.");
+            return Invalid("projectPath and projectName are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (fileService.ProjectExists())
@@ -62,9 +72,20 @@ project/assembly_name="{{projectName}}"
     [McpServerTool(Name = "get_project_info"), Description("Retrieve basic configuration from project.godot.")]
     public static async Task<ToolResult> GetProjectInfoAsync(
         IGodotFileService fileService,
+        IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
         if (!fileService.ProjectExists())
         {
             return new ToolResult(false, "No project.godot found.");
@@ -90,15 +111,25 @@ project/assembly_name="{{projectName}}"
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "configure_autoload"), Description("Enable or disable a singleton autoload in project.godot.")]
     public static async Task<ToolResult> ConfigureAutoloadAsync(
+        IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The autoload unique key."), Required] string key,
         [Description("The resource path (res://...) to the script or scene."), Required] string value,
         [Description("Set to true to add, false to remove."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(key) || IsBlank(value))
+        if (IsBlank(projectPath) || IsBlank(key) || IsBlank(value))
         {
-            return Invalid("Autoload key and value are required.");
+            return Invalid("projectPath, key and value are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (enabled)
@@ -120,13 +151,23 @@ project/assembly_name="{{projectName}}"
     /// <returns>Tool result describing plugin enablement status.</returns>
     [McpServerTool(Name = "add_plugin"), Description("Register an editor plugin in project.godot.")]
     public static async Task<ToolResult> AddPluginAsync(
+        IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
         [Description("The folder name of the plugin under res://addons/."), Required] string pluginName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(pluginName))
+        if (IsBlank(projectPath) || IsBlank(pluginName))
         {
-            return Invalid("pluginName is required.");
+            return Invalid("projectPath and pluginName are required.");
+        }
+        try
+        {
+            _ = NormalizeProjectPath(pathResolver, projectPath);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         await projectConfigService.SetValueAsync("editor_plugins", $"{pluginName}", "true", cancellationToken).ConfigureAwait(false);

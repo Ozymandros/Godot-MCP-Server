@@ -26,7 +26,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath,
         [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer",
         CancellationToken cancellationToken = default)
@@ -35,9 +36,14 @@ public static partial class GodotTools
         {
             return Invalid("parentPath and nodeName are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -72,7 +78,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("The name of the AnimationPlayer node."), Required] string playerNodeName,
         [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName,
         [Description("Duration of the animation in seconds."), Required] float length,
@@ -83,9 +90,14 @@ public static partial class GodotTools
         {
             return Invalid("playerNodeName and animName are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -161,7 +173,8 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project path (res://...) to the scene file."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("The resource_name of the animation."), Required] string animName,
         [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath,
         [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value",
@@ -172,9 +185,14 @@ public static partial class GodotTools
         {
             return Invalid("animName and targetPath are required.");
         }
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);

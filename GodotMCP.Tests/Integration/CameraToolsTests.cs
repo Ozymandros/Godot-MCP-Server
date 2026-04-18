@@ -52,7 +52,7 @@ public class CameraToolsTests
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
             ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
 
-            var result = await GodotTools.CameraCreateAsync(cameraService, resolver, "res://scenes/Main.tscn", "GameplayCamera", "3d", "fps");
+            var result = await GodotTools.CameraCreateAsync(cameraService, resolver, "res://", "scenes/Main.tscn", "GameplayCamera", "3d", "fps");
 
             result.Success.Should().BeTrue();
             var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
@@ -91,7 +91,7 @@ public class CameraToolsTests
                 .EnumerateObject()
                 .ToDictionary(p => p.Name, p => p.Value.Clone(), StringComparer.Ordinal);
 
-            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, "res://scenes/Main.tscn", "MainCamera", properties);
+            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, "res://", "scenes/Main.tscn", "MainCamera", properties);
 
             result.Success.Should().BeTrue();
             var sceneText = await files.ReadAsync("res://scenes/Main.tscn");

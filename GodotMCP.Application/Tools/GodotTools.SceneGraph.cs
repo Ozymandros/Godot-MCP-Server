@@ -21,12 +21,18 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneListNodesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to inspect."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath))
+        string scenePath;
+        try
         {
-            return Invalid("scenePath must be a valid project-relative path.");
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var nodes = await sceneGraphService.ListNodesAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -49,15 +55,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneAddNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path (for example: ., Player, Player/CameraRig)."), Required] string parentNodePath,
         [Description("Godot node type to create (for example: Node3D, Sprite2D, Control)."), Required] string nodeType,
         [Description("Name for the new node."), Required] string nodeName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(parentNodePath) || IsBlank(nodeType) || IsBlank(nodeName))
+        if (IsBlank(parentNodePath) || IsBlank(nodeType) || IsBlank(nodeName))
         {
-            return Invalid("scenePath, parentNodePath, nodeType, and nodeName are required.");
+            return Invalid("projectPath, fileName, parentNodePath, nodeType, and nodeName are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await sceneGraphService
@@ -80,13 +96,23 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneRemoveNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to remove."), Required] string nodePath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await sceneGraphService
@@ -110,14 +136,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneMoveNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to move."), Required] string nodePath,
         [Description("Destination parent node path (for example: ., Player, Player/CameraRig)."), Required] string newParentPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath) || IsBlank(newParentPath))
+        if (IsBlank(nodePath) || IsBlank(newParentPath))
         {
-            return Invalid("scenePath, nodePath, and newParentPath are required.");
+            return Invalid("projectPath, fileName, nodePath, and newParentPath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await sceneGraphService
@@ -141,14 +177,24 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneRenameNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to rename."), Required] string nodePath,
         [Description("New node name."), Required] string newName,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath) || IsBlank(newName))
+        if (IsBlank(nodePath) || IsBlank(newName))
         {
-            return Invalid("scenePath, nodePath, and newName are required.");
+            return Invalid("projectPath, fileName, nodePath, and newName are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         var result = await sceneGraphService
@@ -171,13 +217,23 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneGetNodePropertiesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to inspect."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to inspect."), Required] string nodePath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         try
@@ -206,15 +262,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneSetNodePropertiesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) to modify."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to update."), Required] string nodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required]
         Dictionary<string, JsonElement>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (properties is null || properties.Count == 0)

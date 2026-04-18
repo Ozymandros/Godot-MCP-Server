@@ -21,15 +21,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> CameraListAsync(
         ICameraService cameraService,
         IPathResolver pathResolver,
-        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var result = await cameraService.ListAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var result = await cameraService.ListAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = result
             .Select(c => new CameraNodeDto(
                 c.ScenePath,
@@ -61,15 +61,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> CameraCreateAsync(
         ICameraService cameraService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) where the camera will be created."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Target node path for the new camera, for example 'Player/CameraRig/MainCamera'."), Required] string nodePath,
         [Description("Camera type: 2d or 3d."), Required] string cameraType,
         [Description("Optional camera preset: cinematic, orthographic-ui, fps.")] string? preset = null,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath) || IsBlank(cameraType))
+        if (IsBlank(nodePath) || IsBlank(cameraType))
         {
-            return Invalid("scenePath, nodePath, and cameraType are required.");
+            return Invalid("projectPath, fileName, nodePath, and cameraType are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (!TryParseCameraType(cameraType, out var type))
@@ -119,15 +129,25 @@ public static partial class GodotTools
     public static async Task<ToolResult> CameraUpdateAsync(
         ICameraService cameraService,
         IPathResolver pathResolver,
-        [Description("Scene path (res://...) containing the camera."), Required] string scenePath,
+        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path of the camera to update."), Required] string nodePath,
         [Description("Camera properties to update. Supported: current, fov, size, near, far, projection."), Required]
         Dictionary<string, JsonElement>? properties,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidResPath(pathResolver, scenePath) || IsBlank(nodePath))
+        if (IsBlank(nodePath))
         {
-            return Invalid("scenePath and nodePath are required.");
+            return Invalid("projectPath, fileName and nodePath are required.");
+        }
+        string scenePath;
+        try
+        {
+            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
         }
 
         if (properties is null || properties.Count == 0)
@@ -190,15 +210,15 @@ public static partial class GodotTools
     public static async Task<ToolResult> CameraValidateAsync(
         ICameraService cameraService,
         IPathResolver pathResolver,
-        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectRootPath,
+        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
-        if (!IsValidProjectPath(pathResolver, projectRootPath))
+        if (!IsValidProjectPath(pathResolver, projectPath))
         {
-            return Invalid("projectRootPath must be inside the current project.");
+            return Invalid("projectPath must be inside the current project.");
         }
 
-        var issues = await cameraService.ValidateAsync(projectRootPath, cancellationToken).ConfigureAwait(false);
+        var issues = await cameraService.ValidateAsync(projectPath, cancellationToken).ConfigureAwait(false);
         var dto = issues
             .Select(i => new CameraValidationIssueDto(i.Path, i.Severity, i.Message, i.SuggestedFix, i.Rule, i.ScenePath, i.NodePath))
             .ToList();
