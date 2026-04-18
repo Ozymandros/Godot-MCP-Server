@@ -12,24 +12,62 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
     public string ProjectRoot { get; } = Path.GetFullPath(projectRoot);
 
     /// <inheritdoc />
-    public string ResolveResPath(string path)
+    public string ResolvePath(string path)
     {
-        var normalized = path.Replace('\\', '/');
-        var relative = normalized.StartsWith("res://", StringComparison.Ordinal)
-            ? normalized["res://".Length..]
-            : normalized.TrimStart('/');
-        var absolute = Path.GetFullPath(Path.Combine(ProjectRoot, relative));
-        EnsureInsideProject(absolute);
-        return absolute;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOperationException("Path is required.");
+        }
+
+        var trimmed = path.Trim();
+        var normalized = trimmed.Replace('\\', '/');
+
+        if (normalized.StartsWith("res://", StringComparison.Ordinal))
+        {
+            var rel = normalized["res://".Length..];
+            while (rel.StartsWith('/'))
+            {
+                rel = rel[1..];
+            }
+
+            var absolute = string.IsNullOrEmpty(rel)
+                ? ProjectRoot
+                : Path.GetFullPath(Path.Combine(ProjectRoot, rel.Replace('/', Path.DirectorySeparatorChar)));
+            EnsureInsideProject(absolute);
+            return absolute;
+        }
+
+        if (Path.IsPathRooted(trimmed))
+        {
+            var full = Path.GetFullPath(trimmed);
+            EnsureInsideProject(full);
+            return full;
+        }
+
+        var relative = normalized.TrimStart('/');
+        var combined = Path.GetFullPath(Path.Combine(ProjectRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
+        EnsureInsideProject(combined);
+        return combined;
     }
 
     /// <inheritdoc />
-    public string ToResPath(string absolutePath)
+    public string GetProjectRelativePath(string absolutePath)
     {
         var full = Path.GetFullPath(absolutePath);
         EnsureInsideProject(full);
-        var relative = Path.GetRelativePath(ProjectRoot, full).Replace('\\', '/');
-        return $"res://{relative}";
+        return Path.GetRelativePath(ProjectRoot, full).Replace('\\', '/');
+    }
+
+    /// <inheritdoc />
+    public string ToGodotResPath(string absolutePath)
+    {
+        var rel = GetProjectRelativePath(absolutePath);
+        if (string.IsNullOrEmpty(rel) || string.Equals(rel, ".", StringComparison.Ordinal))
+        {
+            return "res://";
+        }
+
+        return $"res://{rel}";
     }
 
     /// <inheritdoc />

@@ -16,10 +16,10 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
-            var result = await GodotTools.SceneListNodesAsync(service, resolver, "res://", "scenes/Main.tscn");
+            var result = await GodotTools.SceneListNodesAsync(service, resolver, root, "scenes/Main.tscn");
 
             result.Success.Should().BeTrue();
             var nodes = (List<SceneGraphNodeDto>)result.Data!;
@@ -42,19 +42,19 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneMoveNodeAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 "UI");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"MainCamera\" type=\"Camera3D\" parent=\"UI\"]");
         }
         finally
@@ -72,20 +72,20 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player",
                 "Node3D",
                 "WeaponAnchor");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"WeaponAnchor\" type=\"Node3D\" parent=\"Player\"]");
         }
         finally
@@ -103,18 +103,18 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneRemoveNodeAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().NotContain("[node name=\"Player\"");
             sceneText.Should().NotContain("[node name=\"CameraRig\"");
         }
@@ -133,19 +133,19 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneRenameNodeAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player/CameraRig",
                 "Rig");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Rig\" type=\"Node3D\" parent=\"Player\"]");
         }
         finally
@@ -163,13 +163,13 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera");
 
@@ -194,7 +194,7 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             using var payload = JsonDocument.Parse("""
@@ -212,13 +212,13 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 properties);
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("fov = 68");
             sceneText.Should().Contain("current = true");
             sceneText.Should().Contain("label = Main");
@@ -238,13 +238,13 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "MissingNode");
 
@@ -266,7 +266,7 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
             using var payload = JsonDocument.Parse("""
@@ -282,7 +282,7 @@ public class SceneGraphToolsTests
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Player/CameraRig/MainCamera",
                 properties);

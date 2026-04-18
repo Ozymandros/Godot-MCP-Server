@@ -14,17 +14,17 @@ public class PhysicsServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
 
             var result = await service.CreateBodyAsync(new PhysicsCreateBodyRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 ".",
                 "Crate",
                 "RigidBody3D"));
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Crate\" type=\"RigidBody3D\" parent=\".\"]");
             sceneText.Should().Contain("[node name=\"CollisionShape\" type=\"CollisionShape3D\" parent=\"Crate\"]");
         }
@@ -43,12 +43,12 @@ public class PhysicsServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
-            await service.CreateBodyAsync(new PhysicsCreateBodyRequest("res://scenes/Main.tscn", ".", "Crate", "RigidBody3D"));
+            await service.CreateBodyAsync(new PhysicsCreateBodyRequest(Path.Combine(root, "scenes", "Main.tscn"), ".", "Crate", "RigidBody3D"));
 
             var result = await service.UpdateBodyAsync(new PhysicsUpdateBodyRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Crate",
                 new Dictionary<string, object?>
                 {
@@ -73,16 +73,16 @@ public class PhysicsServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
             await service.CreateBodyAsync(new PhysicsCreateBodyRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 ".",
                 "Ghost",
                 "RigidBody3D",
                 AddCollisionShape: false));
 
-            var issues = await service.ValidateAsync("res://");
+            var issues = await service.ValidateAsync(root);
 
             issues.Should().Contain(x => x.Rule == "missing-collision-shape" && x.NodePath == "Ghost");
         }

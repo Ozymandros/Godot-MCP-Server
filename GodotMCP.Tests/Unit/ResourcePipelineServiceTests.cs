@@ -14,10 +14,10 @@ public class ResourcePipelineServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await files.WriteAsync("res://materials/Test.tres", "[gd_resource type=\"StandardMaterial3D\" format=3]\n\nalbedo_color = Color(1, 1, 1)");
+            await files.WriteAsync(Path.Combine("materials", "Test.tres"), "[gd_resource type=\"StandardMaterial3D\" format=3]\n\nalbedo_color = Color(1, 1, 1)");
             var service = CreateService(files, root);
 
-            var document = await service.ReadAsync("res://materials/Test.tres");
+            var document = await service.ReadAsync(Path.Combine("materials", "Test.tres"));
 
             document.Type.Should().Be("StandardMaterial3D");
             document.Properties["albedo_color"].Should().Be("Color(1, 1, 1)");
@@ -40,14 +40,14 @@ public class ResourcePipelineServiceTests
             var service = CreateService(files, root);
 
             await service.WriteAsync(
-                "res://materials/NewMat.tres",
+                Path.Combine("materials", "NewMat.tres"),
                 new ResourceDocument("StandardMaterial3D", new Dictionary<string, string>
                 {
                     ["metallic"] = "0.35",
                     ["roughness"] = "0.7"
                 }));
 
-            var text = await files.ReadAsync("res://materials/NewMat.tres");
+            var text = await files.ReadAsync(Path.Combine("materials", "NewMat.tres"));
             text.Should().Contain("[gd_resource type=\"StandardMaterial3D\" format=3]");
             text.Should().Contain("metallic = 0.35");
         }
@@ -66,10 +66,10 @@ public class ResourcePipelineServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await files.WriteAsync("res://materials/Test.tres", "[gd_resource type=\"Resource\" format=3]\n\nvalue = 1");
+            await files.WriteAsync(Path.Combine("materials", "Test.tres"), "[gd_resource type=\"Resource\" format=3]\n\nvalue = 1");
             var service = CreateService(files, root);
 
-            var result = await service.UpdatePropertiesAsync("res://materials/Test.tres", new Dictionary<string, string>
+            var result = await service.UpdatePropertiesAsync(Path.Combine("materials", "Test.tres"), new Dictionary<string, string>
             {
                 ["value"] = "2",
                 ["enabled"] = "true"
@@ -94,10 +94,10 @@ public class ResourcePipelineServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await files.WriteAsync("res://materials/Test.tres", "[gd_resource type=\"Resource\" format=3]\n\nkeep = 1\nremove = 2");
+            await files.WriteAsync(Path.Combine("materials", "Test.tres"), "[gd_resource type=\"Resource\" format=3]\n\nkeep = 1\nremove = 2");
             var service = CreateService(files, root);
 
-            var result = await service.RemovePropertyAsync("res://materials/Test.tres", "remove");
+            var result = await service.RemovePropertyAsync(Path.Combine("materials", "Test.tres"), "remove");
 
             result.Success.Should().BeTrue();
             result.Properties!.Should().ContainKey("keep");
@@ -120,7 +120,7 @@ public class ResourcePipelineServiceTests
         {
             var service = CreateService(files, root);
 
-            var act = async () => await service.ReadAsync("res://materials/Bad.txt");
+            var act = async () => await service.ReadAsync(Path.Combine("materials", "Bad.txt"));
 
             await act.Should().ThrowAsync<InvalidOperationException>();
         }

@@ -24,13 +24,13 @@ public class ApplicationToolsE2ETests
             var cli = new GodotCliService(resolver);
             var inspector = new IntegrationInspector(resolver);
 
-            (await GodotTools.CreateGodotProjectAsync(files, resolver, "res://", "Demo")).Success.Should().BeTrue();
-            (await GodotTools.CreateSceneAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", "Main", "Node2D")).Success.Should().BeTrue();
-            (await GodotTools.AddNodeAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", ".", "Player", "Node2D")).Success.Should().BeTrue();
-            (await GodotTools.CreateScriptAsync(files, resolver, "res://", "scripts/Player.gd", "gd", "Node2D", "Player")).Success.Should().BeTrue();
-            (await GodotTools.AttachScriptAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", "Player", "scripts/Player.gd")).Success.Should().BeTrue();
-            GodotTools.HealthCheck("res://").Success.Should().BeTrue();
-            GodotTools.GetServerInfo(resolver, "res://").Success.Should().BeTrue();
+            (await GodotTools.CreateGodotProjectAsync(files, resolver, root, "Demo")).Success.Should().BeTrue();
+            (await GodotTools.CreateSceneAsync(files, resolver, scenes, root, "scenes/Main.tscn", "Main", "Node2D")).Success.Should().BeTrue();
+            (await GodotTools.AddNodeAsync(files, resolver, scenes, root, "scenes/Main.tscn", ".", "Player", "Node2D")).Success.Should().BeTrue();
+            (await GodotTools.CreateScriptAsync(files, resolver, root, "scripts/Player.gd", "gd", "Node2D", "Player")).Success.Should().BeTrue();
+            (await GodotTools.AttachScriptAsync(files, resolver, scenes, root, "scenes/Main.tscn", "Player", "scripts/Player.gd")).Success.Should().BeTrue();
+            GodotTools.HealthCheck(root).Success.Should().BeTrue();
+            GodotTools.GetServerInfo(resolver, root).Success.Should().BeTrue();
         }
         finally
         {
@@ -55,8 +55,8 @@ public class ApplicationToolsE2ETests
             IGodotFileService files = new GodotFileService(resolver);
             var scenes = new SceneSerializer();
 
-            await GodotTools.CreateGodotProjectAsync(files, resolver, "res://", "Demo");
-            var result = await GodotTools.CreateSceneAsync(files, resolver, scenes, "res://", "../outside.tscn", "Main", "Node2D");
+            await GodotTools.CreateGodotProjectAsync(files, resolver, root, "Demo");
+            var result = await GodotTools.CreateSceneAsync(files, resolver, scenes, root, "../outside.tscn", "Main", "Node2D");
             result.Success.Should().BeFalse();
         }
         finally

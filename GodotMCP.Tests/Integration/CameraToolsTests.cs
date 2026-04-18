@@ -23,10 +23,10 @@ public class CameraToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
 
-            var result = await GodotTools.CameraListAsync(cameraService, resolver, "res://");
+            var result = await GodotTools.CameraListAsync(cameraService, resolver, root);
 
             result.Success.Should().BeTrue();
             var cameras = (List<CameraNodeDto>)result.Data!;
@@ -49,13 +49,13 @@ public class CameraToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
 
-            var result = await GodotTools.CameraCreateAsync(cameraService, resolver, "res://", "scenes/Main.tscn", "GameplayCamera", "3d", "fps");
+            var result = await GodotTools.CameraCreateAsync(cameraService, resolver, root, "scenes/Main.tscn", "GameplayCamera", "3d", "fps");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"GameplayCamera\" type=\"Camera3D\" parent=\".\"]");
             sceneText.Should().Contain("fov = 90");
             sceneText.Should().Contain("near = 0.05");
@@ -76,7 +76,7 @@ public class CameraToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
 
             using var payload = JsonDocument.Parse("""
@@ -91,10 +91,10 @@ public class CameraToolsTests
                 .EnumerateObject()
                 .ToDictionary(p => p.Name, p => p.Value.Clone(), StringComparer.Ordinal);
 
-            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, "res://", "scenes/Main.tscn", "MainCamera", properties);
+            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, root, "scenes/Main.tscn", "MainCamera", properties);
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("fov = 65");
             sceneText.Should().Contain("current = false");
             sceneText.Should().Contain("projection = 1");
@@ -115,10 +115,10 @@ public class CameraToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "res://scenes/Invalid.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "scenes/Invalid.tscn");
             ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
 
-            var result = await GodotTools.CameraValidateAsync(cameraService, resolver, "res://");
+            var result = await GodotTools.CameraValidateAsync(cameraService, resolver, root);
 
             result.Success.Should().BeTrue();
             var issues = (List<CameraValidationIssueDto>)result.Data!;

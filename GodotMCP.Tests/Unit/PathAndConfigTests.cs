@@ -23,22 +23,37 @@ public class PathAndConfigTests
         }
     }
 
-    public static IEnumerable<object[]> ResPathCases()
+    public static IEnumerable<object[]> ProjectPathCases()
     {
         for (var i = 0; i < 30; i++)
         {
-            yield return [$"res://scenes/{i}/Main.tscn"];
+            yield return [$"scenes/{i}/Main.tscn"];
         }
     }
 
     [Theory]
-    [MemberData(nameof(ResPathCases))]
-    public void PathResolver_ShouldResolveResPaths(string path)
+    [MemberData(nameof(ProjectPathCases))]
+    public void PathResolver_ShouldResolveProjectRelativePaths(string path)
     {
         var (root, resolver, _) = FixtureFactory.CreateProject();
         try
         {
-            var absolute = resolver.ResolveResPath(path);
+            var absolute = resolver.ResolvePath(path);
+            absolute.Should().StartWith(root);
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    [Fact]
+    public void PathResolver_ShouldResolveLegacyResUri()
+    {
+        var (root, resolver, _) = FixtureFactory.CreateProject();
+        try
+        {
+            var absolute = resolver.ResolvePath(Path.Combine(root, "scenes", "Main.tscn"));
             absolute.Should().StartWith(root);
         }
         finally

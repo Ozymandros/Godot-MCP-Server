@@ -21,7 +21,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneListNodesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
@@ -55,7 +55,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneAddNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path (for example: ., Player, Player/CameraRig)."), Required] string parentNodePath,
         [Description("Godot node type to create (for example: Node3D, Sprite2D, Control)."), Required] string nodeType,
@@ -96,7 +96,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneRemoveNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to remove."), Required] string nodePath,
         CancellationToken cancellationToken = default)
@@ -136,7 +136,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneMoveNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to move."), Required] string nodePath,
         [Description("Destination parent node path (for example: ., Player, Player/CameraRig)."), Required] string newParentPath,
@@ -177,7 +177,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneRenameNodeAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to rename."), Required] string nodePath,
         [Description("New node name."), Required] string newName,
@@ -217,7 +217,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneGetNodePropertiesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to inspect."), Required] string nodePath,
         CancellationToken cancellationToken = default)
@@ -262,7 +262,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> SceneSetNodePropertiesAsync(
         ISceneGraphService sceneGraphService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Node path to update."), Required] string nodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required]

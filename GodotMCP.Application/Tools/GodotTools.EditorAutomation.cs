@@ -18,7 +18,7 @@ public static partial class GodotTools
     [McpServerTool(Name = "run_editor_command"), Description("Execute a headless Godot CLI command with custom arguments.")]
     public static Task<ToolResult> RunEditorCommandAsync(
         IGodotCliService godotCliService,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Raw command line arguments."), Required] string arguments,
         CancellationToken cancellationToken = default)
     {
@@ -42,7 +42,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> ManageExportPresetsAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Name of the export preset."), Required] string presetName,
         [Description("Godot target platform (e.g., Windows Desktop)."), Required] string platform,
         CancellationToken cancellationToken = default)
@@ -62,7 +62,7 @@ name="{{presetName}}"
 platform="{{platform}}"
 runnable=true
 """;
-        await fileService.WriteAsync("res://export_presets.cfg", content, cancellationToken).ConfigureAwait(false);
+        await fileService.WriteAsync(pathResolver.ResolvePath("export_presets.cfg"), content, cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, "Export preset updated.");
     }
 }

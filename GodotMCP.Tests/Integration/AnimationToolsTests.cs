@@ -19,12 +19,12 @@ public class AnimationToolsTests
             IGodotFileService files = new GodotFileService(resolver);
             var scenes = new SceneSerializer();
 
-            await GodotTools.CreateGodotProjectAsync(files, resolver, "res://", "AnimDemo");
-            await GodotTools.CreateSceneAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", "Main", "Node2D");
-            await GodotTools.AddNodeAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", ".", "Sprite2D", "Sprite2D");
+            await GodotTools.CreateGodotProjectAsync(files, resolver, root, "AnimDemo");
+            await GodotTools.CreateSceneAsync(files, resolver, scenes, root, "scenes/Main.tscn", "Main", "Node2D");
+            await GodotTools.AddNodeAsync(files, resolver, scenes, root, "scenes/Main.tscn", ".", "Sprite2D", "Sprite2D");
 
-            (await GodotTools.AddAnimationPlayerAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", ".")).Success.Should().BeTrue();
-            (await GodotTools.AddAnimationAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", "AnimationPlayer", "fade", 1.0f)).Success.Should().BeTrue();
+            (await GodotTools.AddAnimationPlayerAsync(files, resolver, scenes, root, "scenes/Main.tscn", ".")).Success.Should().BeTrue();
+            (await GodotTools.AddAnimationAsync(files, resolver, scenes, root, "scenes/Main.tscn", "AnimationPlayer", "fade", 1.0f)).Success.Should().BeTrue();
 
             var keys = new List<KeyPoint>
             {
@@ -32,9 +32,9 @@ public class AnimationToolsTests
                 new() { Time = 1, Value = "Vector2(100, 100)" }
             };
 
-            (await GodotTools.AddAnimationTrackAsync(files, resolver, scenes, "res://", "scenes/Main.tscn", "fade", "Sprite2D:position", "value", keys)).Success.Should().BeTrue();
+            (await GodotTools.AddAnimationTrackAsync(files, resolver, scenes, root, "scenes/Main.tscn", "fade", "Sprite2D:position", "value", keys)).Success.Should().BeTrue();
 
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[sub_resource type=\"AnimationLibrary\" id=\"AnimationLibrary_default\"]");
             sceneText.Should().Contain("resource_name = \"fade\"");
             sceneText.Should().Contain("tracks/0/path = NodePath(\"Sprite2D:position\")");
@@ -63,12 +63,12 @@ public class AnimationToolsTests
             IGodotFileService files = new GodotFileService(resolver);
             var scenes = new SceneSerializer();
 
-            await GodotTools.CreateGodotProjectAsync(files, resolver, "res://", "DiffDemo");
-            await GodotTools.CreateSceneAsync(files, resolver, scenes, "res://", "scenes/A.tscn", "Root", "Node2D");
-            await GodotTools.CreateSceneAsync(files, resolver, scenes, "res://", "scenes/B.tscn", "Root", "Node2D");
-            await GodotTools.AddNodeAsync(files, resolver, scenes, "res://", "scenes/B.tscn", ".", "NewNode", "Sprite2D");
+            await GodotTools.CreateGodotProjectAsync(files, resolver, root, "DiffDemo");
+            await GodotTools.CreateSceneAsync(files, resolver, scenes, root, "scenes/A.tscn", "Root", "Node2D");
+            await GodotTools.CreateSceneAsync(files, resolver, scenes, root, "scenes/B.tscn", "Root", "Node2D");
+            await GodotTools.AddNodeAsync(files, resolver, scenes, root, "scenes/B.tscn", ".", "NewNode", "Sprite2D");
 
-            var result = await GodotTools.DiffScenesAsync(files, resolver, scenes, "res://", "scenes/A.tscn", "scenes/B.tscn");
+            var result = await GodotTools.DiffScenesAsync(files, resolver, scenes, root, "scenes/A.tscn", "scenes/B.tscn");
             result.Success.Should().BeTrue();
             var data = (SceneDiffModel)result.Data!;
             data.AddedNodes.Should().Contain(n => n.Name == "NewNode");
@@ -96,10 +96,10 @@ public class AnimationToolsTests
             IGodotFileService files = new GodotFileService(resolver);
             var scenes = new SceneSerializer();
 
-            await GodotTools.CreateGodotProjectAsync(files, resolver, "res://", "LintDemo");
+            await GodotTools.CreateGodotProjectAsync(files, resolver, root, "LintDemo");
             File.WriteAllText(Path.Combine(root, "icon.png"), ""); // create dummy asset without .import
 
-            var result = await GodotTools.LintProjectAsync(files, resolver, scenes, "res://");
+            var result = await GodotTools.LintProjectAsync(files, resolver, scenes, root);
             result.Success.Should().BeTrue();
             var issues = (List<LintIssue>)result.Data!;
             issues.Should().Contain(i => i.Message.Contains("missing .import file"));

@@ -17,7 +17,7 @@ public static partial class GodotTools
         string baseType,
         string className,
         CancellationToken cancellationToken = default)
-        => CreateScriptAsync(fileService, pathResolver, DefaultProjectPath, ToProjectFileName(path), language, baseType, className, cancellationToken);
+        => CreateScriptAsync(fileService, pathResolver, pathResolver.ProjectRoot, ToProjectFileName(path, pathResolver), language, baseType, className, cancellationToken);
 
     /// <summary>
     /// Creates a script file with basic boilerplate in GDScript or C#.
@@ -34,7 +34,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language,
         [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
@@ -98,14 +98,14 @@ public partial class {{className}} : {{baseType}}
         string nodeName,
         string scriptPath,
         CancellationToken cancellationToken = default)
-        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, DefaultProjectPath, ToProjectFileName(scenePath), nodeName, ToProjectFileName(scriptPath), cancellationToken);
+        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, pathResolver.ProjectRoot, ToProjectFileName(scenePath, pathResolver), nodeName, ToProjectFileName(scriptPath, pathResolver), cancellationToken);
 
     [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
     public static async Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the target node."), Required] string nodeName,
         [Description("Script file name or relative path under projectPath."), Required] string scriptFileName,
@@ -130,7 +130,7 @@ public partial class {{className}} : {{baseType}}
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
         var extId = (scene.ExternalResources.Count + 1).ToString();
-        scene.ExternalResources.Add(new ExtResource { Id = extId, Path = scriptPath, Type = "Script" });
+        scene.ExternalResources.Add(new ExtResource { Id = extId, Path = pathResolver.ToGodotResPath(scriptPath), Type = "Script" });
 
         var node = scene.Nodes.FirstOrDefault(n => n.Name == nodeName);
         if (node is null)
@@ -160,14 +160,14 @@ public partial class {{className}} : {{baseType}}
         string scriptPath,
         bool isCSharp,
         CancellationToken cancellationToken = default)
-        => ValidateScriptAsync(fileService, pathResolver, godotCliService, DefaultProjectPath, ToProjectFileName(scriptPath), isCSharp, cancellationToken);
+        => ValidateScriptAsync(fileService, pathResolver, godotCliService, pathResolver.ProjectRoot, ToProjectFileName(scriptPath, pathResolver), isCSharp, cancellationToken);
 
     [McpServerTool(Name = "validate_script"), Description("Perform static validation on a Godot script file.")]
     public static async Task<ToolResult> ValidateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Set to true if the script is C#, false for GDScript."), Required] bool isCSharp,
         CancellationToken cancellationToken = default)

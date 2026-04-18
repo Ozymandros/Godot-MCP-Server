@@ -18,15 +18,14 @@ public sealed class PhysicsService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<PhysicsBodyInfo>> ListAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
+        var rootDir = ServiceHelpers.NormalizeProjectDirectory(pathResolver, rootPath);
         var bodies = new List<PhysicsBodyInfo>();
-        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
+        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootDir, "*.tscn", recursive: true))
         {
-            var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
-            var nodes = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
+            var nodes = await sceneGraphService.ListNodesAsync(absoluteScenePath, cancellationToken).ConfigureAwait(false);
             bodies.AddRange(ServiceHelpers.FlattenNodes(nodes)
                 .Where(IsPhysicsBody)
-                .Select(x => ToBodyInfo(sceneResPath, x)));
+                .Select(x => ToBodyInfo(absoluteScenePath, x)));
         }
 
         return bodies;
@@ -108,50 +107,49 @@ public sealed class PhysicsService(
     public async Task<IReadOnlyList<PhysicsValidationIssue>> ValidateAsync(string rootPath, CancellationToken cancellationToken = default)
     {
         var issues = new List<PhysicsValidationIssue>();
-        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
+        var rootDir = ServiceHelpers.NormalizeProjectDirectory(pathResolver, rootPath);
 
-        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
+        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootDir, "*.tscn", recursive: true))
         {
-            var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
-            var roots = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
+            var roots = await sceneGraphService.ListNodesAsync(absoluteScenePath, cancellationToken).ConfigureAwait(false);
             var nodes = ServiceHelpers.FlattenNodes(roots).ToList();
 
             foreach (var node in nodes.Where(IsPhysicsBody))
             {
-                var info = ToBodyInfo(sceneResPath, node);
+                var info = ToBodyInfo(absoluteScenePath, node);
                 if (info.CollisionLayer is null or <= 0)
                 {
                     issues.Add(new PhysicsValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Warning",
                         $"Body '{info.NodePath}' has invalid collision_layer.",
                         "Set collision_layer to a positive bitmask value.",
                         "invalid-collision-layer",
-                        sceneResPath,
+                        absoluteScenePath,
                         info.NodePath));
                 }
 
                 if (info.CollisionMask is null or <= 0)
                 {
                     issues.Add(new PhysicsValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Warning",
                         $"Body '{info.NodePath}' has invalid collision_mask.",
                         "Set collision_mask to a positive bitmask value.",
                         "invalid-collision-mask",
-                        sceneResPath,
+                        absoluteScenePath,
                         info.NodePath));
                 }
 
                 if (RequiresCollisionShape(info.Type) && !HasCollisionShape(nodes, info.NodePath, info.Type))
                 {
                     issues.Add(new PhysicsValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Warning",
                         $"Body '{info.NodePath}' has no collision shape child.",
                         "Add a CollisionShape node under the body.",
                         "missing-collision-shape",
-                        sceneResPath,
+                        absoluteScenePath,
                         info.NodePath));
                 }
             }

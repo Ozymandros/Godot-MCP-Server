@@ -14,10 +14,10 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
-            var result = await service.ListNodesAsync("res://scenes/Main.tscn");
+            var result = await service.ListNodesAsync(Path.Combine(root, "scenes", "Main.tscn"));
 
             result.Should().ContainSingle();
             var rootNode = result.Single();
@@ -45,17 +45,17 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.AddNodeAsync(new SceneGraphAddNodeRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 ".",
                 "Node3D",
                 "Props"));
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Props\" type=\"Node3D\" parent=\".\"]");
         }
         finally
@@ -73,11 +73,11 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.AddNodeAsync(new SceneGraphAddNodeRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "MissingParent",
                 "Node3D",
                 "Props"));
@@ -100,13 +100,13 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
-            var result = await service.RemoveNodeAsync(new SceneGraphRemoveNodeRequest("res://scenes/Main.tscn", "Player"));
+            var result = await service.RemoveNodeAsync(new SceneGraphRemoveNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "Player"));
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().NotContain("[node name=\"Player\"");
             sceneText.Should().NotContain("[node name=\"CameraRig\"");
             sceneText.Should().NotContain("[node name=\"MainCamera\"");
@@ -126,11 +126,11 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.MoveNodeAsync(new SceneGraphMoveNodeRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Player",
                 "Player/CameraRig"));
 
@@ -152,11 +152,11 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.MoveNodeAsync(new SceneGraphMoveNodeRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Root",
                 "Player"));
 
@@ -178,16 +178,16 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.RenameNodeAsync(new SceneGraphRenameNodeRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Player/CameraRig",
                 "Rig"));
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Rig\" type=\"Node3D\" parent=\"Player\"]");
         }
         finally
@@ -205,11 +205,11 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Player/CameraRig/MainCamera",
                 new Dictionary<string, object?>
                 {
@@ -218,7 +218,7 @@ public class SceneGraphServiceTests
                 }));
 
             result.Success.Should().BeTrue();
-            var props = await service.GetNodePropertiesAsync("res://scenes/Main.tscn", "Player/CameraRig/MainCamera");
+            var props = await service.GetNodePropertiesAsync(Path.Combine(root, "scenes", "Main.tscn"), "Player/CameraRig/MainCamera");
             props["fov"].Should().Be("60");
             props["current"].Should().Be("true");
             props["near"].Should().Be("0.1");
@@ -238,10 +238,10 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
-            var act = async () => await service.GetNodePropertiesAsync("res://scenes/Main.tscn", "MissingNode");
+            var act = async () => await service.GetNodePropertiesAsync(Path.Combine(root, "scenes", "Main.tscn"), "MissingNode");
 
             await act.Should().ThrowAsync<InvalidOperationException>();
         }
@@ -260,11 +260,11 @@ public class SceneGraphServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new SceneGraphService(files, new SceneSerializer());
 
             var result = await service.SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Player/CameraRig/MainCamera",
                 new Dictionary<string, object?>
                 {

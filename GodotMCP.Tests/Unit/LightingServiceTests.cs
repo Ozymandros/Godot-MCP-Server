@@ -14,11 +14,11 @@ public class LightingServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
 
             var result = await service.CreateAsync(new LightCreateRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 ".",
                 "Sun",
                 "DirectionalLight3D",
@@ -44,12 +44,12 @@ public class LightingServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
-            await service.CreateAsync(new LightCreateRequest("res://scenes/Main.tscn", ".", "Lamp", "OmniLight3D", null));
+            await service.CreateAsync(new LightCreateRequest(Path.Combine(root, "scenes", "Main.tscn"), ".", "Lamp", "OmniLight3D", null));
 
             var result = await service.UpdateAsync(new LightUpdateRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Lamp",
                 new Dictionary<string, object?>
                 {
@@ -74,18 +74,18 @@ public class LightingServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = CreateService(files, resolver);
-            await service.CreateAsync(new LightCreateRequest("res://scenes/Main.tscn", ".", "Lamp", "OmniLight3D", null));
+            await service.CreateAsync(new LightCreateRequest(Path.Combine(root, "scenes", "Main.tscn"), ".", "Lamp", "OmniLight3D", null));
             await service.UpdateAsync(new LightUpdateRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Lamp",
                 new Dictionary<string, object?>
                 {
                     ["light_energy"] = 0
                 }));
 
-            var issues = await service.ValidateAsync("res://");
+            var issues = await service.ValidateAsync(root);
 
             issues.Should().Contain(x => x.Rule == "non-positive-energy");
         }

@@ -13,7 +13,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IResourceSerializer resourceSerializer,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath."), Required] string fileName,
         [Description("Godot resource type (e.g., Resource, Environment)."), Required] string type,
         [Description("Dictionary of property key-values for the resource."), Required, MinLength(1)] Dictionary<string, string> properties,

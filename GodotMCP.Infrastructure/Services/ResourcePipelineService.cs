@@ -94,15 +94,14 @@ public sealed class ResourcePipelineService(
         }
 
         var normalized = resourcePath.Replace('\\', '/');
-        var isResPath = normalized.StartsWith("res://", StringComparison.Ordinal);
         var isResourceFile = normalized.EndsWith(".tres", StringComparison.OrdinalIgnoreCase)
             || normalized.EndsWith(".res", StringComparison.OrdinalIgnoreCase);
-        if (!isResPath || !isResourceFile)
+        if (!isResourceFile)
         {
-            throw new InvalidOperationException("resourcePath must be a valid res:// path ending with .tres or .res.");
+            throw new InvalidOperationException("resourcePath must end with .tres or .res.");
         }
 
-        _ = pathResolver.ResolveResPath(resourcePath);
+        _ = pathResolver.ResolvePath(resourcePath);
     }
 
     /// <summary>

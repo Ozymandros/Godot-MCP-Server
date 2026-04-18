@@ -16,20 +16,20 @@ public class PhysicsToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
 
             var result = await GodotTools.PhysicsCreateBodyAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 ".",
                 "RigidBody3D",
                 "Crate");
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Crate\" type=\"RigidBody3D\" parent=\".\"]");
         }
         finally
@@ -47,9 +47,9 @@ public class PhysicsToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
-            await GodotTools.PhysicsCreateBodyAsync(service, resolver, "res://", "scenes/Main.tscn", ".", "RigidBody3D", "Crate");
+            await GodotTools.PhysicsCreateBodyAsync(service, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Crate");
 
             using var payload = JsonDocument.Parse("""
 {
@@ -66,13 +66,13 @@ public class PhysicsToolsTests
             var result = await GodotTools.PhysicsUpdateBodyAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "scenes/Main.tscn",
                 "Crate",
                 properties);
 
             result.Success.Should().BeTrue();
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("collision_layer = 2");
             sceneText.Should().Contain("collision_mask = 3");
             sceneText.Should().Contain("gravity_scale = 0.7");
@@ -93,11 +93,11 @@ public class PhysicsToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
-            await GodotTools.PhysicsCreateBodyAsync(service, resolver, "res://", "scenes/Main.tscn", ".", "RigidBody3D", "Ghost", addCollisionShape: false);
+            await GodotTools.PhysicsCreateBodyAsync(service, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Ghost", addCollisionShape: false);
 
-            var result = await GodotTools.PhysicsValidateAsync(service, resolver, "res://");
+            var result = await GodotTools.PhysicsValidateAsync(service, resolver, root);
 
             result.Success.Should().BeTrue();
             var issues = (List<PhysicsValidationIssueDto>)result.Data!;

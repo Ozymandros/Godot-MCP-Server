@@ -23,24 +23,24 @@ public class SdkEcosystemTests
             var config = new ProjectConfigService(resolver);
             var inspector = new IntegrationInspector(resolver);
 
-            var result = GodotTools.DiscoverIntegrations(inspector, resolver, "res://");
+            var result = GodotTools.DiscoverIntegrations(inspector, resolver, root);
             result.Success.Should().BeTrue();
             result.Data.Should().NotBeNull();
             ((Dictionary<string, string>)result.Data!).Keys.Should().Contain("myplugin");
 
-            GodotTools.VerifyIntegrationHealth(inspector, resolver, "res://", "myplugin").Success.Should().BeTrue();
+            GodotTools.VerifyIntegrationHealth(inspector, resolver, root, "myplugin").Success.Should().BeTrue();
 
             var installResult = await GodotTools.InstallIntegrationAsync(
                 files,
                 resolver,
                 config,
-                "res://",
+                root,
                 "Analytics SDK",
                 "https://example.com/analytics",
                 Core.Models.IntegrationProfile.CommunitySdk);
             installResult.Success.Should().BeTrue();
 
-            var compatibility = GodotTools.ListIntegrationCompatibility(inspector, resolver, "res://");
+            var compatibility = GodotTools.ListIntegrationCompatibility(inspector, resolver, root);
             compatibility.Success.Should().BeTrue();
             compatibility.Data.Should().NotBeNull();
             ((Dictionary<string, string>)compatibility.Data!).Keys.Should().Contain("Analytics_SDK");
@@ -70,7 +70,7 @@ public class SdkEcosystemTests
             IGodotFileService files = new GodotFileService(resolver);
             var config = new ProjectConfigService(resolver);
 
-            var result = await GodotTools.InstallIntegrationAsync(files, resolver, config, "res://", "", "https://example.com", Core.Models.IntegrationProfile.VendorSdk);
+            var result = await GodotTools.InstallIntegrationAsync(files, resolver, config, root, "", "https://example.com", Core.Models.IntegrationProfile.VendorSdk);
             result.Success.Should().BeFalse();
         }
         finally

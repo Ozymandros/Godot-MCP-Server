@@ -20,16 +20,15 @@ public sealed class LightingService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<LightNodeInfo>> ListAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = ServiceHelpers.NormalizeDirectoryToResPath(pathResolver, rootPath);
+        var rootDir = ServiceHelpers.NormalizeProjectDirectory(pathResolver, rootPath);
         var lights = new List<LightNodeInfo>();
 
-        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
+        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootDir, "*.tscn", recursive: true))
         {
-            var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
-            var nodes = await sceneGraphService.ListNodesAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
+            var nodes = await sceneGraphService.ListNodesAsync(absoluteScenePath, cancellationToken).ConfigureAwait(false);
             lights.AddRange(ServiceHelpers.FlattenNodes(nodes)
                 .Where(IsLightNode)
-                .Select(x => ToLightInfo(sceneResPath, x)));
+                .Select(x => ToLightInfo(absoluteScenePath, x)));
         }
 
         return lights;

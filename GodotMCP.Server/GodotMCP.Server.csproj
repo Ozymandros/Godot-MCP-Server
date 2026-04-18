@@ -23,13 +23,13 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<DocumentationFile>bin\$(Configuration)\net10.0\GodotMCP.Server.xml</DocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
-		<Version>1.5.0</Version>
+		<Version>1.6.0</Version>
 		<PackageProjectUrl>https://github.com/Ozymandros/Godot-MCP-Server</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Ozymandros/Godot-MCP-Server</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>semantic-kernel;Godot;mcp;model-context-protocol</PackageTags>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
 		<EmbedUntrackedSources>true</EmbedUntrackedSources>

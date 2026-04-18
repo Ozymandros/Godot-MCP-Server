@@ -9,29 +9,19 @@ namespace GodotMCP.Infrastructure.Services;
 internal static class ServiceHelpers
 {
     /// <summary>
-    /// Normalizes a root path into a canonical <c>res://</c> directory path.
+    /// Normalizes a scan root into an absolute directory path inside the project.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
-    /// <param name="rootPath">Input root path that may be absolute or project-relative.</param>
-    /// <returns>Normalized <c>res://</c> directory path.</returns>
-    public static string NormalizeDirectoryToResPath(IPathResolver pathResolver, string rootPath)
+    /// <param name="rootPath">Input root path that may be absolute, project-relative, or legacy <c>res://</c>.</param>
+    /// <returns>Absolute directory path.</returns>
+    public static string NormalizeProjectDirectory(IPathResolver pathResolver, string rootPath)
     {
-        if (Path.IsPathRooted(rootPath))
+        if (string.IsNullOrWhiteSpace(rootPath))
         {
-            pathResolver.EnsureInsideProject(rootPath);
-            var resPath = pathResolver.ToResPath(rootPath);
-            return resPath.EndsWith("/", StringComparison.Ordinal) ? resPath.TrimEnd('/') : resPath;
+            return pathResolver.ProjectRoot;
         }
 
-        var normalized = rootPath.Replace('\\', '/');
-        if (string.Equals(normalized, "res://", StringComparison.Ordinal))
-        {
-            return "res://";
-        }
-
-        var absolute = pathResolver.ResolveResPath(normalized);
-        var res = pathResolver.ToResPath(absolute);
-        return res.EndsWith("/", StringComparison.Ordinal) ? res.TrimEnd('/') : res;
+        return pathResolver.ResolvePath(rootPath);
     }
 
     /// <summary>

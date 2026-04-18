@@ -23,15 +23,14 @@ public sealed class CameraService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<CameraNodeInfo>> ListAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = NormalizeDirectoryToResPath(rootPath);
+        var rootDir = ServiceHelpers.NormalizeProjectDirectory(pathResolver, rootPath);
         var cameras = new List<CameraNodeInfo>();
 
-        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
+        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootDir, "*.tscn", recursive: true))
         {
-            var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
-            var sceneText = await fileService.ReadAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
+            var sceneText = await fileService.ReadAsync(absoluteScenePath, cancellationToken).ConfigureAwait(false);
             var scene = sceneSerializer.Deserialize(sceneText);
-            cameras.AddRange(GetCamerasForScene(sceneResPath, scene));
+            cameras.AddRange(GetCamerasForScene(absoluteScenePath, scene));
         }
 
         return cameras;
@@ -114,13 +113,12 @@ public sealed class CameraService(
     /// <inheritdoc />
     public async Task<IReadOnlyList<CameraValidationIssue>> ValidateAsync(string rootPath, CancellationToken cancellationToken = default)
     {
-        var rootResPath = NormalizeDirectoryToResPath(rootPath);
+        var rootDir = ServiceHelpers.NormalizeProjectDirectory(pathResolver, rootPath);
         var issues = new List<CameraValidationIssue>();
 
-        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootResPath, "*.tscn", recursive: true))
+        foreach (var absoluteScenePath in fileService.EnumerateFiles(rootDir, "*.tscn", recursive: true))
         {
-            var sceneResPath = pathResolver.ToResPath(absoluteScenePath);
-            var sceneText = await fileService.ReadAsync(sceneResPath, cancellationToken).ConfigureAwait(false);
+            var sceneText = await fileService.ReadAsync(absoluteScenePath, cancellationToken).ConfigureAwait(false);
             var scene = sceneSerializer.Deserialize(sceneText);
 
             var pathIndex = BuildPathIndex(scene);
@@ -129,7 +127,7 @@ public sealed class CameraService(
             {
                 if (IsCameraNode(node))
                 {
-                    cameraInfos.Add((node, path, ToCameraInfo(sceneResPath, path, node)));
+                    cameraInfos.Add((node, path, ToCameraInfo(absoluteScenePath, path, node)));
                 }
             }
 
@@ -137,12 +135,12 @@ public sealed class CameraService(
             if (currentCameras.Count > 1)
             {
                 issues.Add(new CameraValidationIssue(
-                    sceneResPath,
+                    absoluteScenePath,
                     "Error",
                     "More than one camera is marked as current in the same scene.",
                     "Keep only one active current camera per scene.",
                     Rule: "multiple-current-cameras",
-                    ScenePath: sceneResPath));
+                    ScenePath: absoluteScenePath));
             }
 
             foreach (var camera in cameraInfos)
@@ -150,36 +148,36 @@ public sealed class CameraService(
                 if (!HasValidParent(scene, camera.Node))
                 {
                     issues.Add(new CameraValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Error",
                         $"Camera '{camera.Path}' has a missing parent '{camera.Node.Parent}'.",
                         "Update parent path to an existing node.",
                         Rule: "missing-parent",
-                        ScenePath: sceneResPath,
+                        ScenePath: absoluteScenePath,
                         NodePath: camera.Path));
                 }
 
                 if (!HasValidNearFar(camera.Info))
                 {
                     issues.Add(new CameraValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Error",
                         $"Camera '{camera.Path}' has invalid near/far values.",
                         "Ensure near is positive and far is greater than near.",
                         Rule: "invalid-near-far",
-                        ScenePath: sceneResPath,
+                        ScenePath: absoluteScenePath,
                         NodePath: camera.Path));
                 }
 
                 if (camera.Info.Type == CameraNodeType.Camera3D && camera.Info.Projection == CameraProjection.Unsupported)
                 {
                     issues.Add(new CameraValidationIssue(
-                        sceneResPath,
+                        absoluteScenePath,
                         "Error",
                         $"Camera '{camera.Path}' has an unsupported projection mode.",
                         "Use perspective (0), orthographic (1), or frustum (2).",
                         Rule: "unsupported-projection",
-                        ScenePath: sceneResPath,
+                        ScenePath: absoluteScenePath,
                         NodePath: camera.Path));
                 }
             }
@@ -452,29 +450,6 @@ public sealed class CameraService(
         }
 
         return pathIndex.ContainsKey(parentPath);
-    }
-
-    /// <summary>
-    /// Normalizes an input project path into a safe <c>res://</c> directory path.
-    /// </summary>
-    /// <param name="rootPath">Incoming project-relative or absolute path.</param>
-    /// <returns>Normalized <c>res://</c> path.</returns>
-    private string NormalizeDirectoryToResPath(string rootPath)
-    {
-        if (string.IsNullOrWhiteSpace(rootPath))
-        {
-            return "res://";
-        }
-
-        if (Path.IsPathRooted(rootPath))
-        {
-            var fullPath = Path.GetFullPath(rootPath);
-            pathResolver.EnsureInsideProject(fullPath);
-            return pathResolver.ToResPath(fullPath);
-        }
-
-        var absolute = pathResolver.ResolveResPath(rootPath);
-        return pathResolver.ToResPath(absolute);
     }
 
     /// <summary>

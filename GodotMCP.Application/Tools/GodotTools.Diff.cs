@@ -24,7 +24,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("First scene file name or relative path under projectPath."), Required] string fileNameA,
         [Description("Second scene file name or relative path under projectPath."), Required] string fileNameB,
         CancellationToken cancellationToken = default)

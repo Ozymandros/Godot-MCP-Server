@@ -13,14 +13,14 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project root path to lint (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory to lint (absolute path, path relative to the project root, or legacy res://)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         var issues = new List<LintIssue>();
         string root;
         try
         {
-            root = pathResolver.ResolveResPath(NormalizeProjectPath(pathResolver, projectPath));
+            root = NormalizeProjectPath(pathResolver, projectPath);
         }
         catch (InvalidOperationException ex)
         {
@@ -39,7 +39,7 @@ public static partial class GodotTools
                 {
                     issues.Add(new LintIssue
                     {
-                        Path = pathResolver.ToResPath(file),
+                        Path = Path.GetFullPath(file),
                         Severity = "Error",
                         Message = "Asset missing .import file.",
                         SuggestedFix = "Run 'generate_import_file' for this asset or re-import in Godot."
@@ -51,33 +51,33 @@ public static partial class GodotTools
         // Check scene resources.
         foreach (var sceneFile in Directory.EnumerateFiles(root, "*.tscn", SearchOption.AllDirectories))
         {
-            var resPath = pathResolver.ToResPath(sceneFile);
+            var scenePathAbs = Path.GetFullPath(sceneFile);
             try
             {
-                var content = await fileService.ReadAsync(resPath, cancellationToken).ConfigureAwait(false);
+                var content = await fileService.ReadAsync(scenePathAbs, cancellationToken).ConfigureAwait(false);
                 var scene = sceneSerializer.Deserialize(content);
 
                 foreach (var ext in scene.ExternalResources)
                 {
-                    if (!IsValidResPath(pathResolver, ext.Path))
+                    if (!IsValidProjectFilePath(pathResolver, ext.Path))
                     {
                         issues.Add(new LintIssue
                         {
-                            Path = resPath,
+                            Path = scenePathAbs,
                             Severity = "Error",
                             Message = $"External resource '{ext.Path}' is missing or has an invalid path.",
-                            SuggestedFix = "Check res:// path correctly or update ExtResource path."
+                            SuggestedFix = "Fix the ExtResource path so it resolves inside the project (Godot res:// paths are supported)."
                         });
                     }
                     else
                     {
                         // Check if the file actually exists on disk.
-                        var fullPath = pathResolver.ResolveResPath(ext.Path);
+                        var fullPath = pathResolver.ResolvePath(ext.Path);
                         if (!File.Exists(fullPath))
                         {
                             issues.Add(new LintIssue
                             {
-                                Path = resPath,
+                                Path = scenePathAbs,
                                 Severity = "Warning",
                                 Message = $"External resource '{ext.Path}' defined in scene does not exist on disk.",
                                 SuggestedFix = "Ensure the resource file exists at the specified path."
@@ -90,7 +90,7 @@ public static partial class GodotTools
             {
                 issues.Add(new LintIssue
                 {
-                    Path = resPath,
+                    Path = scenePathAbs,
                     Severity = "Error",
                     Message = $"Failed to parse scene: {ex.Message}",
                     SuggestedFix = "Ensure scene is a valid .tscn file."

@@ -21,7 +21,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsListBodiesAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path to scan (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory to scan (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidProjectPath(pathResolver, projectPath))
@@ -50,7 +50,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsCreateBodyAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path where the body is added."), Required] string parentNodePath,
         [Description("Body type: StaticBody3D, RigidBody3D, CharacterBody3D, Area3D, StaticBody2D, RigidBody2D, CharacterBody2D, Area2D."), Required] string bodyType,
@@ -93,7 +93,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsUpdateBodyAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Body node path to update."), Required] string nodePath,
         [Description("Properties to update. Supported: collision_layer, collision_mask, gravity_scale, lock_rotation."), Required]
@@ -155,7 +155,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> PhysicsValidateAsync(
         IPhysicsService physicsService,
         IPathResolver pathResolver,
-        [Description("Project root path to validate (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory to validate (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidProjectPath(pathResolver, projectPath))

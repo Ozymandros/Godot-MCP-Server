@@ -20,10 +20,10 @@ public class CameraServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             var service = new CameraService(files, resolver, new SceneSerializer());
 
-            var result = await service.ListAsync("res://");
+            var result = await service.ListAsync(root);
 
             result.Should().HaveCount(2);
             result.Should().Contain(x => x.Type == CameraNodeType.Camera3D && x.NodePath == "MainCamera");
@@ -44,18 +44,18 @@ public class CameraServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             var service = new CameraService(files, resolver, new SceneSerializer());
 
             var result = await service.CreateAsync(new CameraCreateRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "Cinematic",
                 CameraNodeType.Camera3D,
                 "orthographic-ui"));
 
             result.Success.Should().BeTrue();
 
-            var sceneText = await files.ReadAsync("res://scenes/Main.tscn");
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
             sceneText.Should().Contain("[node name=\"Cinematic\" type=\"Camera3D\" parent=\".\"]");
             sceneText.Should().Contain("projection = 1");
             sceneText.Should().Contain("size = 16");
@@ -77,11 +77,11 @@ public class CameraServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
             var service = new CameraService(files, resolver, new SceneSerializer());
 
             var result = await service.UpdateAsync(new CameraUpdateRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "MainCamera",
                 new Dictionary<string, object?>
                 {
@@ -106,10 +106,10 @@ public class CameraServiceTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "res://scenes/Broken.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "scenes/Broken.tscn");
             var service = new CameraService(files, resolver, new SceneSerializer());
 
-            var issues = await service.ValidateAsync("res://");
+            var issues = await service.ValidateAsync(root);
 
             issues.Should().Contain(i => i.Rule == "multiple-current-cameras");
             issues.Should().Contain(i => i.Rule == "invalid-near-far");

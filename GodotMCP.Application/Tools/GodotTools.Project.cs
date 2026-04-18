@@ -19,7 +19,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateGodotProjectAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("The name of the Godot project."), Required] string projectName,
         CancellationToken cancellationToken = default)
     {
@@ -55,10 +55,10 @@ run/main_scene=""
 [dotnet]
 project/assembly_name="{{projectName}}"
 """;
-        await fileService.WriteAsync("res://project.godot", content, cancellationToken).ConfigureAwait(false);
-        fileService.EnsureDirectory("res://scenes");
-        fileService.EnsureDirectory("res://scripts");
-        fileService.EnsureDirectory("res://addons");
+        await fileService.WriteAsync(pathResolver.ResolvePath("project.godot"), content, cancellationToken).ConfigureAwait(false);
+        fileService.EnsureDirectory(pathResolver.ResolvePath("scenes"));
+        fileService.EnsureDirectory(pathResolver.ResolvePath("scripts"));
+        fileService.EnsureDirectory(pathResolver.ResolvePath("addons"));
         return new ToolResult(true, $"Project '{projectName}' created.");
     }
 
@@ -74,7 +74,7 @@ project/assembly_name="{{projectName}}"
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         try
@@ -113,9 +113,9 @@ project/assembly_name="{{projectName}}"
     public static async Task<ToolResult> ConfigureAutoloadAsync(
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
         [Description("The autoload unique key."), Required] string key,
-        [Description("The resource path (res://...) to the script or scene."), Required] string value,
+        [Description("Script or scene path (absolute, project-relative, or Godot res:// as stored in project.godot)."), Required] string value,
         [Description("Set to true to add, false to remove."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
@@ -134,7 +134,12 @@ project/assembly_name="{{projectName}}"
 
         if (enabled)
         {
-            await projectConfigService.SetValueAsync("autoload", key, $"\"{value}\"", cancellationToken).ConfigureAwait(false);
+            var trimmed = value.Trim().Trim('"');
+            var toolSingleton = trimmed.StartsWith("*", StringComparison.Ordinal);
+            var pathPart = toolSingleton ? trimmed[1..] : trimmed;
+            var godotRef = pathResolver.ToGodotResPath(pathResolver.ResolvePath(pathPart));
+            var quoted = toolSingleton ? $"\"*{godotRef}\"" : $"\"{godotRef}\"";
+            await projectConfigService.SetValueAsync("autoload", key, quoted, cancellationToken).ConfigureAwait(false);
             return new ToolResult(true, $"Autoload '{key}' added.");
         }
 
@@ -146,15 +151,15 @@ project/assembly_name="{{projectName}}"
     /// Enables an editor plugin entry in project configuration.
     /// </summary>
     /// <param name="projectConfigService">Project configuration service.</param>
-    /// <param name="pluginName">Plugin folder name under <c>res://addons</c>.</param>
+    /// <param name="pluginName">Plugin folder name under the <c>addons</c> directory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing plugin enablement status.</returns>
     [McpServerTool(Name = "add_plugin"), Description("Register an editor plugin in project.godot.")]
     public static async Task<ToolResult> AddPluginAsync(
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project root path (res:// or absolute path under the project)."), Required] string projectPath,
-        [Description("The folder name of the plugin under res://addons/."), Required] string pluginName,
+        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("The folder name of the plugin under addons/."), Required] string pluginName,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectPath) || IsBlank(pluginName))

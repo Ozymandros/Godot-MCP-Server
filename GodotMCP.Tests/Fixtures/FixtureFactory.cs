@@ -52,16 +52,16 @@ internal static class FixtureFactory
     }
 
     /// <summary>
-    /// Copies a scene fixture into a temporary project at a target <c>res://</c> path.
+    /// Copies a scene fixture into a temporary project at a path relative to the project root.
     /// </summary>
     /// <param name="destinationRoot">Temporary project root directory.</param>
     /// <param name="fixtureName">Fixture file name to copy.</param>
-    /// <param name="destinationResPath">Destination <c>res://</c> scene path.</param>
+    /// <param name="destinationRelativePath">Destination path relative to <paramref name="destinationRoot"/> (forward slashes allowed).</param>
     /// <returns>A task that completes when copy operation finishes.</returns>
-    public static async Task CopySceneFixtureAsync(string destinationRoot, string fixtureName, string destinationResPath)
+    public static async Task CopySceneFixtureAsync(string destinationRoot, string fixtureName, string destinationRelativePath)
     {
         var source = GetSceneFixturePath(fixtureName);
-        var relative = destinationResPath.Replace("res://", string.Empty, StringComparison.Ordinal);
+        var relative = destinationRelativePath.Replace("res://", string.Empty, StringComparison.Ordinal).TrimStart('/');
         var destination = Path.Combine(destinationRoot, relative.Replace('/', Path.DirectorySeparatorChar));
         var directory = Path.GetDirectoryName(destination);
         if (!string.IsNullOrWhiteSpace(directory))

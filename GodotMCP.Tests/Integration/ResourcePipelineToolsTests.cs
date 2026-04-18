@@ -22,7 +22,7 @@ public class ResourcePipelineToolsTests
             var write = await GodotTools.ResourceWriteAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "materials/Hud.tres",
                 "Resource",
                 new Dictionary<string, string>
@@ -33,7 +33,7 @@ public class ResourcePipelineToolsTests
 
             write.Success.Should().BeTrue();
 
-            var read = await GodotTools.ResourceReadAsync(service, resolver, "res://", "materials/Hud.tres");
+            var read = await GodotTools.ResourceReadAsync(service, resolver, root, "materials/Hud.tres");
             read.Success.Should().BeTrue();
             var payload = (ResourceDocumentDto)read.Data!;
             payload.Type.Should().Be("Resource");
@@ -54,13 +54,13 @@ public class ResourcePipelineToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await files.WriteAsync("res://materials/Test.tres", "[gd_resource type=\"Resource\" format=3]\n\nvalue = 1");
+            await files.WriteAsync(Path.Combine("materials", "Test.tres"), "[gd_resource type=\"Resource\" format=3]\n\nvalue = 1");
             IResourcePipelineService service = new ResourcePipelineService(files, resolver, new ResourceSerializer());
 
             var result = await GodotTools.ResourceUpdatePropertiesAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "materials/Test.tres",
                 new Dictionary<string, string>
                 {
@@ -88,13 +88,13 @@ public class ResourcePipelineToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            await files.WriteAsync("res://materials/Test.tres", "[gd_resource type=\"Resource\" format=3]\n\nkeep = 1\nremove = 2");
+            await files.WriteAsync(Path.Combine("materials", "Test.tres"), "[gd_resource type=\"Resource\" format=3]\n\nkeep = 1\nremove = 2");
             IResourcePipelineService service = new ResourcePipelineService(files, resolver, new ResourceSerializer());
 
             var result = await GodotTools.ResourceRemovePropertyAsync(
                 service,
                 resolver,
-                "res://",
+                root,
                 "materials/Test.tres",
                 "remove");
 
@@ -123,7 +123,7 @@ public class ResourcePipelineToolsTests
                 resolver,
                 new ResourceSerializer());
 
-            var result = await GodotTools.ResourceReadAsync(service, resolver, "res://", "materials/Missing.tres");
+            var result = await GodotTools.ResourceReadAsync(service, resolver, root, "materials/Missing.tres");
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain("not found");

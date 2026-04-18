@@ -14,13 +14,13 @@ public class UiServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var graph = new SceneGraphService(files, new SceneSerializer());
-            await graph.AddNodeAsync(new SceneGraphAddNodeRequest("res://scenes/Main.tscn", "UI", "Button", "PlayButton"));
-            await graph.AddNodeAsync(new SceneGraphAddNodeRequest("res://scenes/Main.tscn", "Player", "Node3D", "NonUi"));
+            await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "UI", "Button", "PlayButton"));
+            await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "Player", "Node3D", "NonUi"));
             var service = new UiService(graph);
 
-            var controls = await service.ListControlsAsync("res://scenes/Main.tscn");
+            var controls = await service.ListControlsAsync(Path.Combine(root, "scenes", "Main.tscn"));
 
             controls.Should().Contain(x => x.Name == "UI");
             controls.Should().Contain(x => x.Name == "PlayButton");
@@ -41,11 +41,11 @@ public class UiServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new UiService(new SceneGraphService(files, new SceneSerializer()));
 
             var result = await service.AddControlAsync(new UiAddControlRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "UI",
                 "Node3D",
                 "NotUi"));
@@ -68,13 +68,13 @@ public class UiServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var graph = new SceneGraphService(files, new SceneSerializer());
-            await graph.AddNodeAsync(new SceneGraphAddNodeRequest("res://scenes/Main.tscn", "UI", "Control", "Hud"));
+            await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "UI", "Control", "Hud"));
             var service = new UiService(graph);
 
             var result = await service.SetLayoutPresetAsync(new UiSetLayoutRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "UI/Hud",
                 "full_rect"));
 
@@ -97,11 +97,11 @@ public class UiServiceTests
         var (root, _, files) = FixtureFactory.CreateProject();
         try
         {
-            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "res://scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             var service = new UiService(new SceneGraphService(files, new SceneSerializer()));
 
             var result = await service.SetLayoutPresetAsync(new UiSetLayoutRequest(
-                "res://scenes/Main.tscn",
+                Path.Combine(root, "scenes", "Main.tscn"),
                 "UI",
                 "diagonal"));
 

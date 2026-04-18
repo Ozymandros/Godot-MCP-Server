@@ -26,7 +26,7 @@ public sealed class IntegrationInspector(IPathResolver pathResolver) : IIntegrat
             {
                 Name = name,
                 Profile = IntegrationProfile.ProjectLocalPlugin,
-                Source = pathResolver.ToResPath(pluginCfg),
+                Source = Path.GetFullPath(pluginCfg),
                 GodotVersionRange = "4.x",
                 PlatformSupport = "unknown",
                 IsMaintained = true

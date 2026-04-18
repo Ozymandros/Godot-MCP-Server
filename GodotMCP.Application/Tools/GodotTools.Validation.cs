@@ -7,7 +7,6 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
-    private const string DefaultProjectPath = "res://";
     /// <summary>
     /// Checks whether a value is null, empty, or whitespace.
     /// </summary>
@@ -25,16 +24,16 @@ public static partial class GodotTools
         => new(false, message, SuggestedRemediation: remediation);
 
     /// <summary>
-    /// Validates that a path can be resolved as a project-scoped <c>res://</c> path.
+    /// Validates that a path resolves inside the project.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
     /// <param name="path">Path to validate.</param>
     /// <returns><see langword="true"/> when path is valid and project-scoped.</returns>
-    private static bool IsValidResPath(IPathResolver pathResolver, string path)
+    private static bool IsValidProjectFilePath(IPathResolver pathResolver, string path)
     {
         try
         {
-            _ = pathResolver.ResolveResPath(path);
+            _ = pathResolver.ResolvePath(path);
             return true;
         }
         catch
@@ -44,11 +43,11 @@ public static partial class GodotTools
     }
 
     /// <summary>
-    /// Normalizes a provided project path (absolute or <c>res://</c>) to canonical <c>res://</c> form.
+    /// Normalizes <paramref name="projectPath"/> to the absolute project directory (or subdirectory) used as the base for <c>fileName</c> parameters.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
-    /// <param name="projectPath">Project root path input.</param>
-    /// <returns>Canonical project path in <c>res://</c> format.</returns>
+    /// <param name="projectPath">Project root or folder path (absolute, relative to the configured project root, or legacy <c>res://</c>).</param>
+    /// <returns>Canonical absolute directory path.</returns>
     private static string NormalizeProjectPath(IPathResolver pathResolver, string projectPath)
     {
         if (IsBlank(projectPath))
@@ -56,23 +55,16 @@ public static partial class GodotTools
             throw new InvalidOperationException("projectPath is required.");
         }
 
-        if (Path.IsPathRooted(projectPath))
-        {
-            pathResolver.EnsureInsideProject(projectPath);
-            return pathResolver.ToResPath(projectPath);
-        }
-
-        var absolute = pathResolver.ResolveResPath(projectPath);
-        return pathResolver.ToResPath(absolute);
+        return pathResolver.ResolvePath(projectPath);
     }
 
     /// <summary>
-    /// Resolves a project-relative file token under <paramref name="projectPath"/> into canonical <c>res://</c>.
+    /// Resolves <paramref name="fileName"/> under <paramref name="projectPath"/> to an absolute file path.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
     /// <param name="projectPath">Project base path.</param>
-    /// <param name="fileName">File token under the project path.</param>
-    /// <returns>Canonical project-scoped <c>res://</c> path.</returns>
+    /// <param name="fileName">File path relative to <paramref name="projectPath"/>.</param>
+    /// <returns>Absolute file path inside the project.</returns>
     private static string ResolveProjectFilePath(IPathResolver pathResolver, string projectPath, string fileName)
     {
         if (IsBlank(fileName))
@@ -80,20 +72,21 @@ public static partial class GodotTools
             throw new InvalidOperationException("fileName is required.");
         }
 
-        var normalizedProjectPath = NormalizeProjectPath(pathResolver, projectPath).TrimEnd('/');
+        var baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var normalizedFileName = fileName.Replace('\\', '/').TrimStart('/');
-        var combined = $"{normalizedProjectPath}/{normalizedFileName}";
-        var absolute = pathResolver.ResolveResPath(combined);
-        return pathResolver.ToResPath(absolute);
+        var combined = Path.Combine(baseDir, normalizedFileName.Replace('/', Path.DirectorySeparatorChar));
+        var absolute = Path.GetFullPath(combined);
+        pathResolver.EnsureInsideProject(absolute);
+        return absolute;
     }
 
     /// <summary>
-    /// Resolves multiple project-relative file tokens under <paramref name="projectPath"/>.
+    /// Resolves multiple file paths under <paramref name="projectPath"/>.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
     /// <param name="projectPath">Project base path.</param>
-    /// <param name="fileNames">File tokens under the project path.</param>
-    /// <returns>Canonical <c>res://</c> paths for each token.</returns>
+    /// <param name="fileNames">File paths relative to <paramref name="projectPath"/>.</param>
+    /// <returns>Absolute paths for each file.</returns>
     private static List<string> ResolveProjectFilePaths(IPathResolver pathResolver, string projectPath, IReadOnlyList<string> fileNames)
     {
         if (fileNames.Count == 0)
@@ -105,16 +98,25 @@ public static partial class GodotTools
     }
 
     /// <summary>
-    /// Converts a legacy <c>res://</c> or project-relative path into a file token under the default project path.
+    /// Converts a legacy Godot-style or mixed path into a <c>fileName</c> token relative to the project root.
     /// </summary>
-    /// <param name="path">Legacy path input.</param>
-    /// <returns>File token under <c>res://</c>.</returns>
-    private static string ToProjectFileName(string path)
+    /// <param name="path">Path that may use <c>res://</c>, be absolute under the project, or be project-relative.</param>
+    /// <param name="pathResolver">Path resolver used when <paramref name="path"/> is absolute.</param>
+    /// <returns>Relative path segments using forward slashes.</returns>
+    private static string ToProjectFileName(string path, IPathResolver pathResolver)
     {
         var normalized = path.Replace('\\', '/');
-        return normalized.StartsWith("res://", StringComparison.Ordinal)
-            ? normalized["res://".Length..]
-            : normalized.TrimStart('/');
+        if (normalized.StartsWith("res://", StringComparison.Ordinal))
+        {
+            return normalized["res://".Length..].TrimStart('/');
+        }
+
+        if (Path.IsPathRooted(path))
+        {
+            return pathResolver.GetProjectRelativePath(Path.GetFullPath(path));
+        }
+
+        return normalized.TrimStart('/');
     }
 
     /// <summary>
