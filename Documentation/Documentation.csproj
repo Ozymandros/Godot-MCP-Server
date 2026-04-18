@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- DocFX orchestration only; not a publishable NuGet package. -->
+    <IsPackable>false</IsPackable>
     <!-- Full path to repository root (parent of this folder). -->
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\'))</RepoRoot>
   </PropertyGroup>
