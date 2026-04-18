@@ -13,7 +13,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project directory to lint (absolute path, path relative to the project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory to lint (absolute path or path relative to the project root)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         var issues = new List<LintIssue>();
@@ -66,7 +66,7 @@ public static partial class GodotTools
                             Path = scenePathAbs,
                             Severity = "Error",
                             Message = $"External resource '{ext.Path}' is missing or has an invalid path.",
-                            SuggestedFix = "Fix the ExtResource path so it resolves inside the project (Godot res:// paths are supported)."
+                            SuggestedFix = "Fix the ExtResource path so it resolves to a valid file inside the project."
                         });
                     }
                     else

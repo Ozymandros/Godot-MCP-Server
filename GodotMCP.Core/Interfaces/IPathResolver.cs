@@ -12,21 +12,20 @@ public interface IPathResolver
 
     /// <summary>
     /// Resolves a path to an absolute file system path inside the project.
-    /// Accepts absolute paths, paths relative to the project root (forward slashes allowed),
-    /// or legacy Godot virtual paths (<c>res://...</c>).
+    /// Accepts absolute paths and paths relative to the project root (forward slashes allowed).
     /// </summary>
     /// <param name="path">Path to resolve.</param>
     /// <returns>Canonical absolute path.</returns>
     string ResolvePath(string path);
 
     /// <summary>
-    /// Returns a project-relative path using forward slashes (no <c>res://</c> prefix).
+    /// Returns a project-relative path using forward slashes.
     /// </summary>
     /// <param name="absolutePath">Absolute path inside the project.</param>
     string GetProjectRelativePath(string absolutePath);
 
     /// <summary>
-    /// Formats an absolute path as a Godot <c>res://</c> URI for use inside <c>.tscn</c>, <c>.godot</c>, and similar files.
+    /// Formats an absolute path as the engine resource URI format for use inside serialized scene/config files.
     /// </summary>
     /// <param name="absolutePath">Absolute path inside the project.</param>
     string ToGodotResPath(string absolutePath);

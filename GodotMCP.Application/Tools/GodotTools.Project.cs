@@ -19,7 +19,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateGodotProjectAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The name of the Godot project."), Required] string projectName,
         CancellationToken cancellationToken = default)
     {
@@ -74,7 +74,7 @@ project/assembly_name="{{projectName}}"
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         try
@@ -113,9 +113,9 @@ project/assembly_name="{{projectName}}"
     public static async Task<ToolResult> ConfigureAutoloadAsync(
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The autoload unique key."), Required] string key,
-        [Description("Script or scene path (absolute, project-relative, or Godot res:// as stored in project.godot)."), Required] string value,
+        [Description("Script or scene path (absolute or project-relative) stored in project.godot."), Required] string value,
         [Description("Set to true to add, false to remove."), Required] bool enabled,
         CancellationToken cancellationToken = default)
     {
@@ -158,7 +158,7 @@ project/assembly_name="{{projectName}}"
     public static async Task<ToolResult> AddPluginAsync(
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The folder name of the plugin under addons/."), Required] string pluginName,
         CancellationToken cancellationToken = default)
     {

@@ -12,7 +12,7 @@ internal static class ServiceHelpers
     /// Normalizes a scan root into an absolute directory path inside the project.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
-    /// <param name="rootPath">Input root path that may be absolute, project-relative, or legacy <c>res://</c>.</param>
+    /// <param name="rootPath">Input root path that may be absolute or project-relative.</param>
     /// <returns>Absolute directory path.</returns>
     public static string NormalizeProjectDirectory(IPathResolver pathResolver, string rootPath)
     {

@@ -12,7 +12,7 @@ public static partial class GodotTools
 {
     [McpServerTool(Name = "get_server_capabilities"), Description("Enumerate Godot MCP server capabilities and supported features.")]
     public static ToolResult GetServerCapabilities(
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath)
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
     {
         if (IsBlank(projectPath))
         {
@@ -40,7 +40,7 @@ public static partial class GodotTools
 
     [McpServerTool(Name = "health_check"), Description("Verify server health and transport status.")]
     public static ToolResult HealthCheck(
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath)
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
     {
         if (IsBlank(projectPath))
         {
@@ -57,7 +57,7 @@ public static partial class GodotTools
     [McpServerTool(Name = "get_server_info"), Description("Get information about the Godot MCP server version and working directory.")]
     public static ToolResult GetServerInfo(
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath)
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
     {
         if (IsBlank(projectPath))
         {

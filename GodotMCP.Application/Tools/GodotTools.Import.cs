@@ -25,7 +25,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Asset file name or relative path under projectPath."), Required] string fileName,
         [Description("The Godot importer (e.g., texture, wav)."), Required] string importer,
         [Description("The resource type (e.g., Texture2D, AudioStreamWAV)."), Required] string type,
@@ -80,7 +80,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Asset file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
@@ -116,7 +116,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Texture file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
@@ -152,7 +152,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IImportFileGenerator importFileGenerator,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Audio file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {

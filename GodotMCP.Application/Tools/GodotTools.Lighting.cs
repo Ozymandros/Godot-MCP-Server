@@ -21,7 +21,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightListAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project directory to scan (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory to scan (absolute path or path relative to the configured project root)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidProjectPath(pathResolver, projectPath))
@@ -50,7 +50,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightCreateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path where the light is added."), Required] string parentNodePath,
         [Description("Light type: DirectionalLight3D, OmniLight3D, SpotLight3D, PointLight2D."), Required] string lightType,
@@ -93,7 +93,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightUpdateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Light node path to update."), Required] string nodePath,
         [Description("Light properties to update. Supported: light_energy, light_color, shadow_enabled, light_specular."), Required]
@@ -155,7 +155,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> LightValidateAsync(
         ILightingService lightingService,
         IPathResolver pathResolver,
-        [Description("Project directory to validate (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory to validate (absolute path or path relative to the configured project root)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
         if (!IsValidProjectPath(pathResolver, projectPath))

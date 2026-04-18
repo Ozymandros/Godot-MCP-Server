@@ -1,9 +1,11 @@
+using GodotMCP.Core;
 using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Services;
 
 /// <summary>
 /// Resolves project-relative paths and enforces project-root boundaries.
+/// Uses <see cref="ProjectPathSyntax"/> for UNC detection, optional leading separators (Windows), and merge rules.
 /// </summary>
 /// <param name="projectRoot">Project root directory.</param>
 public sealed class PathResolver(string projectRoot) : IPathResolver
@@ -20,34 +22,54 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
         }
 
         var trimmed = path.Trim();
-        var normalized = trimmed.Replace('\\', '/');
 
-        if (normalized.StartsWith("res://", StringComparison.Ordinal))
+        if (ProjectPathSyntax.ContainsUriSchemeAuthority(trimmed))
         {
-            var rel = normalized["res://".Length..];
-            while (rel.StartsWith('/'))
+            throw new InvalidOperationException("Path schemes are not supported. Use absolute or project-relative filesystem paths.");
+        }
+
+        trimmed = ProjectPathSyntax.CollapseDuplicateDirectorySeparators(trimmed);
+
+        if (ProjectPathSyntax.IsUncPath(trimmed))
+        {
+            var uncFull = Path.GetFullPath(trimmed);
+            EnsureInsideProject(uncFull);
+            return uncFull;
+        }
+
+        // Windows: a single leading '/' or '\' is the current-drive root, not POSIX "/".
+        // Strip optional leading directory separators so "/scenes" and "scenes" match, and "///scenes" is not mistaken for UNC.
+        if (OperatingSystem.IsWindows() && !ProjectPathSyntax.IsWindowsDriveAbsolutePath(trimmed))
+        {
+            var withoutLeadingSeparators = ProjectPathSyntax.TrimAllLeadingDirectorySeparators(trimmed);
+            if (string.IsNullOrEmpty(withoutLeadingSeparators))
             {
-                rel = rel[1..];
+                EnsureInsideProject(ProjectRoot);
+                return Path.GetFullPath(ProjectRoot);
             }
 
-            var absolute = string.IsNullOrEmpty(rel)
-                ? ProjectRoot
-                : Path.GetFullPath(Path.Combine(ProjectRoot, rel.Replace('/', Path.DirectorySeparatorChar)));
-            EnsureInsideProject(absolute);
-            return absolute;
+            trimmed = withoutLeadingSeparators;
         }
 
         if (Path.IsPathRooted(trimmed))
         {
             var full = Path.GetFullPath(trimmed);
+            if (IsWithinProject(full))
+            {
+                return full;
+            }
+
+            if (!OperatingSystem.IsWindows()
+                && ProjectPathSyntax.ShouldReinterpretUnixAbsoluteAsProjectRelative(full))
+            {
+                return ResolveRelativeUnderProjectRoot(ProjectPathSyntax.TrimAllLeadingDirectorySeparators(trimmed));
+            }
+
             EnsureInsideProject(full);
             return full;
         }
 
-        var relative = normalized.TrimStart('/');
-        var combined = Path.GetFullPath(Path.Combine(ProjectRoot, relative.Replace('/', Path.DirectorySeparatorChar)));
-        EnsureInsideProject(combined);
-        return combined;
+        return ResolveRelativeUnderProjectRoot(trimmed);
     }
 
     /// <inheritdoc />
@@ -75,14 +97,31 @@ public sealed class PathResolver(string projectRoot) : IPathResolver
     {
         var fullPath = Path.GetFullPath(absolutePath)
             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!IsWithinProject(fullPath))
+        {
+            throw new InvalidOperationException($"Path escapes project root: {absolutePath}");
+        }
+    }
+
+    private string ResolveRelativeUnderProjectRoot(string relativePath)
+    {
+        var normalized = relativePath.Replace('\\', '/');
+        var relative = normalized.TrimStart('/');
+        var projectRootNormalized = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var combined = ProjectPathSyntax.CombineAvoidingDuplicateSegments(projectRootNormalized, relative);
+        EnsureInsideProject(combined);
+        return combined;
+    }
+
+    private bool IsWithinProject(string absolutePath)
+    {
+        var fullPath = Path.GetFullPath(absolutePath)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var normalizedRoot = ProjectRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var rootWithSeparator = normalizedRoot + Path.DirectorySeparatorChar;
 
         var isProjectRoot = string.Equals(fullPath, normalizedRoot, StringComparison.OrdinalIgnoreCase);
         var isInsideProject = fullPath.StartsWith(rootWithSeparator, StringComparison.OrdinalIgnoreCase);
-        if (!isProjectRoot && !isInsideProject)
-        {
-            throw new InvalidOperationException($"Path escapes project root: {absolutePath}");
-        }
+        return isProjectRoot || isInsideProject;
     }
 }

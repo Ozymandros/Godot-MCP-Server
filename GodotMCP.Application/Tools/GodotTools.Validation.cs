@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Linq;
+using GodotMCP.Core;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 
@@ -46,13 +47,18 @@ public static partial class GodotTools
     /// Normalizes <paramref name="projectPath"/> to the absolute project directory (or subdirectory) used as the base for <c>fileName</c> parameters.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>
-    /// <param name="projectPath">Project root or folder path (absolute, relative to the configured project root, or legacy <c>res://</c>).</param>
+    /// <param name="projectPath">Project root or folder path (absolute or relative to the configured project root).</param>
     /// <returns>Canonical absolute directory path.</returns>
     private static string NormalizeProjectPath(IPathResolver pathResolver, string projectPath)
     {
         if (IsBlank(projectPath))
         {
             throw new InvalidOperationException("projectPath is required.");
+        }
+
+        if (ProjectPathSyntax.ContainsUriSchemeAuthority(projectPath.Trim()))
+        {
+            throw new InvalidOperationException("Path schemes are not supported. Use absolute or project-relative filesystem paths.");
         }
 
         return pathResolver.ResolvePath(projectPath);
@@ -73,9 +79,24 @@ public static partial class GodotTools
         }
 
         var baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var normalizedFileName = fileName.Replace('\\', '/').TrimStart('/');
-        var combined = Path.Combine(baseDir, normalizedFileName.Replace('/', Path.DirectorySeparatorChar));
-        var absolute = Path.GetFullPath(combined);
+        var trimmedName = ProjectPathSyntax.CollapseDuplicateDirectorySeparators(fileName.Trim());
+
+        if (ProjectPathSyntax.IsUncPath(trimmedName))
+        {
+            var resolved = pathResolver.ResolvePath(trimmedName);
+            var baseFull = Path.GetFullPath(baseDir);
+            var resolvedFull = Path.GetFullPath(resolved);
+            if (!resolvedFull.StartsWith(baseFull, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(resolvedFull, baseFull, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("fileName must resolve under projectPath.");
+            }
+
+            return resolvedFull;
+        }
+
+        var normalizedFileName = ProjectPathSyntax.NormalizeRelativePathTokenForCombine(trimmedName);
+        var absolute = ProjectPathSyntax.CombineAvoidingDuplicateSegments(baseDir, normalizedFileName);
         pathResolver.EnsureInsideProject(absolute);
         return absolute;
     }
@@ -98,25 +119,25 @@ public static partial class GodotTools
     }
 
     /// <summary>
-    /// Converts a legacy Godot-style or mixed path into a <c>fileName</c> token relative to the project root.
+    /// Converts an absolute or relative path into a <c>fileName</c> token relative to the project root.
     /// </summary>
-    /// <param name="path">Path that may use <c>res://</c>, be absolute under the project, or be project-relative.</param>
+    /// <param name="path">Path that is absolute under the project, or project-relative.</param>
     /// <param name="pathResolver">Path resolver used when <paramref name="path"/> is absolute.</param>
     /// <returns>Relative path segments using forward slashes.</returns>
     private static string ToProjectFileName(string path, IPathResolver pathResolver)
     {
-        var normalized = path.Replace('\\', '/');
-        if (normalized.StartsWith("res://", StringComparison.Ordinal))
+        if (IsBlank(path))
         {
-            return normalized["res://".Length..].TrimStart('/');
+            throw new InvalidOperationException("path is required.");
         }
 
-        if (Path.IsPathRooted(path))
+        if (ProjectPathSyntax.ContainsUriSchemeAuthority(path.Trim()))
         {
-            return pathResolver.GetProjectRelativePath(Path.GetFullPath(path));
+            throw new InvalidOperationException("Path schemes are not supported. Use absolute or project-relative filesystem paths.");
         }
 
-        return normalized.TrimStart('/');
+        var absolute = pathResolver.ResolvePath(path);
+        return pathResolver.GetProjectRelativePath(absolute);
     }
 
     /// <summary>

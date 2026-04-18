@@ -8,7 +8,7 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
-    // Backward-compatible overload for legacy single-path contract.
+    // Backward-compatible overload for the single-path contract.
     public static Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -34,7 +34,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language,
         [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
@@ -105,7 +105,7 @@ public partial class {{className}} : {{baseType}}
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the target node."), Required] string nodeName,
         [Description("Script file name or relative path under projectPath."), Required] string scriptFileName,
@@ -167,7 +167,7 @@ public partial class {{className}} : {{baseType}}
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IGodotCliService godotCliService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Script file name or relative path under projectPath."), Required] string fileName,
         [Description("Set to true if the script is C#, false for GDScript."), Required] bool isCSharp,
         CancellationToken cancellationToken = default)

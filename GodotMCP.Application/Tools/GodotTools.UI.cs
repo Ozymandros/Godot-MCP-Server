@@ -21,7 +21,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiListControlsAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
@@ -56,7 +56,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiAddControlAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Parent node path (for example: ., UI, UI/HUD)."), Required] string parentNodePath,
         [Description("Control type (for example: Control, Button, Label, PanelContainer)."), Required] string controlType,
@@ -108,7 +108,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiSetLayoutPresetAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Preset name: full_rect, top_left, or center."), Required] string preset,
@@ -149,7 +149,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> UiSetControlPropertiesAsync(
         IUiService uiService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required] Dictionary<string, JsonElement>? properties,

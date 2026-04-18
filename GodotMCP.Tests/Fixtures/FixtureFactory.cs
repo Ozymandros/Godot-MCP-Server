@@ -61,7 +61,13 @@ internal static class FixtureFactory
     public static async Task CopySceneFixtureAsync(string destinationRoot, string fixtureName, string destinationRelativePath)
     {
         var source = GetSceneFixturePath(fixtureName);
-        var relative = destinationRelativePath.Replace("res://", string.Empty, StringComparison.Ordinal).TrimStart('/');
+        var relative = destinationRelativePath;
+        var schemeIndex = relative.IndexOf("://", StringComparison.Ordinal);
+        if (schemeIndex >= 0)
+        {
+            relative = relative[(schemeIndex + 3)..];
+        }
+        relative = relative.TrimStart('/');
         var destination = Path.Combine(destinationRoot, relative.Replace('/', Path.DirectorySeparatorChar));
         var directory = Path.GetDirectoryName(destination);
         if (!string.IsNullOrWhiteSpace(directory))

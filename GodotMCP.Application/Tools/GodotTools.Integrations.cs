@@ -17,7 +17,7 @@ public static partial class GodotTools
     public static ToolResult DiscoverIntegrations(
         IIntegrationInspector integrationInspector,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath)
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
     {
         try
         {
@@ -50,7 +50,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> EnablePluginAsync(
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The addon folder name."), Required] string pluginName,
         [Description("Set to true to enable, false to disable."), Required] bool enabled,
         CancellationToken cancellationToken = default)
@@ -95,7 +95,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         IProjectConfigService projectConfigService,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The human-readable name of the integration."), Required] string integrationName,
         [Description("Source URL or identifier for the integration."), Required] string source,
         [Description("The category of the integration."), Required] IntegrationProfile profile,
@@ -147,7 +147,7 @@ script="plugin.gd"
     public static ToolResult ListIntegrationCompatibility(
         IIntegrationInspector integrationInspector,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath)
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
     {
         try
         {
@@ -179,7 +179,7 @@ script="plugin.gd"
     public static ToolResult VerifyIntegrationHealth(
         IIntegrationInspector integrationInspector,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("The name of the integration."), Required] string integrationName)
     {
         if (IsBlank(projectPath) || IsBlank(integrationName))

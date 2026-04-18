@@ -20,7 +20,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceReadAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         CancellationToken cancellationToken = default)
     {
@@ -59,7 +59,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceWriteAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Godot resource type (for example: Resource, Environment, StandardMaterial3D)."), Required] string type,
         [Description("Resource property dictionary."), Required] Dictionary<string, string>? properties,
@@ -111,7 +111,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceUpdatePropertiesAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Property updates to apply."), Required, MinLength(1)] Dictionary<string, string>? properties,
         CancellationToken cancellationToken = default)
@@ -157,7 +157,7 @@ public static partial class GodotTools
     public static async Task<ToolResult> ResourceRemovePropertyAsync(
         IResourcePipelineService resourcePipelineService,
         IPathResolver pathResolver,
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
         [Description("Property key to remove."), Required] string propertyKey,
         CancellationToken cancellationToken = default)

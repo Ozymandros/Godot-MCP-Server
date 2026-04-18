@@ -17,7 +17,7 @@ public static partial class GodotTools
     [McpServerTool(Name = "query_system_documentation"), Description(
         "Search generated DocFX output (manifest.json under _site) and/or conceptual Markdown under docs/. Use after building docs (dotnet docfx docs/docfx.json). Repository root is resolved via repository_root, GODOT_MCP_REPO_ROOT, or by walking up from the current directory until docs/docfx.json is found.")]
     public static Task<ToolResult> QuerySystemDocumentationAsync(
-        [Description("Project directory (absolute path, relative to the configured project root, or legacy res://)."), Required] string projectPath,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Substring matched case-insensitively against manifest titles, summaries, and HTML paths, and against Markdown lines. Leave empty to list an excerpt from manifest only (Markdown scan skipped).")]
         string query = "",
         [Description("Optional absolute path to the Godot MCP git repository root (folder containing docs/docfx.json).")]
