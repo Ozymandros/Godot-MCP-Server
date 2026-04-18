@@ -28,6 +28,7 @@
 		<RepositoryUrl>https://github.com/Ozymandros/Godot-MCP-Server</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>semantic-kernel;Godot;mcp;model-context-protocol</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 		<PublishRepositoryUrl>true</PublishRepositoryUrl>
