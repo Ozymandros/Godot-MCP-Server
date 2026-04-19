@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Infrastructure.Config;
 using GodotMCP.Infrastructure.Integrations;
@@ -35,6 +37,18 @@ public static class DependencyInjection
         services.AddSingleton<IUiService, UiService>();
         services.AddSingleton<ILightingService, LightingService>();
         services.AddSingleton<IPhysicsService, PhysicsService>();
+
+        services.AddHttpClient<IGodotEngineDocumentationClient, GodotEngineDocumentationClient>(client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("GodotMCP-Server/1.0 (Godot Engine documentation search)");
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler
+            {
+                AutomaticDecompression = DecompressionMethods.All
+            });
+
         return services;
     }
 }
