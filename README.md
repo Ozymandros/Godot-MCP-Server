@@ -55,6 +55,7 @@ Notes
 
 - The server uses stdio for protocol messages and reserves stdout for MCP traffic; avoid printing other data to stdout when the server is running.
 
+ - Project paths: Most tools accept an absolute `projectPath` in addition to paths relative to the configured server project root. When a requested project folder does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without manual initialization.
 Solution layout
 
 - `GodotMCP.Server` — MCP host, CLI entrypoint, and DI composition root

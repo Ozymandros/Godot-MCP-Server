@@ -68,16 +68,42 @@ public static partial class GodotTools
             return Invalid(ex.Message);
         }
 
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
+        {
+            var defaultName = Path.GetFileName(baseDir);
+            if (string.IsNullOrWhiteSpace(defaultName))
+            {
+                defaultName = "New Godot Project";
+            }
+
+            var createResult = await GodotTools.CreateProjectFileAtAsync(baseDir, defaultName, cancellationToken).ConfigureAwait(false);
+            if (!createResult.Success)
+            {
+                return createResult;
+            }
+        }
+
         if (enabled)
         {
-            await projectConfigService.SetValueAsync("editor_plugins", pluginName, "true", cancellationToken).ConfigureAwait(false);
+            await GodotTools.SetProjectConfigValueAsync(baseDir, "editor_plugins", pluginName, "true", cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await projectConfigService.RemoveKeyAsync("editor_plugins", pluginName, cancellationToken).ConfigureAwait(false);
+            await GodotTools.RemoveProjectConfigKeyAsync(baseDir, "editor_plugins", pluginName, cancellationToken).ConfigureAwait(false);
         }
 
-        return new ToolResult(true, $"Plugin '{pluginName}' {(enabled ? "enabled" : "disabled")}.");
+        return new ToolResult(true, $"Plugin '{pluginName}' {(enabled ? "enabled" : "disabled")}. ");
     }
 
     /// <summary>

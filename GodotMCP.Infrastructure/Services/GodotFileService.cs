@@ -1,3 +1,4 @@
+using System.IO;
 using GodotMCP.Core.Interfaces;
 
 namespace GodotMCP.Infrastructure.Services;
@@ -11,27 +12,43 @@ public sealed class GodotFileService(IPathResolver pathResolver) : IGodotFileSer
     /// <inheritdoc />
     public bool ProjectExists() => File.Exists(Path.Combine(pathResolver.ProjectRoot, "project.godot"));
 
+    private string ResolveAbsolutePath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOperationException("Path is required.");
+        }
+
+        var trimmed = path.Trim();
+        if (Path.IsPathRooted(trimmed))
+        {
+            return Path.GetFullPath(trimmed);
+        }
+
+        return pathResolver.ResolvePath(trimmed);
+    }
+
     /// <inheritdoc />
     public void EnsureDirectory(string path)
     {
-        var absolute = pathResolver.ResolvePath(path);
+        var absolute = ResolveAbsolutePath(path);
         Directory.CreateDirectory(absolute);
     }
 
     /// <inheritdoc />
-    public bool Exists(string path) => File.Exists(pathResolver.ResolvePath(path));
+    public bool Exists(string path) => File.Exists(ResolveAbsolutePath(path));
 
     /// <inheritdoc />
     public async Task<string> ReadAsync(string path, CancellationToken cancellationToken = default)
     {
-        var absolute = pathResolver.ResolvePath(path);
+        var absolute = ResolveAbsolutePath(path);
         return await File.ReadAllTextAsync(absolute, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task WriteAsync(string path, string content, CancellationToken cancellationToken = default)
     {
-        var absolute = pathResolver.ResolvePath(path);
+        var absolute = ResolveAbsolutePath(path);
         var directory = Path.GetDirectoryName(absolute);
         if (!string.IsNullOrEmpty(directory))
         {
@@ -44,7 +61,7 @@ public sealed class GodotFileService(IPathResolver pathResolver) : IGodotFileSer
     /// <inheritdoc />
     public Task DeleteAsync(string path, CancellationToken cancellationToken = default)
     {
-        var absolute = pathResolver.ResolvePath(path);
+        var absolute = ResolveAbsolutePath(path);
         if (File.Exists(absolute))
         {
             File.Delete(absolute);
@@ -56,10 +73,10 @@ public sealed class GodotFileService(IPathResolver pathResolver) : IGodotFileSer
     /// <inheritdoc />
     public IEnumerable<string> EnumerateFiles(string directory, string searchPattern, bool recursive)
     {
-        var absolute = pathResolver.ResolvePath(directory);
+        var absolute = ResolveAbsolutePath(directory);
         if (!Directory.Exists(absolute))
         {
-            return [];
+            return Array.Empty<string>();
         }
 
         return Directory.EnumerateFiles(

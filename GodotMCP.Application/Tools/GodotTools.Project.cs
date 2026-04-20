@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using ModelContextProtocol.Server;
@@ -27,16 +28,18 @@ public static partial class GodotTools
         {
             return Invalid("projectPath and projectName are required.");
         }
+        string baseDir;
         try
         {
-            _ = NormalizeProjectPath(pathResolver, projectPath);
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
         }
 
-        if (fileService.ProjectExists())
+        var projectFilePath = Path.Combine(baseDir, "project.godot");
+        if (File.Exists(projectFilePath))
         {
             return new ToolResult(false, "A project.godot already exists.");
         }
@@ -55,11 +58,128 @@ run/main_scene=""
 [dotnet]
 project/assembly_name="{{projectName}}"
 """;
-        await fileService.WriteAsync(pathResolver.ResolvePath("project.godot"), content, cancellationToken).ConfigureAwait(false);
-        fileService.EnsureDirectory(pathResolver.ResolvePath("scenes"));
-        fileService.EnsureDirectory(pathResolver.ResolvePath("scripts"));
-        fileService.EnsureDirectory(pathResolver.ResolvePath("addons"));
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(baseDir, "scenes"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "scripts"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "addons"));
+            await File.WriteAllTextAsync(projectFilePath, content, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return new ToolResult(false, $"Failed to create project files: {ex.Message}");
+        }
         return new ToolResult(true, $"Project '{projectName}' created.");
+    }
+
+    // Helper: create a minimal project.godot at the specified baseDir.
+    private static async Task<ToolResult> CreateProjectFileAtAsync(string baseDir, string projectName, CancellationToken cancellationToken = default)
+    {
+        var projectFilePath = Path.Combine(baseDir, "project.godot");
+        if (File.Exists(projectFilePath))
+        {
+            return new ToolResult(false, "A project.godot already exists.");
+        }
+
+        var content = "; Engine configuration file.\n; It's best edited using the editor UI and not directly.\n\nconfig_version=5\n\n[application]\n\nconfig/name=\"" + projectName + "\"\nrun/main_scene=\"\"\n\n[dotnet]\nproject/assembly_name=\"" + projectName + "\"\n";
+
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(baseDir, "scenes"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "scripts"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "addons"));
+            await File.WriteAllTextAsync(projectFilePath, content, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            return new ToolResult(false, $"Failed to create project files: {ex.Message}");
+        }
+
+        return new ToolResult(true, $"Project '{projectName}' created.");
+    }
+
+    // Helper: set or insert a key value inside a project.godot located at baseDir.
+    private static async Task SetProjectConfigValueAsync(string baseDir, string section, string key, string value, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(baseDir, "project.godot");
+        var text = File.Exists(path) ? await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false) : string.Empty;
+        var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
+        var sectionHeader = $"[{section}]";
+        var sectionLine = lines.FindIndex(l => l.Trim() == sectionHeader);
+        var keyLine = $"{key}={value}";
+        if (sectionLine < 0)
+        {
+            if (lines.Count > 0 && !string.IsNullOrEmpty(lines[^1]))
+            {
+                lines.Add(string.Empty);
+            }
+
+            lines.Add(sectionHeader);
+            lines.Add(keyLine);
+        }
+        else
+        {
+            // locate end of section
+            var insertAt = sectionLine + 1;
+            while (insertAt < lines.Count && !lines[insertAt].StartsWith("[", StringComparison.Ordinal))
+            {
+                insertAt++;
+            }
+
+            var replaced = false;
+            for (var i = sectionLine + 1; i < insertAt; i++)
+            {
+                if (lines[i].TrimStart().StartsWith($"{key}=", StringComparison.Ordinal))
+                {
+                    lines[i] = keyLine;
+                    replaced = true;
+                    break;
+                }
+            }
+
+            if (!replaced)
+            {
+                lines.Insert(insertAt, keyLine);
+            }
+        }
+
+        await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
+    }
+
+    // Helper: remove a key from a project.godot located at baseDir.
+    private static async Task RemoveProjectConfigKeyAsync(string baseDir, string section, string key, CancellationToken cancellationToken = default)
+    {
+        var path = Path.Combine(baseDir, "project.godot");
+        var text = File.Exists(path) ? await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false) : string.Empty;
+        var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
+        var sectionHeader = $"[{section}]";
+        var sectionLine = lines.FindIndex(l => l.Trim() == sectionHeader);
+        if (sectionLine < 0)
+        {
+            return;
+        }
+
+        var start = sectionLine + 1;
+        var end = lines.Count;
+        for (var i = start; i < lines.Count; i++)
+        {
+            if (lines[i].StartsWith("[", StringComparison.Ordinal))
+            {
+                end = i;
+                break;
+            }
+        }
+
+        for (var i = start; i < end; i++)
+        {
+            if (lines[i].TrimStart().StartsWith($"{key}=", StringComparison.Ordinal))
+            {
+                lines.RemoveAt(i);
+                break;
+            }
+        }
+
+        await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -77,22 +197,63 @@ project/assembly_name="{{projectName}}"
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         CancellationToken cancellationToken = default)
     {
+        string baseDir;
         try
         {
-            _ = NormalizeProjectPath(pathResolver, projectPath);
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         }
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
         }
 
-        if (!fileService.ProjectExists())
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
         {
-            return new ToolResult(false, "No project.godot found.");
+            var defaultName = Path.GetFileName(baseDir);
+            if (string.IsNullOrWhiteSpace(defaultName))
+            {
+                defaultName = "New Godot Project";
+            }
+
+            var created = await CreateGodotProjectAsync(fileService, pathResolver, projectPath, defaultName, cancellationToken).ConfigureAwait(false);
+            if (!created.Success)
+            {
+                return created;
+            }
         }
 
-        var name = await projectConfigService.GetValueAsync("application", "config/name", cancellationToken).ConfigureAwait(false);
-        var mainScene = await projectConfigService.GetValueAsync("application", "run/main_scene", cancellationToken).ConfigureAwait(false);
+        var text = await File.ReadAllTextAsync(projectFile, cancellationToken).ConfigureAwait(false);
+        var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        string name = string.Empty;
+        string mainScene = string.Empty;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (lines[i].Trim() == "[application]")
+            {
+                for (var j = i + 1; j < lines.Length; j++)
+                {
+                    var line = lines[j].Trim();
+                    if (line.StartsWith("[", StringComparison.Ordinal))
+                    {
+                        break;
+                    }
+
+                    if (line.StartsWith("config/name=", StringComparison.Ordinal))
+                    {
+                        name = line[("config/name=".Length)..].Trim().Trim('"');
+                    }
+
+                    if (line.StartsWith("run/main_scene=", StringComparison.Ordinal))
+                    {
+                        mainScene = line[("run/main_scene=".Length)..].Trim().Trim('"');
+                    }
+                }
+
+                break;
+            }
+        }
+
         return new ToolResult(true, "Project info loaded.", new Dictionary<string, string>
         {
             ["name"] = name,
@@ -131,6 +292,31 @@ project/assembly_name="{{projectName}}"
         {
             return Invalid(ex.Message);
         }
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
+        {
+            var defaultName = Path.GetFileName(baseDir);
+            if (string.IsNullOrWhiteSpace(defaultName))
+            {
+                defaultName = "New Godot Project";
+            }
+
+            var createResult = await CreateProjectFileAtAsync(baseDir, defaultName, cancellationToken).ConfigureAwait(false);
+            if (!createResult.Success)
+            {
+                return createResult;
+            }
+        }
 
         if (enabled)
         {
@@ -139,11 +325,11 @@ project/assembly_name="{{projectName}}"
             var pathPart = toolSingleton ? trimmed[1..] : trimmed;
             var godotRef = pathResolver.ToGodotResPath(pathResolver.ResolvePath(pathPart));
             var quoted = toolSingleton ? $"\"*{godotRef}\"" : $"\"{godotRef}\"";
-            await projectConfigService.SetValueAsync("autoload", key, quoted, cancellationToken).ConfigureAwait(false);
+            await SetProjectConfigValueAsync(baseDir, "autoload", key, quoted, cancellationToken).ConfigureAwait(false);
             return new ToolResult(true, $"Autoload '{key}' added.");
         }
 
-        await projectConfigService.RemoveKeyAsync("autoload", key, cancellationToken).ConfigureAwait(false);
+        await RemoveProjectConfigKeyAsync(baseDir, "autoload", key, cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"Autoload '{key}' removed.");
     }
 
@@ -175,7 +361,33 @@ project/assembly_name="{{projectName}}"
             return Invalid(ex.Message);
         }
 
-        await projectConfigService.SetValueAsync("editor_plugins", $"{pluginName}", "true", cancellationToken).ConfigureAwait(false);
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
+        {
+            var defaultName = Path.GetFileName(baseDir);
+            if (string.IsNullOrWhiteSpace(defaultName))
+            {
+                defaultName = "New Godot Project";
+            }
+
+            var createResult = await CreateProjectFileAtAsync(baseDir, defaultName, cancellationToken).ConfigureAwait(false);
+            if (!createResult.Success)
+            {
+                return createResult;
+            }
+        }
+
+        await SetProjectConfigValueAsync(baseDir, "editor_plugins", pluginName, "true", cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"Plugin '{pluginName}' enabled in project config.");
     }
 }

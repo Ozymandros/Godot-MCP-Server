@@ -28,6 +28,10 @@ Use the navigation bar to browse conceptual articles and the .NET API reference.
 
 - **Preview** — Run `dotnet docfx docs/docfx.json --serve` and use the HTTP URL (avoid opening `_site/index.html` via `file://`; see note at the top of this page).
 
+## Project paths & auto-initialization
+
+Most MCP tooling accepts an absolute `projectPath` (in addition to paths relative to the configured server project root). If a requested project directory does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without requiring manual editor initialization.
+
 ## Build locally
 
 From the repository root:

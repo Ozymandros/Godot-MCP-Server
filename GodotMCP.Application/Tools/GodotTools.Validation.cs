@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Linq;
+using System.IO;
 using GodotMCP.Core;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
@@ -56,12 +57,20 @@ public static partial class GodotTools
             throw new InvalidOperationException("projectPath is required.");
         }
 
-        if (ProjectPathSyntax.ContainsUriSchemeAuthority(projectPath.Trim()))
+        var trimmed = projectPath.Trim();
+
+        if (ProjectPathSyntax.ContainsUriSchemeAuthority(trimmed))
         {
             throw new InvalidOperationException("Path schemes are not supported. Use absolute or project-relative filesystem paths.");
         }
 
-        return pathResolver.ResolvePath(projectPath);
+        // If the caller passed an absolute path, use it as the explicit base.
+        if (Path.IsPathRooted(trimmed))
+        {
+            return Path.GetFullPath(trimmed).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+
+        return pathResolver.ResolvePath(trimmed);
     }
 
     /// <summary>
@@ -78,16 +87,16 @@ public static partial class GodotTools
             throw new InvalidOperationException("fileName is required.");
         }
 
+        var projectPathTrimmed = projectPath.Trim();
         var baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var trimmedName = ProjectPathSyntax.CollapseDuplicateDirectorySeparators(fileName.Trim());
 
         if (ProjectPathSyntax.IsUncPath(trimmedName))
         {
-            var resolved = pathResolver.ResolvePath(trimmedName);
-            var baseFull = Path.GetFullPath(baseDir);
-            var resolvedFull = Path.GetFullPath(resolved);
-            if (!resolvedFull.StartsWith(baseFull, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(resolvedFull, baseFull, StringComparison.OrdinalIgnoreCase))
+            var resolvedFull = Path.GetFullPath(trimmedName);
+            var uncBaseFull = Path.GetFullPath(baseDir);
+            if (!resolvedFull.StartsWith(uncBaseFull, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(resolvedFull, uncBaseFull, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("fileName must resolve under projectPath.");
             }
@@ -97,7 +106,24 @@ public static partial class GodotTools
 
         var normalizedFileName = ProjectPathSyntax.NormalizeRelativePathTokenForCombine(trimmedName);
         var absolute = ProjectPathSyntax.CombineAvoidingDuplicateSegments(baseDir, normalizedFileName);
-        pathResolver.EnsureInsideProject(absolute);
+
+        // Ensure the resolved absolute path is located under the requested project base.
+        var baseFull = Path.GetFullPath(baseDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var absoluteFull = Path.GetFullPath(absolute).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (!absoluteFull.StartsWith(baseFull, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(absoluteFull, baseFull.TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("fileName must resolve under projectPath.");
+        }
+
+        // Only enforce the server-configured project root when the caller used a projectPath
+        // that is relative to the configured root. If the caller provided an absolute
+        // projectPath, treat the resolved base as authoritative.
+        if (!Path.IsPathRooted(projectPathTrimmed))
+        {
+            pathResolver.EnsureInsideProject(absolute);
+        }
+
         return absolute;
     }
 
