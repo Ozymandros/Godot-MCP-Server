@@ -12,6 +12,7 @@ public static partial class GodotTools
     /// Executes a raw Godot headless CLI command.
     /// </summary>
     /// <param name="godotCliService">Godot CLI service.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="arguments">Raw command line arguments.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result from command execution.</returns>
@@ -34,6 +35,8 @@ public static partial class GodotTools
     /// Writes a simple export preset configuration file for a target platform.
     /// </summary>
     /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="presetName">Export preset name.</param>
     /// <param name="platform">Godot export platform.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

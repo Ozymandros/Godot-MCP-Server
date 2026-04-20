@@ -14,6 +14,14 @@ public static partial class GodotTools
     private const int MaxMarkdownFiles = 15;
     private const int MaxMarkdownLinesPerFile = 8;
 
+    /// <summary>
+    /// Searches generated DocFX output (manifest.json under _site) and/or conceptual Markdown under docs/.
+    /// </summary>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="query">Substring matched case-insensitively against manifest titles, summaries, and HTML paths, and against Markdown lines. Leave empty to list an excerpt from manifest only (Markdown scan skipped).</param>
+    /// <param name="repository_root">Optional absolute path to the Godot MCP git repository root (folder containing docs/docfx.json).</param>
+    /// <param name="source">manifest: search _site/manifest.json only. markdown: search docs/**/*.md only. both: run both.</param>
+    /// <returns>Tool result containing documentation search results.</returns>
     [McpServerTool(Name = "query_system_documentation"), Description(
         "Search generated DocFX output (manifest.json under _site) and/or conceptual Markdown under docs/. Use after building docs (dotnet docfx docs/docfx.json). Repository root is resolved via repository_root, GODOT_MCP_REPO_ROOT, or by walking up from the current directory until docs/docfx.json is found.")]
     public static Task<ToolResult> QuerySystemDocumentationAsync(

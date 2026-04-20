@@ -7,9 +7,17 @@ using ModelContextProtocol.Server;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Provides static methods for Godot MCP server tools and automation features.
+/// </summary>
 [McpServerToolType]
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Enumerates Godot MCP server capabilities and supported features.
+    /// </summary>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <returns>Tool result containing the server capabilities.</returns>
     [McpServerTool(Name = "get_server_capabilities"), Description("Enumerate Godot MCP server capabilities and supported features.")]
     public static ToolResult GetServerCapabilities(
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
@@ -38,6 +46,11 @@ public static partial class GodotTools
         return new ToolResult(true, "Capabilities enumerated.", capabilities);
     }
 
+    /// <summary>
+    /// Verifies server health and transport status.
+    /// </summary>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <returns>Tool result indicating server health.</returns>
     [McpServerTool(Name = "health_check"), Description("Verify server health and transport status.")]
     public static ToolResult HealthCheck(
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath)
@@ -54,6 +67,12 @@ public static partial class GodotTools
         });
     }
 
+    /// <summary>
+    /// Gets information about the Godot MCP server version and working directory.
+    /// </summary>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <returns>Tool result containing server info.</returns>
     [McpServerTool(Name = "get_server_info"), Description("Get information about the Godot MCP server version and working directory.")]
     public static ToolResult GetServerInfo(
         IPathResolver pathResolver,

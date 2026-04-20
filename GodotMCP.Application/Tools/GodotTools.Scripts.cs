@@ -8,7 +8,9 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
-    // Backward-compatible overload for the single-path contract.
+    /// <summary>
+    /// Backward-compatible overload for the single-path contract.
+    /// </summary>
     public static Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -24,7 +26,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="path">Destination script path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Script file name or relative path under projectPath.</param>
     /// <param name="language">Script language token.</param>
     /// <param name="baseType">Base Godot type to extend.</param>
     /// <param name="className">Script class name.</param>
@@ -90,6 +93,9 @@ public partial class {{className}} : {{baseType}}
     /// <param name="scriptPath">Script resource path.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing attachment status.</returns>
+    /// <summary>
+    /// Attaches an existing script resource to a node in a scene.
+    /// </summary>
     public static Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -153,6 +159,9 @@ public partial class {{className}} : {{baseType}}
     /// <param name="isCSharp">Whether the script is C#.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing validation status.</returns>
+    /// <summary>
+    /// Performs lightweight static validation for script files.
+    /// </summary>
     public static Task<ToolResult> ValidateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,

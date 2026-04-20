@@ -12,6 +12,8 @@ public static partial class GodotTools
     /// Discovers installed integrations under the project addons directory.
     /// </summary>
     /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <returns>Tool result containing discovered integration metadata.</returns>
     [McpServerTool(Name = "discover_integrations"), Description("Scan the project addons directory to find installed Godot integrations.")]
     public static ToolResult DiscoverIntegrations(
@@ -41,7 +43,9 @@ public static partial class GodotTools
     /// <summary>
     /// Enables or disables an editor plugin entry by addon folder name.
     /// </summary>
+    /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="pluginName">Addon folder name.</param>
     /// <param name="enabled">Whether plugin should be enabled.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -113,6 +117,7 @@ public static partial class GodotTools
     /// <param name="projectConfigService">Project configuration service.</param>
     /// <param name="integrationName">Human-friendly integration name.</param>
     /// <param name="source">Integration source URL or identifier.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="profile">Integration profile category.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing install status and metadata.</returns>
@@ -168,6 +173,8 @@ script="plugin.gd"
     /// Lists compatibility and maintenance metadata for discovered integrations.
     /// </summary>
     /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <returns>Tool result containing compatibility records.</returns>
     [McpServerTool(Name = "list_integration_compatibility"), Description("Check compatibility and maintenance status for all discovered integrations.")]
     public static ToolResult ListIntegrationCompatibility(
@@ -199,6 +206,8 @@ script="plugin.gd"
     /// Verifies a specific integration can be discovered and appears healthy.
     /// </summary>
     /// <param name="integrationInspector">Integration inspector service.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="integrationName">Integration name to verify.</param>
     /// <returns>Tool result indicating health status.</returns>
     [McpServerTool(Name = "verify_integration_health"), Description("Validate that a specific integration is correctly installed and recognized.")]

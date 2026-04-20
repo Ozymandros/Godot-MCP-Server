@@ -8,8 +8,20 @@ using ModelContextProtocol.Server;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Provides methods to query the official Godot Engine documentation.
+/// </summary>
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Searches the official Godot Engine manual and class reference on docs.godotengine.org (Read the Docs JSON search).
+    /// </summary>
+    /// <param name="godotEngineDocs">Godot Engine documentation client.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="query">Search query (class names, topics, method names, etc.).</param>
+    /// <param name="version">Documentation branch: stable, latest, or a specific version label supported by Read the Docs (default stable).</param>
+    /// <param name="max_results">Maximum number of hits to return (1–40, default 12).</param>
+    /// <returns>Tool result containing documentation search results.</returns>
     [McpServerTool(Name = "query_godot_engine_documentation"), Description(
         "Search the official Godot Engine manual and class reference on docs.godotengine.org (Read the Docs JSON search). Requires network access. Use version stable or latest; results include titles, paths, short excerpts, and absolute URLs.")]
     public static async Task<ToolResult> QueryGodotEngineDocumentationAsync(

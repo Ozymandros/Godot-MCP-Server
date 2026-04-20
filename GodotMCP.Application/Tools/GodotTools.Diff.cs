@@ -15,8 +15,9 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing input files.</param>
-    /// <param name="scenePathA">First scene path.</param>
-    /// <param name="scenePathB">Second scene path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileNameA">First scene file name or relative path under <c>projectPath</c>.</param>
+    /// <param name="fileNameB">Second scene file name or relative path under <c>projectPath</c>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing scene diff payload.</returns>
     [McpServerTool(Name = "diff_scenes"), Description("Compare two Godot scenes and return a structured list of differences.")]

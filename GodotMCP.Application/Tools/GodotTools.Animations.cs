@@ -8,6 +8,9 @@ using System.Text;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Provides static methods for Godot animation-related MCP server tools.
+/// </summary>
 public static partial class GodotTools
 {
     /// <summary>

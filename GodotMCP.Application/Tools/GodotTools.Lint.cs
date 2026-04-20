@@ -8,6 +8,9 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Scans the project for potential issues and reports them.
+    /// </summary>
     [McpServerTool(Name = "lint_project"), Description("Scan the project for potential issues and report them.")]
     public static async Task<ToolResult> LintProjectAsync(
         IGodotFileService fileService,
@@ -102,10 +105,28 @@ public static partial class GodotTools
     }
 }
 
+/// <summary>
+/// Represents a lint issue found in a Godot MCP project.
+/// </summary>
 public sealed class LintIssue
 {
+    /// <summary>
+    /// The file or resource path where the issue was found.
+    /// </summary>
     public required string Path { get; set; }
+
+    /// <summary>
+    /// The severity of the issue (e.g., Error, Warning).
+    /// </summary>
     public required string Severity { get; set; }
+
+    /// <summary>
+    /// The message describing the issue.
+    /// </summary>
     public required string Message { get; set; }
+
+    /// <summary>
+    /// An optional suggested fix for the issue.
+    /// </summary>
     public string? SuggestedFix { get; set; }
 }

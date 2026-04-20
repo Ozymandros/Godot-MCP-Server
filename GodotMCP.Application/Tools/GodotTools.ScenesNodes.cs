@@ -206,9 +206,9 @@ public static partial class GodotTools
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
-    /// <param name="fileName">Target scene file name or relative path under <paramref name="projectPath"/> (container scene).</param>
+    /// <param name="fileName">Target scene file name or relative path under <c>projectPath</c> (container scene).</param>
     /// <param name="parentPath">Parent path in the target scene.</param>
-    /// <param name="packedScenePath">Packed scene path to instantiate.</param>
+    /// <param name="packedSceneFileName">Packed scene file name or relative path under <c>projectPath</c>.</param>
     /// <param name="instanceName">Name for the instance node.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing instantiation status.</returns>

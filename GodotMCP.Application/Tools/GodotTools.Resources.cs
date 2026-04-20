@@ -6,8 +6,23 @@ using System.ComponentModel.DataAnnotations;
 
 namespace GodotMCP.Application.Tools;
 
+/// <summary>
+/// Provides methods to create Godot resource files.
+/// </summary>
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Creates a new Godot resource file (.tres).
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="resourceSerializer">Resource serializer for Godot resources.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Resource file name or relative path under projectPath.</param>
+    /// <param name="type">Godot resource type (e.g., Resource, Environment).</param>
+    /// <param name="properties">Dictionary of property key-values for the resource.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_resource"), Description("Create a new Godot resource file (.tres).")]
     public static async Task<ToolResult> CreateResourceAsync(
         IGodotFileService fileService,

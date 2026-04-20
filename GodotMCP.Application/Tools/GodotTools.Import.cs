@@ -14,7 +14,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="importFileGenerator">Import file generator.</param>
-    /// <param name="assetPath">Asset path to import.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Asset file name or relative path under <c>projectPath</c>.</param>
     /// <param name="importer">Importer identifier.</param>
     /// <param name="type">Target Godot resource type.</param>
     /// <param name="parameters">Optional import parameters.</param>
@@ -72,7 +73,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="godotCliService">Godot CLI service.</param>
-    /// <param name="assetPath">Asset path to reimport.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Asset file name or relative path under projectPath.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing reimport command status.</returns>
     [McpServerTool(Name = "reimport_asset"), Description("Trigger a headless Godot reimport of an asset.")]
@@ -108,7 +110,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="importFileGenerator">Import file generator.</param>
-    /// <param name="texturePath">Texture file path to create.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Texture file name or relative path under projectPath.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_texture"), Description("Create a dummy texture file and its .import configuration.")]
@@ -144,7 +147,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="importFileGenerator">Import file generator.</param>
-    /// <param name="audioPath">Audio file path to create.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Audio file name or relative path under projectPath.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_audio"), Description("Create a dummy audio file and its .import configuration.")]
