@@ -14,7 +14,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="lightingService">Lighting service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to scan.</param>
+    /// <param name="projectPath">Project directory to scan (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing discovered lights.</returns>
     [McpServerTool(Name = "light.list"), Description("List lights across all scenes under a project root path.")]
@@ -39,7 +39,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="lightingService">Lighting service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path where the light is created.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentNodePath">Parent node path where the light is inserted.</param>
     /// <param name="lightType">Light type token.</param>
     /// <param name="nodeName">Light node name.</param>
@@ -84,7 +85,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="lightingService">Lighting service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path containing the light.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Light node path to update.</param>
     /// <param name="properties">Property updates with primitive JSON values.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -148,7 +150,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="lightingService">Lighting service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to validate.</param>
+    /// <param name="projectPath">Project directory to validate (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing lint-style lighting issues.</returns>
     [McpServerTool(Name = "light.validate"), Description("Validate lighting setup across scenes and return lint-style issues.")]

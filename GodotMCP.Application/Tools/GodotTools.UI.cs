@@ -14,7 +14,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="uiService">UI service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to inspect.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing a list of UI controls.</returns>
     [McpServerTool(Name = "ui.list_controls"), Description("List UI controls in a scene with node paths and properties.")]
@@ -45,7 +46,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="uiService">UI service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentNodePath">Parent node path where control is added.</param>
     /// <param name="controlType">Godot control type to add.</param>
     /// <param name="controlName">Control name.</param>
@@ -99,7 +101,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="uiService">UI service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="controlNodePath">Control node path to update.</param>
     /// <param name="preset">Layout preset name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -140,7 +143,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="uiService">UI service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="controlNodePath">Control node path to update.</param>
     /// <param name="properties">Property updates with primitive JSON values.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

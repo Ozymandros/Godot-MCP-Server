@@ -14,7 +14,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="physicsService">Physics service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to scan.</param>
+    /// <param name="projectPath">Project directory to scan (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing discovered physics bodies.</returns>
     [McpServerTool(Name = "physics.list_bodies"), Description("List physics bodies across all scenes under a project root path.")]
@@ -39,7 +39,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="physicsService">Physics service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path where the body is created.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentNodePath">Parent node path where body is inserted.</param>
     /// <param name="bodyType">Body type to create.</param>
     /// <param name="nodeName">Body node name.</param>
@@ -84,7 +85,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="physicsService">Physics service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path containing the body.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Body node path to update.</param>
     /// <param name="properties">Property updates map.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -148,7 +150,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="physicsService">Physics service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to validate.</param>
+    /// <param name="projectPath">Project directory to validate (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing lint-style validation issues.</returns>
     [McpServerTool(Name = "physics.validate"), Description("Validate physics setup across scenes and return lint-style issues.")]

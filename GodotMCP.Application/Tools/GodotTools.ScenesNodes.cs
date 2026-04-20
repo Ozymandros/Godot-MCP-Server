@@ -14,7 +14,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for deterministic output.</param>
-    /// <param name="scenePath">Project-relative destination scene path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="rootNodeName">Root node name.</param>
     /// <param name="rootNodeType">Root node type.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -61,7 +62,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentPath">Parent node path.</param>
     /// <param name="nodeName">New node name.</param>
     /// <param name="nodeType">New node type.</param>
@@ -111,7 +113,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodeName">Target node name.</param>
     /// <param name="propertyKey">Property key to update.</param>
     /// <param name="propertyValue">Serialized property value.</param>
@@ -161,7 +164,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodeName">Node name to remove.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing removal status.</returns>
@@ -201,7 +205,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="targetScenePath">Container scene path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Target scene file name or relative path under <paramref name="projectPath"/> (container scene).</param>
     /// <param name="parentPath">Parent path in the target scene.</param>
     /// <param name="packedScenePath">Packed scene path to instantiate.</param>
     /// <param name="instanceName">Name for the instance node.</param>
@@ -255,9 +260,10 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="sourceScenePath">Source scene path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Source scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodeName">Branch root node name in the source scene.</param>
-    /// <param name="destinationScenePath">Destination scene path.</param>
+    /// <param name="destinationFileName">Destination scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing export status.</returns>
     [McpServerTool(Name = "save_branch_as_scene"), Description("Export a subtree branch from one scene into a new independent .tscn file.")]

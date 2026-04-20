@@ -13,6 +13,8 @@ public static partial class GodotTools
     /// Creates a new Godot project structure and minimal <c>project.godot</c> file.
     /// </summary>
     /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="projectName">Project display name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing project creation status.</returns>
@@ -186,7 +188,9 @@ project/assembly_name="{{projectName}}"
     /// Reads basic project configuration values from <c>project.godot</c>.
     /// </summary>
     /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
     /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing project name and main scene fields.</returns>
     [McpServerTool(Name = "get_project_info"), Description("Retrieve basic configuration from project.godot.")]
@@ -264,7 +268,9 @@ project/assembly_name="{{projectName}}"
     /// <summary>
     /// Adds or removes an autoload singleton entry in project configuration.
     /// </summary>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
     /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="key">Autoload key.</param>
     /// <param name="value">Autoload resource path.</param>
     /// <param name="enabled">Whether to add or remove the key.</param>
@@ -336,7 +342,9 @@ project/assembly_name="{{projectName}}"
     /// <summary>
     /// Enables an editor plugin entry in project configuration.
     /// </summary>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
     /// <param name="projectConfigService">Project configuration service.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="pluginName">Plugin folder name under the <c>addons</c> directory.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing plugin enablement status.</returns>

@@ -14,7 +14,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to inspect.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing the recursive node tree payload.</returns>
     [McpServerTool(Name = "scene.list_nodes"), Description("List the full node tree for a scene, including hierarchy metadata and basic properties.")]
@@ -45,7 +46,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentNodePath">Parent node path where the new node will be inserted.</param>
     /// <param name="nodeType">Godot node type for the new node.</param>
     /// <param name="nodeName">Name for the new node.</param>
@@ -88,7 +90,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path to remove.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status.</returns>
@@ -127,7 +130,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path to move.</param>
     /// <param name="newParentPath">Destination parent node path.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -168,7 +172,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path to rename.</param>
     /// <param name="newName">New node name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -209,7 +214,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to inspect.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path to inspect.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing node properties when the node exists.</returns>
@@ -253,7 +259,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="sceneGraphService">Scene graph service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path to mutate.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path to update.</param>
     /// <param name="properties">Property map with primitive JSON values.</param>
     /// <param name="cancellationToken">Cancellation token.</param>

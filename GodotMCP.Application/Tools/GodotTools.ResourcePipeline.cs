@@ -13,7 +13,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="resourcePath">Resource path to inspect.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Resource file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing typed resource details.</returns>
     [McpServerTool(Name = "resource.read"), Description("Read a Godot resource file and return its type and properties.")]
@@ -50,7 +51,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="resourcePath">Resource path to write.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Resource file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="type">Godot resource type.</param>
     /// <param name="properties">Resource properties.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -103,7 +105,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="resourcePath">Resource path to update.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Resource file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="properties">Property updates to apply.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing updated resource details.</returns>
@@ -149,7 +152,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="resourcePath">Resource path to update.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Resource file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="propertyKey">Property key to remove.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing updated resource details.</returns>

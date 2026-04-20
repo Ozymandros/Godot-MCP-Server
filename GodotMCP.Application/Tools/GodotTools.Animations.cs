@@ -16,7 +16,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentPath">Parent node path where the AnimationPlayer is inserted.</param>
     /// <param name="nodeName">AnimationPlayer node name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -66,7 +67,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="playerNodeName">AnimationPlayer node name.</param>
     /// <param name="animName">Animation name.</param>
     /// <param name="length">Animation duration in seconds.</param>
@@ -161,7 +163,8 @@ public static partial class GodotTools
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="animName">Target animation resource name.</param>
     /// <param name="targetPath">NodePath target expression for the track.</param>
     /// <param name="trackType">Track type identifier.</param>

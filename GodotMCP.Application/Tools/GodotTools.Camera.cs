@@ -14,7 +14,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="cameraService">Camera service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to scan.</param>
+    /// <param name="projectPath">Project directory to scan (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing discovered camera descriptors.</returns>
     [McpServerTool(Name = "camera.list"), Description("List Camera2D and Camera3D nodes across all scenes under a project root path.")]
@@ -51,7 +51,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="cameraService">Camera service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path where the camera is created.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Node path for the new camera.</param>
     /// <param name="cameraType">Camera type token.</param>
     /// <param name="preset">Optional preset name.</param>
@@ -120,7 +121,8 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="cameraService">Camera service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="scenePath">Scene path containing the camera.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Camera node path.</param>
     /// <param name="properties">Property updates to apply.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -203,7 +205,7 @@ public static partial class GodotTools
     /// </summary>
     /// <param name="cameraService">Camera service abstraction.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="projectRootPath">Project root path to validate.</param>
+    /// <param name="projectPath">Project directory to validate (absolute path or path relative to the configured project root).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing validation issues.</returns>
     [McpServerTool(Name = "camera.validate"), Description("Validate camera nodes across scenes and return lint-style issues.")]
