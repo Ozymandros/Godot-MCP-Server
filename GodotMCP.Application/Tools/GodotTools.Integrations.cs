@@ -118,6 +118,7 @@ public static partial class GodotTools
     /// <param name="integrationName">Human-friendly integration name.</param>
     /// <param name="source">Integration source URL or identifier.</param>
     /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="profile">Integration profile category.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing install status and metadata.</returns>

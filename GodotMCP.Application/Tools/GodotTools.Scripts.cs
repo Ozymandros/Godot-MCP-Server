@@ -106,6 +106,9 @@ public partial class {{className}} : {{baseType}}
         CancellationToken cancellationToken = default)
         => AttachScriptAsync(fileService, pathResolver, sceneSerializer, pathResolver.ProjectRoot, ToProjectFileName(scenePath, pathResolver), nodeName, ToProjectFileName(scriptPath, pathResolver), cancellationToken);
 
+    /// <summary>
+    /// Attaches an existing script resource to a node in a scene.
+    /// </summary>
     [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
     public static async Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
@@ -171,6 +174,9 @@ public partial class {{className}} : {{baseType}}
         CancellationToken cancellationToken = default)
         => ValidateScriptAsync(fileService, pathResolver, godotCliService, pathResolver.ProjectRoot, ToProjectFileName(scriptPath, pathResolver), isCSharp, cancellationToken);
 
+    /// <summary>
+    /// Performs static validation on a Godot script file.
+    /// </summary>
     [McpServerTool(Name = "validate_script"), Description("Perform static validation on a Godot script file.")]
     public static async Task<ToolResult> ValidateScriptAsync(
         IGodotFileService fileService,
