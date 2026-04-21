@@ -1,3 +1,14 @@
+# [1.6.5] - 2026-04-21
+
+### Added
+- New `ResourceListAsync` tool: List Godot resource files (`.tres`, `.res`) in a project directory, with optional directory and resource type filters. Enables automation and scripting scenarios that require resource discovery.
+
+### Changed
+- Project version updated to 1.6.5 in all relevant project files.
+
+### Notes
+- This release introduces a generic resource enumeration tool for the first time. See the README and API docs for usage details.
+
 # Changelog
 
 All notable changes to this project should be documented in this file.

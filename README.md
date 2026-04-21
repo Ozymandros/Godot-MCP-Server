@@ -17,7 +17,11 @@ Key features
 - Animation generation (AnimationPlayer, Libraries, Tracks, and Keys)
 - Camera tooling (list/create/update/validate across scenes)
 - Scene Graph tooling (list/add/remove/move/rename nodes and inspect/update properties)
-- Resource Pipeline tooling (read/write/update/remove properties on .tres/.res assets)
+- Resource Pipeline tooling (read/write/update/remove properties on .tres/.res assets, and list resources with new generic resource enumeration tool)
+## 1.6.5 Highlights
+
+- Added: Generic resource listing tool (`ResourceListAsync`) for `.tres` and `.res` files, with directory and type filters.
+
 - UI tooling (list/add controls, apply layout presets, and update control properties)
 - Lighting tooling (list/create/update/validate light nodes across scenes)
 - Physics tooling (list/create/update/validate body and collision setup)
@@ -56,6 +60,7 @@ Notes
 - The server uses stdio for protocol messages and reserves stdout for MCP traffic; avoid printing other data to stdout when the server is running.
 
  - Project paths: Most tools accept an absolute `projectPath` in addition to paths relative to the configured server project root. When a requested project folder does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without manual initialization.
+ - Resource listing: The new `ResourceListAsync` tool enables automation and scripting scenarios that require discovery of all Godot resource files in a project or subdirectory, with optional filtering by resource type.
 Solution layout
 
 - `GodotMCP.Server` — MCP host, CLI entrypoint, and DI composition root

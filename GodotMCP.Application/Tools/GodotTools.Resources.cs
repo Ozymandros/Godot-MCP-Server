@@ -12,6 +12,53 @@ namespace GodotMCP.Application.Tools;
 public static partial class GodotTools
 {
     /// <summary>
+    /// Lists Godot resource files (.tres, .res) in the project directory, with optional directory and type filters.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="resourceSerializer">Resource serializer for Godot resources.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="directory">Optional subdirectory to search under projectPath.</param>
+    /// <param name="resourceType">Optional Godot resource type filter.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of resource info objects.</returns>
+    [McpServerTool(Name = "list_resources"), Description("List Godot resource files (.tres, .res) in the project directory, with optional filters.")]
+    public static async Task<IReadOnlyList<ResourceDocument>> ResourceListAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        IResourceSerializer resourceSerializer,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Optional subdirectory to search under projectPath.")] string? directory = null,
+        [Description("Optional Godot resource type filter.")] string? resourceType = null,
+        CancellationToken cancellationToken = default)
+    {
+        var baseDir = string.IsNullOrWhiteSpace(directory)
+            ? NormalizeProjectPath(pathResolver, projectPath)
+            : Path.Combine(NormalizeProjectPath(pathResolver, projectPath), directory);
+
+        if (!Directory.Exists(baseDir))
+            return Array.Empty<ResourceDocument>();
+
+        var files = Directory.EnumerateFiles(baseDir, "*.tres", SearchOption.AllDirectories)
+            .Concat(Directory.EnumerateFiles(baseDir, "*.res", SearchOption.AllDirectories));
+
+        var results = new List<ResourceDocument>();
+        foreach (var file in files)
+        {
+            string content;
+            try { content = await fileService.ReadAsync(file, cancellationToken).ConfigureAwait(false); }
+            catch { continue; }
+            ResourceDocument doc;
+            try { doc = resourceSerializer.DeserializeDocument(content); }
+            catch { continue; }
+            if (resourceType != null && !string.Equals(doc.Type, resourceType, StringComparison.OrdinalIgnoreCase))
+                continue;
+            results.Add(doc);
+        }
+        return results;
+    }
+
+    /// <summary>
     /// Creates a new Godot resource file (.tres).
     /// </summary>
     /// <param name="fileService">File abstraction for project I/O.</param>

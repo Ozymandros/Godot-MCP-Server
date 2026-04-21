@@ -1,3 +1,7 @@
+## 1.6.5 Release
+
+- **New:** Generic resource listing tool (`ResourceListAsync`) for `.tres` and `.res` files, supporting directory and resource type filters. This enables automation and scripting scenarios that require resource discovery across a project or subdirectory.
+
 # Godot MCP Server
 
 Automated API documentation for the **Godot MCP Server** solution, generated with [DocFX](https://dotnet.github.io/docfx/).
@@ -31,6 +35,8 @@ Use the navigation bar to browse conceptual articles and the .NET API reference.
 ## Project paths & auto-initialization
 
 Most MCP tooling accepts an absolute `projectPath` (in addition to paths relative to the configured server project root). If a requested project directory does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without requiring manual editor initialization.
+
+The new `ResourceListAsync` tool enables automation and scripting scenarios that require discovery of all Godot resource files in a project or subdirectory, with optional filtering by resource type.
 
 ## Build locally
 
