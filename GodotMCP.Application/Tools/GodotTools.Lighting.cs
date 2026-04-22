@@ -100,6 +100,8 @@ public static partial class GodotTools
         [Description("Light node path to update."), Required] string nodePath,
         [Description("Light properties to update. Supported: light_energy, light_color, shadow_enabled, light_specular."), Required]
         Dictionary<string, JsonElement>? properties,
+        [Description("Raw scene text. If provided, replaces the entire scene file.")] string? rawContent = null,
+        IGodotFileService? fileService = null,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath))
@@ -114,6 +116,17 @@ public static partial class GodotTools
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            if (fileService is null)
+            {
+                return Invalid("fileService is required to write rawContent.");
+            }
+
+            await fileService.WriteAsync(scenePath, rawContent, cancellationToken).ConfigureAwait(false);
+            return new ToolResult(true, $"Wrote scene '{scenePath}'.");
         }
 
         if (properties is null || properties.Count == 0)

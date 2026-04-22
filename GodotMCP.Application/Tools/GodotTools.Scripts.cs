@@ -19,7 +19,7 @@ public static partial class GodotTools
         string baseType,
         string className,
         CancellationToken cancellationToken = default)
-        => CreateScriptAsync(fileService, pathResolver, pathResolver.ProjectRoot, ToProjectFileName(path, pathResolver), language, baseType, className, cancellationToken);
+        => CreateScriptAsync(fileService, pathResolver, pathResolver.ProjectRoot, ToProjectFileName(path, pathResolver), language, baseType, className, null, cancellationToken);
 
     /// <summary>
     /// Creates a script file with basic boilerplate in GDScript or C#.
@@ -42,11 +42,12 @@ public static partial class GodotTools
         [Description("Script language ('gd' for GDScript, 'cs' for C#)."), Required] string language,
         [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
         [Description("Name of the script class."), Required] string className,
+        [Description("Raw script content. If provided, written verbatim instead of generated boilerplate.")] string? rawContent = null,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(language) || IsBlank(baseType) || IsBlank(className))
+        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(language) || (string.IsNullOrWhiteSpace(rawContent) && (IsBlank(baseType) || IsBlank(className))))
         {
-            return Invalid("projectPath, fileName, language, baseType and className are required.");
+            return Invalid("projectPath, fileName, language and either rawContent or baseType+className are required.");
         }
 
         string path;
@@ -57,6 +58,12 @@ public static partial class GodotTools
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            await fileService.WriteAsync(path, rawContent, cancellationToken).ConfigureAwait(false);
+            return new ToolResult(true, $"Script created at {path}.");
         }
 
         string content;
@@ -80,6 +87,29 @@ public partial class {{className}} : {{baseType}}
 
         await fileService.WriteAsync(path, content, cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"Script created at {path}.");
+    }
+
+    [McpServerTool(Name = "write_file"), Description("Write arbitrary text content to a project file.")]
+    public static async Task<ToolResult> WriteFileAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("File name or relative path under projectPath."), Required] string fileName,
+        [Description("Raw file content."), Required] string content,
+        CancellationToken cancellationToken = default)
+    {
+        string path;
+        try
+        {
+            path = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        await fileService.WriteAsync(path, content, cancellationToken).ConfigureAwait(false);
+        return new ToolResult(true, $"Wrote file at {path}.");
     }
 
     /// <summary>

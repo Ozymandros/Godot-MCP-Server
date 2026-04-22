@@ -84,6 +84,31 @@ public class LightingToolsTests
     }
 
     /// <summary>
+    /// Verifies that when rawContent is supplied the light.update tool writes the provided text verbatim.
+    /// </summary>
+    [Fact]
+    public async Task LightUpdate_WithRawContent_ReplacesSceneFile()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            ILightingService service = new LightingService(files, resolver, new SceneGraphService(files, new SceneSerializer()));
+
+            var newContent = "REPLACED LIGHT SCENE";
+            var result = await GodotTools.LightUpdateAsync(service, resolver, root, "scenes/Main.tscn", ".", properties: null, rawContent: newContent, fileService: files);
+
+            result.Success.Should().BeTrue();
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
+            sceneText.Should().Be(newContent);
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
     /// Verifies light.validate reports expected issues for invalid configurations.
     /// </summary>
     [Fact]

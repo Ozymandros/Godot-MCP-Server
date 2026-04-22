@@ -78,7 +78,8 @@ public static partial class GodotTools
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath."), Required] string fileName,
         [Description("Godot resource type (e.g., Resource, Environment)."), Required] string type,
-        [Description("Dictionary of property key-values for the resource."), Required, MinLength(1)] Dictionary<string, string> properties,
+        [Description("Dictionary of property key-values for the resource.")] Dictionary<string, string>? properties = null,
+        [Description("Raw resource file text. If provided, written verbatim instead of serializing type+properties.")] string? rawContent = null,
         CancellationToken cancellationToken = default)
     {
         string path;
@@ -89,6 +90,17 @@ public static partial class GodotTools
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            await fileService.WriteAsync(path, rawContent, cancellationToken).ConfigureAwait(false);
+            return new ToolResult(true, $"Resource created at '{path}'.");
+        }
+
+        if (properties is null)
+        {
+            return Invalid("properties are required when rawContent is not provided.");
         }
 
         await fileService.WriteAsync(path, resourceSerializer.Serialize(type, properties), cancellationToken).ConfigureAwait(false);

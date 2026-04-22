@@ -63,18 +63,23 @@ public static partial class GodotTools
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Resource file name or relative path under projectPath, ending in .tres or .res."), Required] string fileName,
-        [Description("Godot resource type (for example: Resource, Environment, StandardMaterial3D)."), Required] string type,
-        [Description("Resource property dictionary."), Required] Dictionary<string, string>? properties,
+        [Description("Godot resource type (for example: Resource, Environment, StandardMaterial3D).")] string? type = null,
+        [Description("Resource property dictionary.")] Dictionary<string, string>? properties = null,
+        [Description("Raw resource file text. If provided, written verbatim instead of serializing type+properties.")] string? rawContent = null,
+        IGodotFileService? fileService = null,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(type))
+        if (string.IsNullOrWhiteSpace(rawContent))
         {
-            return Invalid("type is required.");
-        }
+            if (IsBlank(type))
+            {
+                return Invalid("type is required when rawContent is not provided.");
+            }
 
-        if (properties is null)
-        {
-            return Invalid("properties are required.");
+            if (properties is null)
+            {
+                return Invalid("properties are required when rawContent is not provided.");
+            }
         }
 
         string resourcePath;
@@ -89,8 +94,19 @@ public static partial class GodotTools
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(rawContent))
+            {
+                if (fileService is null)
+                {
+                    return Invalid("fileService is not available to write rawContent.");
+                }
+
+                await fileService.WriteAsync(resourcePath, rawContent, cancellationToken).ConfigureAwait(false);
+                return new ToolResult(true, $"Wrote resource '{resourcePath}'.");
+            }
+
             await resourcePipelineService
-                .WriteAsync(resourcePath, new ResourceDocument(type, properties), cancellationToken)
+                .WriteAsync(resourcePath, new ResourceDocument(type!, properties!), cancellationToken)
                 .ConfigureAwait(false);
             return new ToolResult(true, $"Wrote resource '{resourcePath}'.");
         }

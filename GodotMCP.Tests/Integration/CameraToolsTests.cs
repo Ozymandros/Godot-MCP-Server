@@ -107,6 +107,31 @@ public class CameraToolsTests
     }
 
     /// <summary>
+    /// Verifies that when rawContent is supplied the camera.update tool writes the provided text verbatim.
+    /// </summary>
+    [Fact]
+    public async Task CameraUpdate_WithRawContent_ReplacesSceneFile()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+
+            var newContent = "REPLACED SCENE CONTENT";
+            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, root, "scenes/Main.tscn", "MainCamera", properties: null, rawContent: newContent, fileService: files);
+
+            result.Success.Should().BeTrue();
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
+            sceneText.Should().Be(newContent);
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
     /// Verifies that validate command emits lint-style issues for invalid scenes.
     /// </summary>
     [Fact]

@@ -29,11 +29,12 @@ public static partial class GodotTools
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the root node."), Required] string rootNodeName,
         [Description("Godot type of the root node (e.g., Node2D, Control, Node3D)."), Required] string rootNodeType,
+        [Description("Raw scene text. If provided, written verbatim instead of generated skeleton.")] string? rawContent = null,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(rootNodeName) || IsBlank(rootNodeType))
+        if (string.IsNullOrWhiteSpace(rawContent) && (IsBlank(rootNodeName) || IsBlank(rootNodeType)))
         {
-            return Invalid("rootNodeName and rootNodeType are required.");
+            return Invalid("rootNodeName and rootNodeType are required when rawContent is not provided.");
         }
         string scenePath;
         try
@@ -43,6 +44,12 @@ public static partial class GodotTools
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message, "Use projectPath plus a relative fileName such as scenes/Main.tscn.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            await fileService.WriteAsync(scenePath, rawContent, cancellationToken).ConfigureAwait(false);
+            return new ToolResult(true, $"Scene created at {scenePath}.");
         }
 
         var scene = new GodotScene();

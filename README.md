@@ -131,7 +131,7 @@ The server includes headless camera commands that operate directly on `.tscn` fi
 
 - `camera.list`: scans scenes and returns all Camera2D and Camera3D nodes with scene path, node path, type, fov/size, near/far, projection, and current flag.
 - `camera.create`: inserts a Camera2D/Camera3D node in a scene and supports `cinematic`, `orthographic-ui`, and `fps` presets.
-- `camera.update`: updates only the provided camera properties with validation for property names and value types.
+- `camera.update`: updates only the provided camera properties with validation for property names and value types. Also accepts an optional `rawContent` (and `fileService`) parameter — when provided the server writes the supplied text verbatim to replace the entire scene file (client-driven full-file workflows).
 - `camera.validate`: returns lint-style issues for multiple current cameras in one scene, invalid near/far ranges, missing parents, and unsupported projection modes.
 
 Scene Graph Tools
@@ -170,7 +170,7 @@ The server includes namespaced lighting commands for headless scene illumination
 
 - `light.list`: scans scenes and returns light nodes with energy/color/shadow metadata.
 - `light.create`: creates a light under a parent path with optional presets (`sun`, `fill`, `spot`).
-- `light.update`: updates selected light properties with type validation.
+- `light.update`: updates selected light properties with type validation. Also accepts an optional `rawContent` (and `fileService`) parameter — when provided the server writes the supplied text verbatim to replace the entire scene file.
 - `light.validate`: returns lint-style lighting issues (for example non-positive or extreme intensity).
 
 Physics Tools

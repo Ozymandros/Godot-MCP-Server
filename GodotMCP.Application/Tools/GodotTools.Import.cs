@@ -121,6 +121,7 @@ public static partial class GodotTools
         IImportFileGenerator importFileGenerator,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Texture file name or relative path under projectPath."), Required] string fileName,
+        [Description("Raw texture file content (optional). If binary, encode as base64 and note that file will be written as provided.")] string? rawContent = null,
         CancellationToken cancellationToken = default)
     {
         string texturePath;
@@ -133,7 +134,14 @@ public static partial class GodotTools
             return Invalid(ex.Message);
         }
 
-        await fileService.WriteAsync(texturePath, string.Empty, cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            await fileService.WriteAsync(texturePath, rawContent, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await fileService.WriteAsync(texturePath, string.Empty, cancellationToken).ConfigureAwait(false);
+        }
         return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "texture", "Texture2D", new Dictionary<string, string>
         {
             ["compress/mode"] = "\"lossy\"",
@@ -158,6 +166,7 @@ public static partial class GodotTools
         IImportFileGenerator importFileGenerator,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Audio file name or relative path under projectPath."), Required] string fileName,
+        [Description("Raw audio file content (optional). If binary, encode as base64 and note that file will be written as provided.")] string? rawContent = null,
         CancellationToken cancellationToken = default)
     {
         string audioPath;
@@ -170,7 +179,14 @@ public static partial class GodotTools
             return Invalid(ex.Message);
         }
 
-        await fileService.WriteAsync(audioPath, string.Empty, cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            await fileService.WriteAsync(audioPath, rawContent, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await fileService.WriteAsync(audioPath, string.Empty, cancellationToken).ConfigureAwait(false);
+        }
         return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "wav", "AudioStreamWAV", new Dictionary<string, string>
         {
             ["force/8_bit"] = "false",

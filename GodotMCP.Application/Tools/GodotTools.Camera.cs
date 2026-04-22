@@ -136,6 +136,8 @@ public static partial class GodotTools
         [Description("Node path of the camera to update."), Required] string nodePath,
         [Description("Camera properties to update. Supported: current, fov, size, near, far, projection."), Required]
         Dictionary<string, JsonElement>? properties,
+        [Description("Raw scene text. If provided, replaces the entire scene file.")] string? rawContent = null,
+        IGodotFileService? fileService = null,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath))
@@ -150,6 +152,17 @@ public static partial class GodotTools
         catch (InvalidOperationException ex)
         {
             return Invalid(ex.Message);
+        }
+
+        if (!string.IsNullOrWhiteSpace(rawContent))
+        {
+            if (fileService is null)
+            {
+                return Invalid("fileService is required to write rawContent.");
+            }
+
+            await fileService.WriteAsync(scenePath, rawContent, cancellationToken).ConfigureAwait(false);
+            return new ToolResult(true, $"Wrote scene '{scenePath}'.");
         }
 
         if (properties is null || properties.Count == 0)
