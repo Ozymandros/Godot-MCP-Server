@@ -68,6 +68,7 @@ public static partial class GodotTools
     /// <param name="fileName">Resource file name or relative path under projectPath.</param>
     /// <param name="type">Godot resource type (e.g., Resource, Environment).</param>
     /// <param name="properties">Dictionary of property key-values for the resource.</param>
+    /// <param name="rawContent">Raw resource file text. If provided, written verbatim instead of serializing type and properties.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_resource"), Description("Create a new Godot resource file (.tres).")]

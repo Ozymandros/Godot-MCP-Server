@@ -125,6 +125,8 @@ public static partial class GodotTools
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Camera node path.</param>
     /// <param name="properties">Property updates to apply.</param>
+    /// <param name="rawContent">Raw scene text. If provided, replaces the entire scene file.</param>
+    /// <param name="fileService">Optional file service used to write rawContent when supplied.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing update status and updated camera snapshot.</returns>
     [McpServerTool(Name = "camera.update"), Description("Update properties of an existing camera node in a scene.")]

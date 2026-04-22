@@ -112,6 +112,7 @@ public static partial class GodotTools
     /// <param name="importFileGenerator">Import file generator.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Texture file name or relative path under projectPath.</param>
+    /// <param name="rawContent">Raw texture file content (optional). If binary, encode as base64; content will be written as provided.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_texture"), Description("Create a dummy texture file and its .import configuration.")]
@@ -157,6 +158,7 @@ public static partial class GodotTools
     /// <param name="importFileGenerator">Import file generator.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Audio file name or relative path under projectPath.</param>
+    /// <param name="rawContent">Raw audio file content (optional). If binary, encode as base64; content will be written as provided.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_audio"), Description("Create a dummy audio file and its .import configuration.")]

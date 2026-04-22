@@ -55,6 +55,8 @@ public static partial class GodotTools
     /// <param name="fileName">Resource file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="type">Godot resource type.</param>
     /// <param name="properties">Resource properties.</param>
+    /// <param name="rawContent">Raw resource file text. If provided, written verbatim instead of serializing type and properties.</param>
+    /// <param name="fileService">Optional file service used to write rawContent when supplied.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status.</returns>
     [McpServerTool(Name = "resource.write"), Description("Write a Godot resource file from type and properties.")]

@@ -89,6 +89,8 @@ public static partial class GodotTools
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodePath">Light node path to update.</param>
     /// <param name="properties">Property updates with primitive JSON values.</param>
+    /// <param name="rawContent">Raw scene text. If provided, replaces the entire scene file.</param>
+    /// <param name="fileService">Optional file service used to write rawContent when supplied.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional light payload.</returns>
     [McpServerTool(Name = "light.update"), Description("Update selected properties on an existing light node.")]

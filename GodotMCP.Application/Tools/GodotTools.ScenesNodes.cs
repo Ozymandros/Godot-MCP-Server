@@ -18,6 +18,7 @@ public static partial class GodotTools
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="rootNodeName">Root node name.</param>
     /// <param name="rootNodeType">Root node type.</param>
+    /// <param name="rawContent">Raw scene text. If provided, written verbatim instead of generated skeleton.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_scene"), Description("Create a new Godot scene (.tscn) with a single root node.")]

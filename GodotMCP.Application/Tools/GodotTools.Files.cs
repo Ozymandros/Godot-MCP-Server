@@ -9,6 +9,15 @@ namespace GodotMCP.Application.Tools;
 
 public static partial class GodotTools
 {
+    /// <summary>
+    /// Get file info including content and basic metadata.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">File name or relative path under projectPath.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result containing path, relative path, size, last modified UTC, and file content.</returns>
     [McpServerTool(Name = "get_file_info"), Description("Get file info including content and basic metadata.")]
     public static async Task<ToolResult> GetFileInfoAsync(
         IGodotFileService fileService,

@@ -31,6 +31,7 @@ public static partial class GodotTools
     /// <param name="language">Script language token.</param>
     /// <param name="baseType">Base Godot type to extend.</param>
     /// <param name="className">Script class name.</param>
+    /// <param name="rawContent">Raw script content. If provided, written verbatim instead of generated boilerplate.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
     [McpServerTool(Name = "create_script"), Description("Create a new GDScript or C# script file with basic boilerplate.")]
@@ -89,6 +90,16 @@ public partial class {{className}} : {{baseType}}
         return new ToolResult(true, $"Script created at {path}.");
     }
 
+    /// <summary>
+    /// Write arbitrary text content to a project file.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="fileName">File name or relative path under projectPath.</param>
+    /// <param name="content">Raw file content.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result indicating success or failure.</returns>
     [McpServerTool(Name = "write_file"), Description("Write arbitrary text content to a project file.")]
     public static async Task<ToolResult> WriteFileAsync(
         IGodotFileService fileService,
