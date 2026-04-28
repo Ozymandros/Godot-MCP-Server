@@ -1,3 +1,10 @@
+# [1.7.2] - 2026-04-28
+
+### Changed
+- Scene and scene-graph tool documentation now specifies the enforced scene-path contract `projectPath + /scenes/ + fileName`.
+- Documented strict `.tscn` extension validation for scene file names.
+- Documented bootstrap behavior for missing scenes: tools auto-create a minimal valid `.tscn` using `root_type` (default `Node`) before node/property operations.
+
 # [1.6.5] - 2026-04-21
 
 ### Added

@@ -138,6 +138,10 @@ Scene Graph Tools
 
 The server includes namespaced scene graph commands that operate on `.tscn` files without launching the Godot runtime:
 
+- Scene path contract: tools resolve scene files as `projectPath + /scenes/ + fileName`.
+- `fileName` must end with `.tscn` (invalid extensions fail with actionable errors).
+- Bootstrap behavior: if the target scene does not exist, the server creates a minimal valid scene using `root_type` (default `Node`) before applying node/property operations.
+
 - `scene.list_nodes`: returns the full node hierarchy for a scene with `name`, `type`, `nodePath`, `parent`, `children`, `script`, and basic `properties`.
 - `scene.add_node`: creates a node under the provided parent path and saves the scene.
 - `scene.remove_node`: removes a node subtree and saves the scene.

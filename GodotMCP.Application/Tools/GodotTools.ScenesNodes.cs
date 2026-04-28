@@ -40,11 +40,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = ResolveSceneFilePath(pathResolver, projectPath, fileName);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message, "Use projectPath plus a relative fileName such as scenes/Main.tscn.");
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (!string.IsNullOrWhiteSpace(rawContent))
@@ -75,6 +75,7 @@ public static partial class GodotTools
     /// <param name="parentPath">Parent node path.</param>
     /// <param name="nodeName">New node name.</param>
     /// <param name="nodeType">New node type.</param>
+    /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_node"), Description("Append a new child node to a specific parent path in a Godot scene.")]
@@ -87,6 +88,7 @@ public static partial class GodotTools
         [Description("The hierarchy path of the parent node (e.g., '.', 'Player')."), Required] string parentPath,
         [Description("Name for the new node."), Required] string nodeName,
         [Description("Godot type for the new node."), Required] string nodeType,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(nodeType) || IsBlank(parentPath))
@@ -96,11 +98,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -126,6 +128,7 @@ public static partial class GodotTools
     /// <param name="nodeName">Target node name.</param>
     /// <param name="propertyKey">Property key to update.</param>
     /// <param name="propertyValue">Serialized property value.</param>
+    /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "set_node_property"), Description("Modify or add a property value on a specific node in a scene.")]
@@ -138,6 +141,7 @@ public static partial class GodotTools
         [Description("Name of the node to modify."), Required] string nodeName,
         [Description("Property key (e.g., 'position', 'visible')."), Required] string propertyKey,
         [Description("Raw text value for the property (e.g., 'Vector2(0, 0)')."), Required] string propertyValue,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName) || IsBlank(propertyKey))
@@ -147,11 +151,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
@@ -175,6 +179,7 @@ public static partial class GodotTools
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodeName">Node name to remove.</param>
+    /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing removal status.</returns>
     [McpServerTool(Name = "remove_node"), Description("Remove a node and its recursive children from a Godot scene.")]
@@ -185,6 +190,7 @@ public static partial class GodotTools
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Name of the node to remove."), Required] string nodeName,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName))
@@ -194,11 +200,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
@@ -218,6 +224,7 @@ public static partial class GodotTools
     /// <param name="parentPath">Parent path in the target scene.</param>
     /// <param name="packedSceneFileName">Packed scene file name or relative path under <c>projectPath</c>.</param>
     /// <param name="instanceName">Name for the instance node.</param>
+    /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing instantiation status.</returns>
     [McpServerTool(Name = "instantiate_packed_scene"), Description("Instantiate an existing .tscn file as a node inside another scene.")]
@@ -230,6 +237,7 @@ public static partial class GodotTools
         [Description("Parent path within the target scene."), Required] string parentPath,
         [Description("Packed scene file name or relative path under projectPath."), Required] string packedSceneFileName,
         [Description("Name for the new instance node."), Required] string instanceName,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(parentPath) || IsBlank(instanceName))
@@ -240,12 +248,12 @@ public static partial class GodotTools
         string packedScenePath;
         try
         {
-            targetScenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
-            packedScenePath = ResolveProjectFilePath(pathResolver, projectPath, packedSceneFileName);
+            targetScenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+            packedScenePath = ResolveSceneFilePath(pathResolver, projectPath, packedSceneFileName);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(targetScenePath, cancellationToken).ConfigureAwait(false));
@@ -272,6 +280,7 @@ public static partial class GodotTools
     /// <param name="fileName">Source scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="nodeName">Branch root node name in the source scene.</param>
     /// <param name="destinationFileName">Destination scene file name or relative path under <paramref name="projectPath"/>.</param>
+    /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing export status.</returns>
     [McpServerTool(Name = "save_branch_as_scene"), Description("Export a subtree branch from one scene into a new independent .tscn file.")]
@@ -283,6 +292,7 @@ public static partial class GodotTools
         [Description("Source scene file name or relative path under projectPath."), Required] string fileName,
         [Description("Root node name of the branch to export."), Required] string nodeName,
         [Description("Destination scene file name or relative path under projectPath."), Required] string destinationFileName,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodeName))
@@ -293,12 +303,12 @@ public static partial class GodotTools
         string destinationScenePath;
         try
         {
-            sourceScenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
-            destinationScenePath = ResolveProjectFilePath(pathResolver, projectPath, destinationFileName);
+            sourceScenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+            destinationScenePath = ResolveSceneFilePath(pathResolver, projectPath, destinationFileName);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var sourceScene = sceneSerializer.Deserialize(await fileService.ReadAsync(sourceScenePath, cancellationToken).ConfigureAwait(false));

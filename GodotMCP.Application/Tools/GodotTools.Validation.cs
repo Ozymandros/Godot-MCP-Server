@@ -128,6 +128,84 @@ public static partial class GodotTools
     }
 
     /// <summary>
+    /// Resolves a scene path using the scene contract: <c>projectPath + /scenes/ + fileName</c>.
+    /// </summary>
+    /// <param name="pathResolver">Path resolver scoped to the current project.</param>
+    /// <param name="projectPath">Project base path (absolute or project-relative).</param>
+    /// <param name="fileName">Scene file name relative to the scenes directory.</param>
+    /// <returns>Absolute scene file path inside the project.</returns>
+    private static string ResolveSceneFilePath(IPathResolver pathResolver, string projectPath, string fileName)
+    {
+        if (IsBlank(fileName))
+        {
+            throw new InvalidOperationException("fileName is required.");
+        }
+
+        var trimmedFileName = fileName.Trim();
+        if (!trimmedFileName.EndsWith(".tscn", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("fileName must end with '.tscn'.");
+        }
+
+        var baseProjectDirectory = NormalizeProjectPath(pathResolver, projectPath);
+        var scenesDirectory = ProjectPathSyntax.CombineAvoidingDuplicateSegments(baseProjectDirectory, "scenes");
+        return ResolveProjectFilePath(pathResolver, scenesDirectory, trimmedFileName);
+    }
+
+    /// <summary>
+    /// Ensures a scene exists and is minimally valid before scene/node operations execute.
+    /// </summary>
+    /// <param name="fileService">Project file service.</param>
+    /// <param name="pathResolver">Path resolver scoped to the current project.</param>
+    /// <param name="projectPath">Project base path (absolute or project-relative).</param>
+    /// <param name="fileName">Scene file name relative to the scenes directory.</param>
+    /// <param name="rootType">Root node type used when bootstrap creation is needed.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Absolute scene file path.</returns>
+    private static async Task<string> EnsureSceneReadyAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        string projectPath,
+        string fileName,
+        string rootType,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(rootType))
+        {
+            throw new InvalidOperationException("rootType is required.");
+        }
+
+        var scenePath = ResolveSceneFilePath(pathResolver, projectPath, fileName);
+        if (fileService.Exists(scenePath))
+        {
+            return scenePath;
+        }
+
+        var sceneDirectory = Path.GetDirectoryName(scenePath);
+        if (!string.IsNullOrWhiteSpace(sceneDirectory))
+        {
+            fileService.EnsureDirectory(sceneDirectory);
+        }
+
+        var bootstrapContent = $"""
+[gd_scene format=3]
+
+[node name="Root" type="{rootType.Trim()}"]
+""";
+        await fileService.WriteAsync(scenePath, $"{bootstrapContent}\n", cancellationToken).ConfigureAwait(false);
+
+        var sceneExists = fileService.Exists(scenePath);
+        var sceneCandidateCount = sceneExists ? 1 : 0;
+        if (!sceneExists || sceneCandidateCount != 1)
+        {
+            throw new InvalidOperationException(
+                $"Scene bootstrap failed for '{scenePath}' (sceneExists:{sceneExists.ToString().ToLowerInvariant()}, sceneCandidateCount:{sceneCandidateCount}).");
+        }
+
+        return scenePath;
+    }
+
+    /// <summary>
     /// Resolves multiple file paths under <paramref name="projectPath"/>.
     /// </summary>
     /// <param name="pathResolver">Path resolver scoped to the current project.</param>

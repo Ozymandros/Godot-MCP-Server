@@ -19,7 +19,7 @@ public class SceneGraphToolsTests
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
 
-            var result = await GodotTools.SceneListNodesAsync(service, resolver, root, "scenes/Main.tscn");
+            var result = await GodotTools.SceneListNodesAsync(service, files, resolver, root, "scenes/Main.tscn");
 
             result.Success.Should().BeTrue();
             var nodes = (List<SceneGraphNodeDto>)result.Data!;
@@ -47,6 +47,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneMoveNodeAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -77,6 +78,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -108,6 +110,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneRemoveNodeAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -138,6 +141,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneRenameNodeAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -168,6 +172,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -211,6 +216,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -243,6 +249,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -281,6 +288,7 @@ public class SceneGraphToolsTests
 
             var result = await GodotTools.SceneSetNodePropertiesAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -289,6 +297,71 @@ public class SceneGraphToolsTests
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain("primitive JSON value");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that scene mutations bootstrap a missing scene file under projectPath/scenes.
+    /// </summary>
+    [Fact]
+    public async Task SceneAddNode_CommandShouldBootstrapMissingSceneUnderScenesDirectory()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+
+            var result = await GodotTools.SceneAddNodeAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "BootstrapMain.tscn",
+                ".",
+                "Node2D",
+                "Player",
+                "Node2D");
+
+            result.Success.Should().BeTrue();
+            var scenePath = Path.Combine(root, "scenes", "BootstrapMain.tscn");
+            File.Exists(scenePath).Should().BeTrue();
+            var sceneText = await files.ReadAsync(scenePath);
+            sceneText.Should().Contain("[node name=\"Root\" type=\"Node2D\"]");
+            sceneText.Should().Contain("[node name=\"Player\" type=\"Node2D\" parent=\".\"]");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that scene tools reject file names without .tscn extension.
+    /// </summary>
+    [Fact]
+    public async Task SceneAddNode_CommandShouldRejectNonTscnFileName()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+
+            var result = await GodotTools.SceneAddNodeAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "InvalidSceneName",
+                ".",
+                "Node2D",
+                "Player");
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain(".tscn");
         }
         finally
         {

@@ -23,24 +23,32 @@ All tools return:
 
 ## Scenes and nodes
 
-- `create_scene(scenePath, rootNodeName, rootNodeType)`
-- `add_node(scenePath, parentPath, nodeName, nodeType)`
-- `set_node_property(scenePath, nodeName, propertyKey, propertyValue)`
-- `remove_node(scenePath, nodeName)`
-- `instantiate_packed_scene(targetScenePath, parentPath, packedScenePath, instanceName)`
-- `save_branch_as_scene(sourceScenePath, nodeName, destinationScenePath)`
+- Common scene path contract for scene/node tools:
+  - Effective target path is resolved as `projectPath + /scenes/ + fileName`.
+  - `fileName` must end with `.tscn`.
+  - Missing scene files are auto-bootstrapped with a minimal valid `.tscn` using `root_type` (default: `Node`).
+- `create_scene(projectPath, fileName, rootNodeName, rootNodeType, rawContent?)`
+- `add_node(projectPath, fileName, parentPath, nodeName, nodeType, root_type?)`
+- `set_node_property(projectPath, fileName, nodeName, propertyKey, propertyValue, root_type?)`
+- `remove_node(projectPath, fileName, nodeName, root_type?)`
+- `instantiate_packed_scene(projectPath, fileName, parentPath, packedSceneFileName, instanceName, root_type?)`
+- `save_branch_as_scene(projectPath, fileName, nodeName, destinationFileName, root_type?)`
 
 ## Scene graph
 
-- `scene.list_nodes(scenePath)`
+- Common scene path contract for `scene.*` tools:
+  - Effective target path is resolved as `projectPath + /scenes/ + fileName`.
+  - `fileName` must end with `.tscn`.
+  - Missing scene files are auto-bootstrapped with a minimal valid `.tscn` using `root_type` (default: `Node`).
+- `scene.list_nodes(projectPath, fileName, root_type?)`
   - Returns full tree entries with: `name`, `type`, `nodePath`, `parent`, `children`, `script`, `properties`.
-- `scene.add_node(scenePath, parentNodePath, nodeType, nodeName)`
-- `scene.remove_node(scenePath, nodePath)`
-- `scene.move_node(scenePath, nodePath, newParentPath)`
-- `scene.rename_node(scenePath, nodePath, newName)`
-- `scene.get_node_properties(scenePath, nodePath)`
+- `scene.add_node(projectPath, fileName, parentNodePath, nodeType, nodeName, root_type?)`
+- `scene.remove_node(projectPath, fileName, nodePath, root_type?)`
+- `scene.move_node(projectPath, fileName, nodePath, newParentPath, root_type?)`
+- `scene.rename_node(projectPath, fileName, nodePath, newName, root_type?)`
+- `scene.get_node_properties(projectPath, fileName, nodePath, root_type?)`
   - Returns a dictionary of node properties.
-- `scene.set_node_properties(scenePath, nodePath, properties)`
+- `scene.set_node_properties(projectPath, fileName, nodePath, properties, root_type?)`
   - Updates only provided keys.
   - Value constraints: primitive JSON values only (`string`, `number`, `boolean`).
 
@@ -114,7 +122,9 @@ Example input:
 
 ```json
 {
-  "scenePath": "res://scenes/Main.tscn",
+  "projectPath": "C:/Projects/MyGame",
+  "fileName": "Main.tscn",
+  "root_type": "Node2D",
   "rootNodeName": "Main",
   "rootNodeType": "Node2D"
 }

@@ -36,6 +36,8 @@ Use the navigation bar to browse conceptual articles and the .NET API reference.
 
 Most MCP tooling accepts an absolute `projectPath` (in addition to paths relative to the configured server project root). If a requested project directory does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without requiring manual editor initialization.
 
+For scene and scene-graph tooling specifically, the effective scene path is normalized to `projectPath + /scenes/ + fileName`. These tools require `fileName` to end with `.tscn` and will auto-bootstrap a minimal valid scene when the file is missing, using `root_type` (default `Node`).
+
 The new `ResourceListAsync` tool enables automation and scripting scenarios that require discovery of all Godot resource files in a project or subdirectory, with optional filtering by resource type.
 
 ## Build locally
