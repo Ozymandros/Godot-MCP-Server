@@ -47,4 +47,8 @@ public interface IPhysicsService
     Task<PhysicsShapeMutationResult> RemoveCollisionPolygonAsync(PhysicsRemoveCollisionPolygonRequest request, CancellationToken cancellationToken = default);
     Task<PhysicsShapeMutationResult> AssignShapeResourceAsync(PhysicsAssignShapeResourceRequest request, CancellationToken cancellationToken = default);
     Task<PhysicsShapeMutationResult> SetShapeFlagsAsync(PhysicsSetShapeFlagsRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsMutationResult> SetAreaMonitoringAsync(PhysicsAreaSetMonitoringRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsMutationResult> SetAreaPriorityAsync(PhysicsAreaSetPriorityRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsMutationResult> SetAreaSpaceOverrideAsync(PhysicsAreaSetSpaceOverrideRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsMutationResult> SetAreaCollisionFiltersAsync(PhysicsAreaSetCollisionFiltersRequest request, CancellationToken cancellationToken = default);
 }

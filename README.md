@@ -192,6 +192,10 @@ The server includes namespaced physics commands for headless body and collision 
 - `physics.add_collision_polygon` / `physics.update_collision_polygon` / `physics.remove_collision_polygon`: manage `CollisionPolygon2D/3D` nodes and polygon payloads.
 - `physics.assign_shape_resource`: assigns explicit shape resource expressions (for example sub/ext resource references) to collision shape nodes.
 - `physics.set_shape_flags`: sets `disabled`, `one_way_collision`, `one_way_collision_margin`, and `platform_on_leave` style flags when supported by the target node type.
+- `physics.area_set_monitoring`: sets `monitoring`/`monitorable` on `Area2D`/`Area3D`.
+- `physics.area_set_priority`: sets `priority` on `Area2D`/`Area3D`.
+- `physics.area_set_space_override`: sets `space_override` mode (`disabled`, `combine`, `combine_replace`, `replace`, `replace_combine`) and optional gravity/damping overrides.
+- `physics.area_set_collision_filters`: sets `collision_layer`/`collision_mask` on `Area2D`/`Area3D` (both must be > 0).
 
 Release artifacts
 

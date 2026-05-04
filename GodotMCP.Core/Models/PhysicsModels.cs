@@ -140,6 +140,44 @@ public sealed record PhysicsSetShapeFlagsRequest(
     bool? PlatformOnLeave);
 
 /// <summary>
+/// Updates monitoring flags on an Area2D/Area3D node.
+/// </summary>
+public sealed record PhysicsAreaSetMonitoringRequest(
+    string ScenePath,
+    string AreaNodePath,
+    bool Monitoring,
+    bool Monitorable);
+
+/// <summary>
+/// Updates priority on an Area2D/Area3D node.
+/// </summary>
+public sealed record PhysicsAreaSetPriorityRequest(
+    string ScenePath,
+    string AreaNodePath,
+    double Priority);
+
+/// <summary>
+/// Updates space override mode and optional gravity/damping overrides on an Area2D/Area3D node.
+/// </summary>
+public sealed record PhysicsAreaSetSpaceOverrideRequest(
+    string ScenePath,
+    string AreaNodePath,
+    string SpaceOverrideMode,
+    double? Gravity = null,
+    double? GravityPointUnitDistance = null,
+    double? LinearDamp = null,
+    double? AngularDamp = null);
+
+/// <summary>
+/// Updates collision filter masks on an Area2D/Area3D node.
+/// </summary>
+public sealed record PhysicsAreaSetCollisionFiltersRequest(
+    string ScenePath,
+    string AreaNodePath,
+    int CollisionLayer,
+    int CollisionMask);
+
+/// <summary>
 /// Represents a lint-style physics validation issue.
 /// </summary>
 /// <param name="Path">Primary path associated with the issue.</param>

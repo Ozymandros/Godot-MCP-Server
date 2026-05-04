@@ -383,6 +383,128 @@ public sealed class PhysicsService(
         return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, request.ShapeNodePath);
     }
 
+    /// <inheritdoc />
+    public async Task<PhysicsMutationResult> SetAreaMonitoringAsync(PhysicsAreaSetMonitoringRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        if (!IsAreaNode(node))
+        {
+            return new PhysicsMutationResult(false, $"Area node '{request.AreaNodePath}' was not found.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["monitoring"] = request.Monitoring,
+            ["monitorable"] = request.Monitorable
+        };
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.AreaNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        if (!set.Success)
+        {
+            return new PhysicsMutationResult(false, set.Message);
+        }
+
+        var area = await FindBodyAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        return new PhysicsMutationResult(true, "Area monitoring updated.", area);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsMutationResult> SetAreaPriorityAsync(PhysicsAreaSetPriorityRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        if (!IsAreaNode(node))
+        {
+            return new PhysicsMutationResult(false, $"Area node '{request.AreaNodePath}' was not found.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["priority"] = request.Priority
+        };
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.AreaNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        if (!set.Success)
+        {
+            return new PhysicsMutationResult(false, set.Message);
+        }
+
+        var area = await FindBodyAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        return new PhysicsMutationResult(true, "Area priority updated.", area);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsMutationResult> SetAreaSpaceOverrideAsync(PhysicsAreaSetSpaceOverrideRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        if (!IsAreaNode(node))
+        {
+            return new PhysicsMutationResult(false, $"Area node '{request.AreaNodePath}' was not found.");
+        }
+
+        if (!TryMapSpaceOverrideMode(request.SpaceOverrideMode, out var mode, out var error))
+        {
+            return new PhysicsMutationResult(false, error!);
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["space_override"] = mode
+        };
+        if (request.Gravity.HasValue) props["gravity"] = request.Gravity.Value;
+        if (request.GravityPointUnitDistance.HasValue) props["gravity_point_unit_distance"] = request.GravityPointUnitDistance.Value;
+        if (request.LinearDamp.HasValue) props["linear_damp"] = request.LinearDamp.Value;
+        if (request.AngularDamp.HasValue) props["angular_damp"] = request.AngularDamp.Value;
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.AreaNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        if (!set.Success)
+        {
+            return new PhysicsMutationResult(false, set.Message);
+        }
+
+        var area = await FindBodyAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        return new PhysicsMutationResult(true, "Area space override updated.", area);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsMutationResult> SetAreaCollisionFiltersAsync(PhysicsAreaSetCollisionFiltersRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        if (!IsAreaNode(node))
+        {
+            return new PhysicsMutationResult(false, $"Area node '{request.AreaNodePath}' was not found.");
+        }
+
+        if (request.CollisionLayer <= 0)
+        {
+            return new PhysicsMutationResult(false, "collision_layer must be greater than 0.");
+        }
+
+        if (request.CollisionMask <= 0)
+        {
+            return new PhysicsMutationResult(false, "collision_mask must be greater than 0.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["collision_layer"] = request.CollisionLayer,
+            ["collision_mask"] = request.CollisionMask
+        };
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.AreaNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        if (!set.Success)
+        {
+            return new PhysicsMutationResult(false, set.Message);
+        }
+
+        var area = await FindBodyAsync(request.ScenePath, request.AreaNodePath, cancellationToken).ConfigureAwait(false);
+        return new PhysicsMutationResult(true, "Area collision filters updated.", area);
+    }
+
     /// <summary>
     /// Determines whether a node type is supported for physics body creation.
     /// </summary>
@@ -391,6 +513,9 @@ public sealed class PhysicsService(
     private static bool IsSupportedBodyType(string type)
         => type is "StaticBody3D" or "RigidBody3D" or "CharacterBody3D" or "Area3D"
             or "StaticBody2D" or "RigidBody2D" or "CharacterBody2D" or "Area2D";
+
+    private static bool IsAreaNode(SceneGraphNodeInfo? node)
+        => node?.Type is "Area2D" or "Area3D";
 
     /// <summary>
     /// Determines whether a scene graph node represents a physics body.
@@ -698,5 +823,38 @@ public sealed class PhysicsService(
             ? $"Unsupported 2D shape kind '{kind}'. Supported: rectangle, circle, capsule."
             : $"Unsupported 3D shape kind '{kind}'. Supported: box, sphere, capsule, cylinder, convex, concave.";
         return string.Empty;
+    }
+
+    private static bool TryMapSpaceOverrideMode(string modeRaw, out int mode, out string? error)
+    {
+        error = null;
+        mode = 0;
+        var modeText = modeRaw.Trim().ToLowerInvariant();
+        switch (modeText)
+        {
+            case "disabled":
+            case "0":
+                mode = 0;
+                return true;
+            case "combine":
+            case "1":
+                mode = 1;
+                return true;
+            case "combine_replace":
+            case "2":
+                mode = 2;
+                return true;
+            case "replace":
+            case "3":
+                mode = 3;
+                return true;
+            case "replace_combine":
+            case "4":
+                mode = 4;
+                return true;
+            default:
+                error = "space_override_mode must be one of: disabled, combine, combine_replace, replace, replace_combine (or 0-4).";
+                return false;
+        }
     }
 }

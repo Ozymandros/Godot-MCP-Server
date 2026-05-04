@@ -193,4 +193,69 @@ public class PhysicsToolsTests
             FixtureFactory.Cleanup(root);
         }
     }
+
+    [Fact]
+    public async Task PhysicsAreaTools_CommandsShouldUpdateAreaProperties()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "Area3D", "Trigger", addCollisionShape: false);
+
+            var monitoring = await GodotTools.PhysicsAreaSetMonitoringAsync(service, files, resolver, root, "scenes/Main.tscn", "Trigger", monitoring: true, monitorable: false);
+            monitoring.Success.Should().BeTrue();
+
+            var priority = await GodotTools.PhysicsAreaSetPriorityAsync(service, files, resolver, root, "scenes/Main.tscn", "Trigger", priority: 3.5);
+            priority.Success.Should().BeTrue();
+
+            var overrideResult = await GodotTools.PhysicsAreaSetSpaceOverrideAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "scenes/Main.tscn",
+                "Trigger",
+                "combine_replace",
+                gravity: 9.8,
+                linear_damp: 0.2);
+            overrideResult.Success.Should().BeTrue();
+
+            var filters = await GodotTools.PhysicsAreaSetCollisionFiltersAsync(service, files, resolver, root, "scenes/Main.tscn", "Trigger", collision_layer: 2, collision_mask: 4);
+            filters.Success.Should().BeTrue();
+
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
+            sceneText.Should().Contain("monitoring = true");
+            sceneText.Should().Contain("monitorable = false");
+            sceneText.Should().Contain("priority = 3.5");
+            sceneText.Should().Contain("space_override = 2");
+            sceneText.Should().Contain("collision_layer = 2");
+            sceneText.Should().Contain("collision_mask = 4");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    [Fact]
+    public async Task PhysicsAreaTools_ShouldRejectNonAreaNodes()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Crate", addCollisionShape: false);
+
+            var result = await GodotTools.PhysicsAreaSetMonitoringAsync(service, files, resolver, root, "scenes/Main.tscn", "Crate", monitoring: true);
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("Area node");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
 }

@@ -379,6 +379,110 @@ public static partial class GodotTools
             cancellationToken).ConfigureAwait(false);
         return ToPhysicsShapeToolResult(result);
     }
+
+    [McpServerTool(Name = "physics.area_set_monitoring"), Description("Set monitoring and monitorable flags on an Area2D/Area3D node.")]
+    public static async Task<ToolResult> PhysicsAreaSetMonitoringAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Area2D/Area3D node path to update."), Required] string areaNodePath,
+        [Description("Whether the area detects overlaps/signals.")] bool monitoring,
+        [Description("Whether this area can be detected by other areas/bodies.")] bool monitorable = true,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService
+            .SetAreaMonitoringAsync(new PhysicsAreaSetMonitoringRequest(scenePath, areaNodePath, monitoring, monitorable), cancellationToken)
+            .ConfigureAwait(false);
+        return ToPhysicsToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.area_set_priority"), Description("Set priority on an Area2D/Area3D node.")]
+    public static async Task<ToolResult> PhysicsAreaSetPriorityAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Area2D/Area3D node path to update."), Required] string areaNodePath,
+        [Description("Priority value.")] double priority,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService
+            .SetAreaPriorityAsync(new PhysicsAreaSetPriorityRequest(scenePath, areaNodePath, priority), cancellationToken)
+            .ConfigureAwait(false);
+        return ToPhysicsToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.area_set_space_override"), Description("Set space override mode and optional gravity/damping on an Area2D/Area3D node.")]
+    public static async Task<ToolResult> PhysicsAreaSetSpaceOverrideAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Area2D/Area3D node path to update."), Required] string areaNodePath,
+        [Description("Override mode: disabled, combine, combine_replace, replace, replace_combine (or 0-4)."), Required] string space_override_mode,
+        [Description("Optional gravity override.")] double? gravity = null,
+        [Description("Optional gravity point unit distance.")] double? gravity_point_unit_distance = null,
+        [Description("Optional linear damp override.")] double? linear_damp = null,
+        [Description("Optional angular damp override.")] double? angular_damp = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService
+            .SetAreaSpaceOverrideAsync(
+                new PhysicsAreaSetSpaceOverrideRequest(scenePath, areaNodePath, space_override_mode, gravity, gravity_point_unit_distance, linear_damp, angular_damp),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return ToPhysicsToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.area_set_collision_filters"), Description("Set collision layer/mask filters on an Area2D/Area3D node.")]
+    public static async Task<ToolResult> PhysicsAreaSetCollisionFiltersAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Area2D/Area3D node path to update."), Required] string areaNodePath,
+        [Description("Collision layer bitmask (must be > 0)."), Required] int collision_layer,
+        [Description("Collision mask bitmask (must be > 0)."), Required] int collision_mask,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService
+            .SetAreaCollisionFiltersAsync(new PhysicsAreaSetCollisionFiltersRequest(scenePath, areaNodePath, collision_layer, collision_mask), cancellationToken)
+            .ConfigureAwait(false);
+        return ToPhysicsToolResult(result);
+    }
     /// <summary>
     /// Maps a domain physics body model into a transport DTO.
     /// </summary>
