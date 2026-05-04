@@ -1,6 +1,15 @@
-## 1.6.5 Release
+## 1.10.1 Release
 
-- **New:** Generic resource listing tool (`ResourceListAsync`) for `.tres` and `.res` files, supporting directory and resource type filters. This enables automation and scripting scenarios that require resource discovery across a project or subdirectory.
+- **New:** Physics tooling - collision shape creation, updates, and removal via `PhysicsAddShapeRequest`, `PhysicsUpdateShapeRequest`, `PhysicsRemoveShapeRequest`. Support for collision polygons with `PhysicsAddCollisionPolygonRequest`, `PhysicsUpdateCollisionPolygonRequest`, `PhysicsRemoveCollisionPolygonRequest`. Shape resource assignment via `PhysicsAssignShapeResourceRequest` and shape flag configuration via `PhysicsSetShapeFlagsRequest`.
+- **New:** Scene connection tools for signal wiring - add, remove, and query node signal connections via `SceneConnectionAddRequest`, `SceneConnectionRemoveRequest`, and `SceneConnectionInfo`.
+- **New:** Input map integration - retrieve and modify input action mappings via the integration inspector.
+- **New:** Resource attachment support - assign textures and other resources to properties via `resource.assign_texture` tool.
+- **New:** Scene graph tools - comprehensive node operations including add, remove, move, rename, instantiate scenes, set properties, and query node information.
+- **New:** Project.godot helpers - `SetProjectConfigValueAsync` and `RemoveProjectConfigKeyAsync` for mutating project configuration.
+- **Enhanced:** Raw content support for scene and resource updates via `GetRawContentAsync` methods.
+- **Enhanced:** Auto-bootstrap behavior - tools now ensure scene files exist before performing operations, creating minimal valid `.tscn` files when missing.
+- **Enhanced:** Validated scene path contract - enforced `projectPath + /scenes/ + fileName` path normalization with strict `.tscn` extension validation.
+- **Changed:** Generic resource listing tool (`ResourceListAsync`) for `.tres` and `.res` files, supporting directory and resource type filters.
 
 # Godot MCP Server
 
