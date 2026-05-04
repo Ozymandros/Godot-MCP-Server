@@ -61,7 +61,8 @@ Notes
 
  - Project paths: Most tools accept an absolute `projectPath` in addition to paths relative to the configured server project root. When a requested project folder does not contain a `project.godot`, the server will automatically create a minimal `project.godot` and the `scenes`, `scripts`, and `addons` directories so tooling can proceed without manual initialization.
  - Scene files: Tools that mutate a `.tscn` together with `projectPath` resolve the scene under `projectPath/scenes/` (same contract as `scene.add_node` and `scene.list_nodes`). Pass `fileName` such as `Main.tscn` or `scenes/Main.tscn` (leading `scenes/` duplicates are merged with the base `scenes` folder). Optional `root_type` is used only when the scene file is bootstrapped because it is missing. Disk-first tools (`create_script`, `create_texture`, `create_audio`, `create_resource`) accept optional link parameters to attach or assign in one step when you pass the full set documented on each tool; otherwise use `attach_script`, `resource.assign_texture`, or `scene.set_node_properties` in a follow-up call.
- - Input and signals: Input-map tooling now includes explicit CRUD (`project.input_list_actions`, `project.input_add_action`, `project.input_update_action`, `project.input_remove_action`, `project.input_add_event`, `project.input_remove_event`) with event types `key`, `mouse_button`, `joypad_button`, and `joypad_motion`. Signal tooling includes `scene.list_connections`, `scene.add_connection`, `scene.update_connection`, and `scene.remove_connection` with strict validation for source/target nodes and best-effort target method checks.
+ - Input and signals: Input-map tooling includes explicit CRUD (`project.input_list_actions`, `project.input_add_action`, `project.input_update_action`, `project.input_remove_action`, `project.input_add_event`, `project.input_remove_event`) with deterministic event identity for `key`, `mouse_button`, `joypad_button`, and `joypad_motion`. Signal tooling includes `scene.list_connections`, `scene.add_connection`, `scene.update_connection`, and `scene.remove_connection` with strict connection-key matching, node existence checks, known-signal validation (best effort), and target-method validation (best effort).
+ - Collision/shape authoring: Physics tooling includes shape/polygon lifecycle commands (`physics.add_shape`, `physics.update_shape`, `physics.remove_shape`, `physics.add_collision_polygon`, `physics.update_collision_polygon`, `physics.remove_collision_polygon`) plus assignment/flags operations (`physics.assign_shape_resource`, `physics.set_shape_flags`) for explicit collision workflows.
  - Resource listing: The new `ResourceListAsync` tool enables automation and scripting scenarios that require discovery of all Godot resource files in a project or subdirectory, with optional filtering by resource type.
 Solution layout
 
@@ -187,6 +188,10 @@ The server includes namespaced physics commands for headless body and collision 
 - `physics.create_body`: creates a body node and can auto-add a `CollisionShape` child.
 - `physics.update_body`: updates selected body properties with type validation.
 - `physics.validate`: reports lint-style physics issues (for example invalid masks or missing collision shapes).
+- `physics.add_shape` / `physics.update_shape` / `physics.remove_shape`: manage `CollisionShape2D/3D` nodes with explicit shape kind/parameter payloads.
+- `physics.add_collision_polygon` / `physics.update_collision_polygon` / `physics.remove_collision_polygon`: manage `CollisionPolygon2D/3D` nodes and polygon payloads.
+- `physics.assign_shape_resource`: assigns explicit shape resource expressions (for example sub/ext resource references) to collision shape nodes.
+- `physics.set_shape_flags`: sets `disabled`, `one_way_collision`, `one_way_collision_margin`, and `platform_on_leave` style flags when supported by the target node type.
 
 Release artifacts
 

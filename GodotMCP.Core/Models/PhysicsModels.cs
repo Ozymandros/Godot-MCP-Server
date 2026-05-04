@@ -57,6 +57,89 @@ public sealed record PhysicsMutationResult(
     PhysicsBodyInfo? Body = null);
 
 /// <summary>
+/// Mutation result for shape/collision operations.
+/// </summary>
+public sealed record PhysicsShapeMutationResult(
+    bool Success,
+    string Message,
+    string? ScenePath = null,
+    string? ShapeNodePath = null);
+
+/// <summary>
+/// Creates a collision shape node under a body/area node.
+/// </summary>
+public sealed record PhysicsAddShapeRequest(
+    string ScenePath,
+    string BodyNodePath,
+    string ShapeNodeType,
+    string ShapeNodeName,
+    string ShapeKind,
+    IReadOnlyDictionary<string, object?> ShapeParameters,
+    IReadOnlyDictionary<string, object?> NodeProperties);
+
+/// <summary>
+/// Updates shape-related properties on a collision shape node.
+/// </summary>
+public sealed record PhysicsUpdateShapeRequest(
+    string ScenePath,
+    string ShapeNodePath,
+    IReadOnlyDictionary<string, object?> ShapeParameters,
+    IReadOnlyDictionary<string, object?> NodeProperties);
+
+/// <summary>
+/// Removes a collision shape node.
+/// </summary>
+public sealed record PhysicsRemoveShapeRequest(
+    string ScenePath,
+    string ShapeNodePath);
+
+/// <summary>
+/// Creates a collision polygon node.
+/// </summary>
+public sealed record PhysicsAddCollisionPolygonRequest(
+    string ScenePath,
+    string BodyNodePath,
+    string PolygonNodeType,
+    string PolygonNodeName,
+    string PolygonData,
+    IReadOnlyDictionary<string, object?> NodeProperties);
+
+/// <summary>
+/// Updates a collision polygon node.
+/// </summary>
+public sealed record PhysicsUpdateCollisionPolygonRequest(
+    string ScenePath,
+    string PolygonNodePath,
+    string? PolygonData,
+    IReadOnlyDictionary<string, object?> NodeProperties);
+
+/// <summary>
+/// Removes a collision polygon node.
+/// </summary>
+public sealed record PhysicsRemoveCollisionPolygonRequest(
+    string ScenePath,
+    string PolygonNodePath);
+
+/// <summary>
+/// Assigns a shape resource expression to a collision shape node.
+/// </summary>
+public sealed record PhysicsAssignShapeResourceRequest(
+    string ScenePath,
+    string ShapeNodePath,
+    string ShapeExpression);
+
+/// <summary>
+/// Sets shape/collision flags on a shape or polygon node.
+/// </summary>
+public sealed record PhysicsSetShapeFlagsRequest(
+    string ScenePath,
+    string ShapeNodePath,
+    bool? Disabled,
+    bool? OneWayCollision,
+    double? OneWayCollisionMargin,
+    bool? PlatformOnLeave);
+
+/// <summary>
 /// Represents a lint-style physics validation issue.
 /// </summary>
 /// <param name="Path">Primary path associated with the issue.</param>

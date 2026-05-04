@@ -111,4 +111,86 @@ public class PhysicsToolsTests
             FixtureFactory.Cleanup(root);
         }
     }
+
+    [Fact]
+    public async Task PhysicsShapeLifecycle_CommandsShouldManageShapeNodes()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Crate", addCollisionShape: false);
+
+            using var shapeParamsJson = JsonDocument.Parse("""{"width":1.5,"height":2.0,"depth":3.0}""");
+            var shapeParams = shapeParamsJson.RootElement.EnumerateObject().ToDictionary(x => x.Name, x => x.Value.Clone(), StringComparer.Ordinal);
+            var add = await GodotTools.PhysicsAddShapeAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "scenes/Main.tscn",
+                "Crate",
+                "CollisionShape3D",
+                "Hitbox",
+                "box",
+                shapeParams);
+            add.Success.Should().BeTrue();
+
+            var flags = await GodotTools.PhysicsSetShapeFlagsAsync(service, files, resolver, root, "scenes/Main.tscn", "Crate/Hitbox", disabled: true);
+            flags.Success.Should().BeTrue();
+
+            var remove = await GodotTools.PhysicsRemoveShapeAsync(service, files, resolver, root, "scenes/Main.tscn", "Crate/Hitbox");
+            remove.Success.Should().BeTrue();
+
+            var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
+            sceneText.Should().Contain("[node name=\"Crate\" type=\"RigidBody3D\" parent=\".\"]");
+            sceneText.Should().NotContain("[node name=\"Hitbox\" type=\"CollisionShape3D\" parent=\"Crate\"]");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    [Fact]
+    public async Task PhysicsCollisionPolygonLifecycle_CommandsShouldManagePolygonNodes()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "StaticBody2D", "Floor", addCollisionShape: false);
+
+            var add = await GodotTools.PhysicsAddCollisionPolygonAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "scenes/Main.tscn",
+                "Floor",
+                "CollisionPolygon2D",
+                "FloorPoly",
+                "PackedVector2Array(0,0, 64,0, 64,16, 0,16)");
+            add.Success.Should().BeTrue();
+
+            var update = await GodotTools.PhysicsUpdateCollisionPolygonAsync(
+                service,
+                files,
+                resolver,
+                root,
+                "scenes/Main.tscn",
+                "Floor/FloorPoly",
+                polygonData: "PackedVector2Array(0,0, 128,0, 128,16, 0,16)");
+            update.Success.Should().BeTrue();
+
+            var remove = await GodotTools.PhysicsRemoveCollisionPolygonAsync(service, files, resolver, root, "scenes/Main.tscn", "Floor/FloorPoly");
+            remove.Success.Should().BeTrue();
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
 }

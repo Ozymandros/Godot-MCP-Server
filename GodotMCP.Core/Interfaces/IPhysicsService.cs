@@ -38,4 +38,13 @@ public interface IPhysicsService
     /// <param name="cancellationToken">Cancellation token for cooperative cancellation.</param>
     /// <returns>Validation issues.</returns>
     Task<IReadOnlyList<PhysicsValidationIssue>> ValidateAsync(string rootPath, CancellationToken cancellationToken = default);
+
+    Task<PhysicsShapeMutationResult> AddShapeAsync(PhysicsAddShapeRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> UpdateShapeAsync(PhysicsUpdateShapeRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> RemoveShapeAsync(PhysicsRemoveShapeRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> AddCollisionPolygonAsync(PhysicsAddCollisionPolygonRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> UpdateCollisionPolygonAsync(PhysicsUpdateCollisionPolygonRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> RemoveCollisionPolygonAsync(PhysicsRemoveCollisionPolygonRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> AssignShapeResourceAsync(PhysicsAssignShapeResourceRequest request, CancellationToken cancellationToken = default);
+    Task<PhysicsShapeMutationResult> SetShapeFlagsAsync(PhysicsSetShapeFlagsRequest request, CancellationToken cancellationToken = default);
 }

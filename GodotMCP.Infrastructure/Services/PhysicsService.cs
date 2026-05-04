@@ -158,6 +158,231 @@ public sealed class PhysicsService(
         return issues;
     }
 
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> AddShapeAsync(PhysicsAddShapeRequest request, CancellationToken cancellationToken = default)
+    {
+        if (!IsCollisionShapeType(request.ShapeNodeType))
+        {
+            return new PhysicsShapeMutationResult(false, "shapeNodeType must be CollisionShape2D or CollisionShape3D.");
+        }
+
+        var body = await FindNodeAsync(request.ScenePath, request.BodyNodePath, cancellationToken).ConfigureAwait(false);
+        if (body is null)
+        {
+            return new PhysicsShapeMutationResult(false, $"Body/area '{request.BodyNodePath}' was not found.");
+        }
+
+        if (!IsDimensionCompatible(body.Type, request.ShapeNodeType))
+        {
+            return new PhysicsShapeMutationResult(false, $"Node '{request.BodyNodePath}' ({body.Type}) is incompatible with '{request.ShapeNodeType}'.");
+        }
+
+        var add = await sceneGraphService
+            .AddNodeAsync(new SceneGraphAddNodeRequest(request.ScenePath, request.BodyNodePath, request.ShapeNodeType, request.ShapeNodeName), cancellationToken)
+            .ConfigureAwait(false);
+        if (!add.Success)
+        {
+            return new PhysicsShapeMutationResult(false, add.Message);
+        }
+
+        var shapePath = ResolveChildPath(request.BodyNodePath, request.ShapeNodeName);
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var shapeExpr = BuildShapeExpression(request.ShapeKind, request.ShapeNodeType, request.ShapeParameters, out var error);
+        if (error is not null)
+        {
+            return new PhysicsShapeMutationResult(false, error);
+        }
+
+        props["shape"] = shapeExpr;
+        foreach (var (k, v) in request.NodeProperties)
+        {
+            props[k] = v;
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, shapePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        if (!set.Success)
+        {
+            return new PhysicsShapeMutationResult(false, set.Message);
+        }
+
+        return new PhysicsShapeMutationResult(true, $"Shape '{shapePath}' created.", request.ScenePath, shapePath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> UpdateShapeAsync(PhysicsUpdateShapeRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.ShapeNodePath, cancellationToken).ConfigureAwait(false);
+        if (node is null || !IsCollisionShapeType(node.Type))
+        {
+            return new PhysicsShapeMutationResult(false, $"Shape node '{request.ShapeNodePath}' was not found.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (request.ShapeParameters.Count > 0)
+        {
+            var currentKind = InferShapeKindFromExpression(node.Properties.GetValueOrDefault("shape"));
+            var expr = BuildShapeExpression(currentKind ?? "box", node.Type, request.ShapeParameters, out var error);
+            if (error is not null)
+            {
+                return new PhysicsShapeMutationResult(false, error);
+            }
+
+            props["shape"] = expr;
+        }
+
+        foreach (var (k, v) in request.NodeProperties)
+        {
+            props[k] = v;
+        }
+
+        if (props.Count == 0)
+        {
+            return new PhysicsShapeMutationResult(false, "No shape updates were provided.");
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.ShapeNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, request.ShapeNodePath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> RemoveShapeAsync(PhysicsRemoveShapeRequest request, CancellationToken cancellationToken = default)
+    {
+        var remove = await sceneGraphService
+            .RemoveNodeAsync(new SceneGraphRemoveNodeRequest(request.ScenePath, request.ShapeNodePath), cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(remove.Success, remove.Message, request.ScenePath, request.ShapeNodePath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> AddCollisionPolygonAsync(PhysicsAddCollisionPolygonRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.PolygonNodeType is not ("CollisionPolygon2D" or "CollisionPolygon3D"))
+        {
+            return new PhysicsShapeMutationResult(false, "polygonNodeType must be CollisionPolygon2D or CollisionPolygon3D.");
+        }
+
+        var body = await FindNodeAsync(request.ScenePath, request.BodyNodePath, cancellationToken).ConfigureAwait(false);
+        if (body is null)
+        {
+            return new PhysicsShapeMutationResult(false, $"Body/area '{request.BodyNodePath}' was not found.");
+        }
+
+        if (!IsDimensionCompatible(body.Type, request.PolygonNodeType))
+        {
+            return new PhysicsShapeMutationResult(false, $"Node '{request.BodyNodePath}' ({body.Type}) is incompatible with '{request.PolygonNodeType}'.");
+        }
+
+        var add = await sceneGraphService
+            .AddNodeAsync(new SceneGraphAddNodeRequest(request.ScenePath, request.BodyNodePath, request.PolygonNodeType, request.PolygonNodeName), cancellationToken)
+            .ConfigureAwait(false);
+        if (!add.Success)
+        {
+            return new PhysicsShapeMutationResult(false, add.Message);
+        }
+
+        var polygonPath = ResolveChildPath(request.BodyNodePath, request.PolygonNodeName);
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["polygon"] = request.PolygonData
+        };
+        foreach (var (k, v) in request.NodeProperties)
+        {
+            props[k] = v;
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, polygonPath, props), cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, polygonPath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> UpdateCollisionPolygonAsync(PhysicsUpdateCollisionPolygonRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.PolygonNodePath, cancellationToken).ConfigureAwait(false);
+        if (node is null || node.Type is not ("CollisionPolygon2D" or "CollisionPolygon3D"))
+        {
+            return new PhysicsShapeMutationResult(false, $"Polygon node '{request.PolygonNodePath}' was not found.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(request.PolygonData))
+        {
+            props["polygon"] = request.PolygonData;
+        }
+        foreach (var (k, v) in request.NodeProperties)
+        {
+            props[k] = v;
+        }
+
+        if (props.Count == 0)
+        {
+            return new PhysicsShapeMutationResult(false, "No polygon updates were provided.");
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.PolygonNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, request.PolygonNodePath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> RemoveCollisionPolygonAsync(PhysicsRemoveCollisionPolygonRequest request, CancellationToken cancellationToken = default)
+        => await RemoveShapeAsync(new PhysicsRemoveShapeRequest(request.ScenePath, request.PolygonNodePath), cancellationToken).ConfigureAwait(false);
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> AssignShapeResourceAsync(PhysicsAssignShapeResourceRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.ShapeNodePath, cancellationToken).ConfigureAwait(false);
+        if (node is null || !IsCollisionShapeType(node.Type))
+        {
+            return new PhysicsShapeMutationResult(false, $"Shape node '{request.ShapeNodePath}' was not found.");
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(
+                new SceneGraphSetPropertiesRequest(
+                    request.ScenePath,
+                    request.ShapeNodePath,
+                    new Dictionary<string, object?>(StringComparer.Ordinal) { ["shape"] = request.ShapeExpression }),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, request.ShapeNodePath);
+    }
+
+    /// <inheritdoc />
+    public async Task<PhysicsShapeMutationResult> SetShapeFlagsAsync(PhysicsSetShapeFlagsRequest request, CancellationToken cancellationToken = default)
+    {
+        var node = await FindNodeAsync(request.ScenePath, request.ShapeNodePath, cancellationToken).ConfigureAwait(false);
+        if (node is null
+            || (node.Type != "CollisionShape2D"
+                && node.Type != "CollisionShape3D"
+                && node.Type != "CollisionPolygon2D"
+                && node.Type != "CollisionPolygon3D"))
+        {
+            return new PhysicsShapeMutationResult(false, $"Shape/polygon node '{request.ShapeNodePath}' was not found.");
+        }
+
+        var props = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (request.Disabled.HasValue) props["disabled"] = request.Disabled.Value;
+        if (request.OneWayCollision.HasValue) props["one_way_collision"] = request.OneWayCollision.Value;
+        if (request.OneWayCollisionMargin.HasValue) props["one_way_collision_margin"] = request.OneWayCollisionMargin.Value;
+        if (request.PlatformOnLeave.HasValue) props["platform_on_leave"] = request.PlatformOnLeave.Value;
+        if (props.Count == 0)
+        {
+            return new PhysicsShapeMutationResult(false, "No shape flags were provided.");
+        }
+
+        var set = await sceneGraphService
+            .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, request.ShapeNodePath, props), cancellationToken)
+            .ConfigureAwait(false);
+        return new PhysicsShapeMutationResult(set.Success, set.Message, request.ScenePath, request.ShapeNodePath);
+    }
+
     /// <summary>
     /// Determines whether a node type is supported for physics body creation.
     /// </summary>
@@ -387,4 +612,91 @@ public sealed class PhysicsService(
     /// <returns>Resolved child node path.</returns>
     private static string ResolveChildPath(string parentPath, string childName)
         => parentPath is "." or "" ? childName : $"{parentPath}/{childName}";
+
+    private async Task<SceneGraphNodeInfo?> FindNodeAsync(string scenePath, string nodePath, CancellationToken cancellationToken)
+    {
+        var roots = await sceneGraphService.ListNodesAsync(scenePath, cancellationToken).ConfigureAwait(false);
+        return ServiceHelpers.FlattenNodes(roots).FirstOrDefault(x => x.NodePath == nodePath);
+    }
+
+    private static bool IsCollisionShapeType(string type)
+        => type is "CollisionShape2D" or "CollisionShape3D";
+
+    private static bool Is2DType(string type)
+        => type.EndsWith("2D", StringComparison.Ordinal);
+
+    private static bool Is3DType(string type)
+        => type.EndsWith("3D", StringComparison.Ordinal);
+
+    private static bool IsDimensionCompatible(string parentType, string childType)
+    {
+        if (Is2DType(parentType) && Is3DType(childType))
+        {
+            return false;
+        }
+
+        if (Is3DType(parentType) && Is2DType(childType))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string? InferShapeKindFromExpression(string? shapeExpression)
+    {
+        if (string.IsNullOrWhiteSpace(shapeExpression))
+        {
+            return null;
+        }
+
+        var s = shapeExpression.Trim();
+        if (s.Contains("RectangleShape2D", StringComparison.Ordinal)) return "rectangle";
+        if (s.Contains("CircleShape2D", StringComparison.Ordinal)) return "circle";
+        if (s.Contains("CapsuleShape2D", StringComparison.Ordinal)) return "capsule";
+        if (s.Contains("BoxShape3D", StringComparison.Ordinal)) return "box";
+        if (s.Contains("SphereShape3D", StringComparison.Ordinal)) return "sphere";
+        if (s.Contains("CapsuleShape3D", StringComparison.Ordinal)) return "capsule";
+        if (s.Contains("CylinderShape3D", StringComparison.Ordinal)) return "cylinder";
+        return null;
+    }
+
+    private static string BuildShapeExpression(string shapeKind, string shapeNodeType, IReadOnlyDictionary<string, object?> shapeParameters, out string? error)
+    {
+        error = null;
+        var kind = shapeKind.Trim().ToLowerInvariant();
+        var is2D = shapeNodeType == "CollisionShape2D";
+
+        string num(string name, double fallback)
+        {
+            if (!shapeParameters.TryGetValue(name, out var raw) || !TryGetNumber(raw, out var n))
+            {
+                return fallback.ToString("0.0###", CultureInfo.InvariantCulture);
+            }
+
+            return n.ToString("0.0###", CultureInfo.InvariantCulture);
+        }
+
+        return (kind, is2D) switch
+        {
+            ("rectangle", true) => $"RectangleShape2D.new().set(\"size\", Vector2({num("width", 32)}, {num("height", 32)}))",
+            ("circle", true) => $"CircleShape2D.new().set(\"radius\", {num("radius", 16)})",
+            ("capsule", true) => $"CapsuleShape2D.new().set(\"radius\", {num("radius", 8)}).set(\"height\", {num("height", 32)})",
+            ("box", false) => $"BoxShape3D.new().set(\"size\", Vector3({num("width", 1)}, {num("height", 1)}, {num("depth", 1)}))",
+            ("sphere", false) => $"SphereShape3D.new().set(\"radius\", {num("radius", 0.5)})",
+            ("capsule", false) => $"CapsuleShape3D.new().set(\"radius\", {num("radius", 0.5)}).set(\"height\", {num("height", 2)})",
+            ("cylinder", false) => $"CylinderShape3D.new().set(\"radius\", {num("radius", 0.5)}).set(\"height\", {num("height", 2)})",
+            ("convex", false) => "ConvexPolygonShape3D.new()",
+            ("concave", false) => "ConcavePolygonShape3D.new()",
+            _ => BuildShapeExpressionError(kind, is2D, out error)
+        };
+    }
+
+    private static string BuildShapeExpressionError(string kind, bool is2D, out string? error)
+    {
+        error = is2D
+            ? $"Unsupported 2D shape kind '{kind}'. Supported: rectangle, circle, capsule."
+            : $"Unsupported 3D shape kind '{kind}'. Supported: box, sphere, capsule, cylinder, convex, concave.";
+        return string.Empty;
+    }
 }

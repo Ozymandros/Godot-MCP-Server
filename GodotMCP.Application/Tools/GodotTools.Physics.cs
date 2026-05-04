@@ -176,6 +176,209 @@ public static partial class GodotTools
             .ToList();
         return new ToolResult(true, $"Physics validation completed. Found {dto.Count} issue(s).", dto);
     }
+
+    [McpServerTool(Name = "physics.add_shape"), Description("Add CollisionShape2D/3D under a body/area and initialize its shape kind and parameters.")]
+    public static async Task<ToolResult> PhysicsAddShapeAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Body or area node path where the shape node will be added."), Required] string bodyNodePath,
+        [Description("Shape node type: CollisionShape2D or CollisionShape3D."), Required] string shapeNodeType,
+        [Description("Shape node name.")] string shapeNodeName = "CollisionShape",
+        [Description("Shape kind: rectangle/circle/capsule (2D), box/sphere/capsule/cylinder/convex/concave (3D)."), Required] string shapeKind = "box",
+        [Description("Shape parameters for selected shape kind (for example width/height/depth/radius).")] Dictionary<string, JsonElement>? shapeParameters = null,
+        [Description("Additional shape node properties (for example position, rotation, scale, disabled).")] Dictionary<string, JsonElement>? nodeProperties = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.AddShapeAsync(
+            new PhysicsAddShapeRequest(
+                scenePath,
+                bodyNodePath,
+                shapeNodeType,
+                shapeNodeName,
+                shapeKind,
+                ToPrimitiveDictionary(shapeParameters),
+                ToPrimitiveDictionary(nodeProperties)),
+            cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.update_shape"), Description("Update shape parameters and/or node properties on CollisionShape2D/3D.")]
+    public static async Task<ToolResult> PhysicsUpdateShapeAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Collision shape node path to update."), Required] string shapeNodePath,
+        [Description("Shape parameters to update (depends on existing shape kind).")] Dictionary<string, JsonElement>? shapeParameters = null,
+        [Description("Node properties to update (for example transform, offset, disabled).")] Dictionary<string, JsonElement>? nodeProperties = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.UpdateShapeAsync(
+            new PhysicsUpdateShapeRequest(scenePath, shapeNodePath, ToPrimitiveDictionary(shapeParameters), ToPrimitiveDictionary(nodeProperties)),
+            cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.remove_shape"), Description("Remove a CollisionShape2D/3D node.")]
+    public static async Task<ToolResult> PhysicsRemoveShapeAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Collision shape node path to remove."), Required] string shapeNodePath,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.RemoveShapeAsync(new PhysicsRemoveShapeRequest(scenePath, shapeNodePath), cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.add_collision_polygon"), Description("Add a CollisionPolygon2D/3D node under a body/area.")]
+    public static async Task<ToolResult> PhysicsAddCollisionPolygonAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Body or area node path where the polygon node will be added."), Required] string bodyNodePath,
+        [Description("Polygon node type: CollisionPolygon2D or CollisionPolygon3D."), Required] string polygonNodeType,
+        [Description("Polygon node name.")] string polygonNodeName = "CollisionPolygon",
+        [Description("Godot polygon payload value (for example PackedVector2Array(...) or PackedVector3Array(...))."), Required] string polygonData = "",
+        [Description("Additional polygon properties.")] Dictionary<string, JsonElement>? nodeProperties = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.AddCollisionPolygonAsync(
+            new PhysicsAddCollisionPolygonRequest(scenePath, bodyNodePath, polygonNodeType, polygonNodeName, polygonData, ToPrimitiveDictionary(nodeProperties)),
+            cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.update_collision_polygon"), Description("Update polygon payload and/or properties on CollisionPolygon2D/3D.")]
+    public static async Task<ToolResult> PhysicsUpdateCollisionPolygonAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Polygon node path to update."), Required] string polygonNodePath,
+        [Description("Optional updated polygon payload.")] string? polygonData = null,
+        [Description("Additional polygon properties to update.")] Dictionary<string, JsonElement>? nodeProperties = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.UpdateCollisionPolygonAsync(
+            new PhysicsUpdateCollisionPolygonRequest(scenePath, polygonNodePath, polygonData, ToPrimitiveDictionary(nodeProperties)),
+            cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.remove_collision_polygon"), Description("Remove a CollisionPolygon2D/3D node.")]
+    public static async Task<ToolResult> PhysicsRemoveCollisionPolygonAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Polygon node path to remove."), Required] string polygonNodePath,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.RemoveCollisionPolygonAsync(new PhysicsRemoveCollisionPolygonRequest(scenePath, polygonNodePath), cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.assign_shape_resource"), Description("Assign an explicit shape resource expression to a CollisionShape2D/3D node.")]
+    public static async Task<ToolResult> PhysicsAssignShapeResourceAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Shape node path."), Required] string shapeNodePath,
+        [Description("Shape resource expression (for example SubResource(\"MyShape\") or ExtResource(\"3_abcd\"))."), Required] string shapeExpression,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.AssignShapeResourceAsync(new PhysicsAssignShapeResourceRequest(scenePath, shapeNodePath, shapeExpression), cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
+
+    [McpServerTool(Name = "physics.set_shape_flags"), Description("Set one-way/platform/disabled flags on collision shapes or polygons.")]
+    public static async Task<ToolResult> PhysicsSetShapeFlagsAsync(
+        IPhysicsService physicsService,
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to configured project root)."), Required] string projectPath,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Shape/polygon node path."), Required] string shapeNodePath,
+        [Description("Optional disabled flag.")] bool? disabled = null,
+        [Description("Optional one-way collision flag.")] bool? one_way_collision = null,
+        [Description("Optional one-way collision margin.")] double? one_way_collision_margin = null,
+        [Description("Optional platform_on_leave flag.")] bool? platform_on_leave = null,
+        [Description("Root node type when the scene is bootstrapped.")] string root_type = "Node3D",
+        CancellationToken cancellationToken = default)
+    {
+        var scenePath = await ResolveScenePathAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        if (scenePath is null)
+        {
+            return Invalid("Invalid scene parameters.");
+        }
+
+        var result = await physicsService.SetShapeFlagsAsync(
+            new PhysicsSetShapeFlagsRequest(scenePath, shapeNodePath, disabled, one_way_collision, one_way_collision_margin, platform_on_leave),
+            cancellationToken).ConfigureAwait(false);
+        return ToPhysicsShapeToolResult(result);
+    }
     /// <summary>
     /// Maps a domain physics body model into a transport DTO.
     /// </summary>
@@ -200,6 +403,47 @@ public static partial class GodotTools
     {
         var dto = result.Body is null ? null : MapBody(result.Body);
         return new ToolResult(result.Success, result.Message, dto);
+    }
+
+    private static ToolResult ToPhysicsShapeToolResult(PhysicsShapeMutationResult result)
+        => new(result.Success, result.Message, result.ShapeNodePath is null ? null : new { scenePath = result.ScenePath, shapeNodePath = result.ShapeNodePath });
+
+    private static Dictionary<string, object?> ToPrimitiveDictionary(Dictionary<string, JsonElement>? values)
+    {
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (values is null)
+        {
+            return result;
+        }
+
+        foreach (var (key, value) in values)
+        {
+            var primitive = ToPrimitiveValue(value);
+            if (primitive is not null)
+            {
+                result[key] = primitive;
+            }
+        }
+
+        return result;
+    }
+
+    private static async Task<string?> ResolveScenePathAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        string projectPath,
+        string fileName,
+        string rootType,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, rootType.Trim(), cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 }
 
