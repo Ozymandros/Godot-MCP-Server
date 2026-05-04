@@ -1,6 +1,7 @@
 using System.Globalization;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using GodotMCP.Core.SceneGraph;
 
 namespace GodotMCP.Infrastructure.Services;
 
@@ -10,10 +11,12 @@ namespace GodotMCP.Infrastructure.Services;
 /// <param name="fileService">File abstraction for project I/O.</param>
 /// <param name="pathResolver">Path resolver scoped to the current project.</param>
 /// <param name="sceneSerializer">Serializer used for scene parsing and emission.</param>
+/// <param name="sceneGraphService">Scene graph service used for inserts and property updates.</param>
 public sealed class CameraService(
     IGodotFileService fileService,
     IPathResolver pathResolver,
-    ISceneSerializer sceneSerializer) : ICameraService
+    ISceneSerializer sceneSerializer,
+    ISceneGraphService sceneGraphService) : ICameraService
 {
     /// <summary>
     /// Ordinal comparer used for deterministic string comparisons.
@@ -41,44 +44,63 @@ public sealed class CameraService(
     {
         var sceneText = await fileService.ReadAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
         var scene = sceneSerializer.Deserialize(sceneText);
+        var index = SceneNodePathIndex.Build(scene);
 
-        var pathIndex = BuildPathIndex(scene);
-        var normalizedNodePath = NormalizeNodePath(request.NodePath);
+        var normalizedNodePath = SceneNodePathIndex.NormalizeNodePath(request.NodePath);
         if (string.IsNullOrWhiteSpace(normalizedNodePath))
         {
             return new CameraMutationResult(false, "nodePath must point to a valid node location.");
         }
 
-        if (pathIndex.ContainsKey(normalizedNodePath))
+        if (index.ByPath.ContainsKey(normalizedNodePath))
         {
             return new CameraMutationResult(false, $"Node '{request.NodePath}' already exists.");
         }
 
-        var (parentPath, nodeName) = SplitNodePath(normalizedNodePath);
-        if (string.IsNullOrWhiteSpace(nodeName))
+        var segments = normalizedNodePath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (segments.Length == 0)
         {
             return new CameraMutationResult(false, "nodePath must include a node name.");
         }
 
-        if (!ParentExists(scene, pathIndex, parentPath))
+        var nodeName = segments[^1];
+        var parentRelative = segments.Length == 1 ? string.Empty : string.Join('/', segments[..^1]);
+        var parentNodePath = string.IsNullOrEmpty(parentRelative) ? "." : parentRelative;
+
+        var godotType = request.Type == CameraNodeType.Camera2D ? "Camera2D" : "Camera3D";
+        var addResult = await sceneGraphService
+            .AddNodeAsync(new SceneGraphAddNodeRequest(request.ScenePath, parentNodePath, godotType, nodeName), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!addResult.Success)
         {
-            return new CameraMutationResult(false, $"Parent path '{parentPath}' was not found in scene.");
+            return new CameraMutationResult(false, addResult.Message);
         }
 
-        var node = new GodotNode
+        var createdPath = addResult.Node?.NodePath ?? normalizedNodePath;
+        var presetProps = BuildCameraPresetPropertyDictionary(request.Type, request.Preset);
+        if (presetProps.Count > 0)
         {
-            Name = nodeName,
-            Type = request.Type == CameraNodeType.Camera2D ? "Camera2D" : "Camera3D",
-            Parent = string.IsNullOrEmpty(parentPath) ? "." : parentPath
-        };
+            var setResult = await sceneGraphService
+                .SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(request.ScenePath, createdPath, presetProps), cancellationToken)
+                .ConfigureAwait(false);
 
-        ApplyPreset(node, request.Type, request.Preset);
+            if (!setResult.Success)
+            {
+                return new CameraMutationResult(false, setResult.Message);
+            }
+        }
 
-        scene.Nodes.Add(node);
-        await fileService.WriteAsync(request.ScenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
+        var sceneAfter = await fileService.ReadAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
+        var sceneModel = sceneSerializer.Deserialize(sceneAfter);
+        var pathIndexAfter = SceneNodePathIndex.Build(sceneModel);
+        if (!pathIndexAfter.ByPath.TryGetValue(createdPath, out var entry))
+        {
+            return new CameraMutationResult(false, $"Camera node '{createdPath}' was not found after creation.");
+        }
 
-        var info = ToCameraInfo(request.ScenePath, normalizedNodePath, node);
-        return new CameraMutationResult(true, $"Camera created at '{request.NodePath}'.", info);
+        var info = ToCameraInfo(request.ScenePath, createdPath, entry.Node);
+        return new CameraMutationResult(true, $"Camera created at '{createdPath}'.", info);
     }
 
     /// <inheritdoc />
@@ -279,47 +301,47 @@ public sealed class CameraService(
     }
 
     /// <summary>
-    /// Applies a known preset to a camera node.
+    /// Builds primitive property values for <see cref="ISceneGraphService.SetNodePropertiesAsync"/> from a camera preset.
     /// </summary>
-    /// <param name="node">Camera node to mutate.</param>
-    /// <param name="type">Camera node type.</param>
-    /// <param name="preset">Preset name to apply.</param>
-    private static void ApplyPreset(GodotNode node, CameraNodeType type, string? preset)
+    private static Dictionary<string, object?> BuildCameraPresetPropertyDictionary(CameraNodeType type, string? preset)
     {
+        var dict = new Dictionary<string, object?>(StringComparer.Ordinal);
         if (string.IsNullOrWhiteSpace(preset))
         {
-            return;
+            return dict;
         }
 
         if (type == CameraNodeType.Camera2D)
         {
-            node.Properties["enabled"] = "true";
-            return;
+            dict["enabled"] = true;
+            return dict;
         }
 
         switch (preset.Trim().ToLowerInvariant())
         {
             case "cinematic":
-                node.Properties["projection"] = ((int)CameraProjection.Perspective).ToString(CultureInfo.InvariantCulture);
-                node.Properties["fov"] = "70";
-                node.Properties["near"] = "0.05";
-                node.Properties["far"] = "2000";
+                dict["projection"] = (int)CameraProjection.Perspective;
+                dict["fov"] = 70.0;
+                dict["near"] = 0.05;
+                dict["far"] = 2000.0;
                 break;
 
             case "orthographic-ui":
-                node.Properties["projection"] = ((int)CameraProjection.Orthographic).ToString(CultureInfo.InvariantCulture);
-                node.Properties["size"] = "16";
-                node.Properties["near"] = "0.01";
-                node.Properties["far"] = "4096";
+                dict["projection"] = (int)CameraProjection.Orthographic;
+                dict["size"] = 16.0;
+                dict["near"] = 0.01;
+                dict["far"] = 4096.0;
                 break;
 
             case "fps":
-                node.Properties["projection"] = ((int)CameraProjection.Perspective).ToString(CultureInfo.InvariantCulture);
-                node.Properties["fov"] = "90";
-                node.Properties["near"] = "0.05";
-                node.Properties["far"] = "1000";
+                dict["projection"] = (int)CameraProjection.Perspective;
+                dict["fov"] = 90.0;
+                dict["near"] = 0.05;
+                dict["far"] = 1000.0;
                 break;
         }
+
+        return dict;
     }
 
     /// <summary>
@@ -436,52 +458,12 @@ public sealed class CameraService(
     }
 
     /// <summary>
-    /// Validates that a parent path exists, or root insertion is allowed.
-    /// </summary>
-    /// <param name="scene">Scene being modified.</param>
-    /// <param name="pathIndex">Precomputed path index.</param>
-    /// <param name="parentPath">Candidate parent path.</param>
-    /// <returns><see langword="true" /> when insertion parent is valid; otherwise, <see langword="false" />.</returns>
-    private static bool ParentExists(GodotScene scene, IReadOnlyDictionary<string, GodotNode> pathIndex, string parentPath)
-    {
-        if (string.IsNullOrWhiteSpace(parentPath))
-        {
-            return scene.Nodes.Count > 0;
-        }
-
-        return pathIndex.ContainsKey(parentPath);
-    }
-
-    /// <summary>
     /// Determines whether a node type is a supported camera node.
     /// </summary>
     /// <param name="node">Node to evaluate.</param>
     /// <returns><see langword="true" /> when the node is Camera2D or Camera3D.</returns>
     private static bool IsCameraNode(GodotNode node)
         => Comparer.Equals(node.Type, "Camera2D") || Comparer.Equals(node.Type, "Camera3D");
-
-    /// <summary>
-    /// Splits a normalized node path into parent path and terminal node name.
-    /// </summary>
-    /// <param name="nodePath">Normalized node path.</param>
-    /// <returns>A tuple containing parent path and node name.</returns>
-    private static (string ParentPath, string NodeName) SplitNodePath(string nodePath)
-    {
-        var segments = nodePath.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (segments.Length == 0)
-        {
-            return (string.Empty, string.Empty);
-        }
-
-        if (segments.Length == 1)
-        {
-            return (string.Empty, segments[0]);
-        }
-
-        var parent = string.Join('/', segments[..^1]);
-        var node = segments[^1];
-        return (parent, node);
-    }
 
     /// <summary>
     /// Normalizes a node path for stable indexing and comparisons.

@@ -245,6 +245,28 @@ public static partial class GodotTools
     }
 
     /// <summary>
+    /// Picks a bootstrap root node type for a scene that will host 2D/3D physics bodies.
+    /// </summary>
+    /// <param name="bodyType">The type of the body.</param>
+    /// <returns>The root node type for the body.</returns>
+    private static string InferRootTypeForPhysicsBody(string bodyType)
+    {
+        var t = bodyType.Trim();
+        return t.EndsWith("2D", StringComparison.Ordinal) ? "Node2D" : "Node3D";
+    }
+
+    /// <summary>
+    /// Picks a bootstrap root node type for a scene that will host lights.
+    /// </summary>
+    /// <param name="lightType">The type of the light.</param>
+    /// <returns>The root node type for the light.</returns>
+    private static string InferRootTypeForLight(string lightType)
+    {
+        var t = lightType.Trim();
+        return string.Equals(t, "PointLight2D", StringComparison.Ordinal) ? "Node2D" : "Node3D";
+    }
+
+    /// <summary>
     /// Converts a JSON element into a supported primitive CLR value.
     /// </summary>
     /// <param name="value">JSON value to convert.</param>

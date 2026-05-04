@@ -22,6 +22,7 @@ public class PhysicsToolsTests
 
             var result = await GodotTools.PhysicsCreateBodyAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -50,7 +51,7 @@ public class PhysicsToolsTests
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
-            await GodotTools.PhysicsCreateBodyAsync(service, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Crate");
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Crate");
 
             using var payload = JsonDocument.Parse("""
 {
@@ -66,6 +67,7 @@ public class PhysicsToolsTests
 
             var result = await GodotTools.PhysicsUpdateBodyAsync(
                 service,
+                files,
                 resolver,
                 root,
                 "scenes/Main.tscn",
@@ -96,7 +98,7 @@ public class PhysicsToolsTests
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
             IPhysicsService service = new PhysicsService(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
-            await GodotTools.PhysicsCreateBodyAsync(service, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Ghost", addCollisionShape: false);
+            await GodotTools.PhysicsCreateBodyAsync(service, files, resolver, root, "scenes/Main.tscn", ".", "RigidBody3D", "Ghost", addCollisionShape: false);
 
             var result = await GodotTools.PhysicsValidateAsync(service, resolver, root);
 

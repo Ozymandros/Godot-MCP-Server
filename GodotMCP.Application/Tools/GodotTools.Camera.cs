@@ -58,34 +58,39 @@ public static partial class GodotTools
     /// <param name="preset">Optional preset name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing creation status and created camera snapshot.</returns>
-    [McpServerTool(Name = "camera.create"), Description("Create a Camera2D or Camera3D node in a scene and optionally apply a preset.")]
+    [McpServerTool(Name = "camera.create"), Description("Create a Camera2D or Camera3D node in a scene under projectPath/scenes/ (same contract as scene.add_node), optionally apply a preset.")]
     public static async Task<ToolResult> CameraCreateAsync(
         ICameraService cameraService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Target node path for the new camera, for example 'Player/CameraRig/MainCamera'."), Required] string nodePath,
         [Description("Camera type: 2d or 3d."), Required] string cameraType,
         [Description("Optional camera preset: cinematic, orthographic-ui, fps.")] string? preset = null,
+        [Description("Root node type when the scene file is bootstrapped (Node2D for 2D camera, Node3D for 3D).")] string root_type = "",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath) || IsBlank(cameraType))
         {
             return Invalid("projectPath, fileName, nodePath, and cameraType are required.");
         }
-        string scenePath;
-        try
-        {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Invalid(ex.Message);
-        }
-
         if (!TryParseCameraType(cameraType, out var type))
         {
             return Invalid("cameraType must be one of: 2d, camera2d, 3d, camera3d.");
+        }
+
+        var rootType = IsBlank(root_type)
+            ? (type == CameraNodeType.Camera2D ? "Node2D" : "Node3D")
+            : root_type.Trim();
+        string scenePath;
+        try
+        {
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, rootType, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (!IsSupportedPreset(preset))
@@ -129,17 +134,18 @@ public static partial class GodotTools
     /// <param name="fileService">Optional file service used to write rawContent when supplied.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing update status and updated camera snapshot.</returns>
-    [McpServerTool(Name = "camera.update"), Description("Update properties of an existing camera node in a scene.")]
+    [McpServerTool(Name = "camera.update"), Description("Update properties of an existing camera node in projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> CameraUpdateAsync(
         ICameraService cameraService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Node path of the camera to update."), Required] string nodePath,
         [Description("Camera properties to update. Supported: current, fov, size, near, far, projection."), Required]
         Dictionary<string, JsonElement>? properties,
         [Description("Raw scene text. If provided, replaces the entire scene file.")] string? rawContent = null,
-        IGodotFileService? fileService = null,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node3D",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath))
@@ -149,20 +155,15 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (!string.IsNullOrWhiteSpace(rawContent))
         {
-            if (fileService is null)
-            {
-                return Invalid("fileService is required to write rawContent.");
-            }
-
             await fileService.WriteAsync(scenePath, rawContent, cancellationToken).ConfigureAwait(false);
             return new ToolResult(true, $"Wrote scene '{scenePath}'.");
         }

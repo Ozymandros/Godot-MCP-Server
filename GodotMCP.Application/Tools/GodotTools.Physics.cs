@@ -47,30 +47,33 @@ public static partial class GodotTools
     /// <param name="addCollisionShape">Whether to auto-add a collision shape child.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional body snapshot.</returns>
-    [McpServerTool(Name = "physics.create_body"), Description("Create a physics body node in a scene and optionally add a collision shape child.")]
+    [McpServerTool(Name = "physics.create_body"), Description("Create a physics body node in a scene under projectPath/scenes/ (same contract as scene.add_node). Optionally add a collision shape child.")]
     public static async Task<ToolResult> PhysicsCreateBodyAsync(
         IPhysicsService physicsService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name (e.g. Main.tscn) relative to projectPath/scenes/, or path starting with scenes/ — duplicate segments are merged."), Required] string fileName,
         [Description("Parent node path where the body is added."), Required] string parentNodePath,
         [Description("Body type: StaticBody3D, RigidBody3D, CharacterBody3D, Area3D, StaticBody2D, RigidBody2D, CharacterBody2D, Area2D."), Required] string bodyType,
         [Description("Name for the new body node."), Required] string nodeName,
         [Description("When true, also creates a CollisionShape child node.")] bool addCollisionShape = true,
+        [Description("Root node type when the scene file is bootstrapped (Node2D for 2D bodies, Node3D for 3D).")] string root_type = "",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(parentNodePath) || IsBlank(bodyType) || IsBlank(nodeName))
         {
             return Invalid("projectPath, fileName, parentNodePath, bodyType, and nodeName are required.");
         }
+        var rootType = IsBlank(root_type) ? InferRootTypeForPhysicsBody(bodyType) : root_type.Trim();
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, rootType, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var result = await physicsService
@@ -91,15 +94,17 @@ public static partial class GodotTools
     /// <param name="properties">Property updates map.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional body snapshot.</returns>
-    [McpServerTool(Name = "physics.update_body"), Description("Update selected properties on a physics body node.")]
+    [McpServerTool(Name = "physics.update_body"), Description("Update selected properties on a physics body node in projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> PhysicsUpdateBodyAsync(
         IPhysicsService physicsService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (see physics.create_body)."), Required] string fileName,
         [Description("Body node path to update."), Required] string nodePath,
         [Description("Properties to update. Supported: collision_layer, collision_mask, gravity_scale, lock_rotation."), Required]
         Dictionary<string, JsonElement>? properties,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node3D",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath))
@@ -109,11 +114,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (properties is null || properties.Count == 0)

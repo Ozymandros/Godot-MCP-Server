@@ -18,22 +18,24 @@ public static partial class GodotTools
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing a list of UI controls.</returns>
-    [McpServerTool(Name = "ui.list_controls"), Description("List UI controls in a scene with node paths and properties.")]
+    [McpServerTool(Name = "ui.list_controls"), Description("List UI controls in a scene under projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> UiListControlsAsync(
         IUiService uiService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Control",
         CancellationToken cancellationToken = default)
     {
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var controls = await uiService.ListControlsAsync(scenePath, cancellationToken).ConfigureAwait(false);
@@ -54,16 +56,18 @@ public static partial class GodotTools
     /// <param name="properties">Optional initial control properties.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional control payload.</returns>
-    [McpServerTool(Name = "ui.add_control"), Description("Add a UI control node under a parent path in a scene.")]
+    [McpServerTool(Name = "ui.add_control"), Description("Add a UI control node under a parent path in projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> UiAddControlAsync(
         IUiService uiService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Parent node path (for example: ., UI, UI/HUD)."), Required] string parentNodePath,
         [Description("Control type (for example: Control, Button, Label, PanelContainer)."), Required] string controlType,
         [Description("Control name."), Required] string controlName,
         [Description("Optional initial property map. Values must be primitive JSON values.")] Dictionary<string, JsonElement>? properties = null,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Control",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(parentNodePath) || IsBlank(controlType) || IsBlank(controlName))
@@ -73,11 +77,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         string? errorMessage = null;
@@ -107,14 +111,16 @@ public static partial class GodotTools
     /// <param name="preset">Layout preset name.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional control payload.</returns>
-    [McpServerTool(Name = "ui.set_layout_preset"), Description("Apply a layout preset to a UI control. Supported presets: full_rect, top_left, center.")]
+    [McpServerTool(Name = "ui.set_layout_preset"), Description("Apply a layout preset to a UI control in projectPath/scenes/. Supported presets: full_rect, top_left, center.")]
     public static async Task<ToolResult> UiSetLayoutPresetAsync(
         IUiService uiService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Preset name: full_rect, top_left, or center."), Required] string preset,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Control",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(controlNodePath) || IsBlank(preset))
@@ -124,11 +130,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var result = await uiService
@@ -149,14 +155,16 @@ public static partial class GodotTools
     /// <param name="properties">Property updates with primitive JSON values.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional control payload.</returns>
-    [McpServerTool(Name = "ui.set_control_properties"), Description("Update selected properties for a UI control node.")]
+    [McpServerTool(Name = "ui.set_control_properties"), Description("Update selected properties for a UI control node in projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> UiSetControlPropertiesAsync(
         IUiService uiService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Control node path to update."), Required] string controlNodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required] Dictionary<string, JsonElement>? properties,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Control",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(controlNodePath))
@@ -166,11 +174,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (properties is null || properties.Count == 0)

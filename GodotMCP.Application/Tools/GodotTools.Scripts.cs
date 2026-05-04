@@ -20,7 +20,20 @@ public static partial class GodotTools
         string baseType,
         string className,
         CancellationToken cancellationToken = default)
-        => CreateScriptAsync(fileService, pathResolver, pathResolver.ProjectRoot, ToProjectFileName(path, pathResolver), language, baseType, className, null, cancellationToken);
+        => CreateScriptAsync(
+            fileService,
+            pathResolver,
+            pathResolver.ProjectRoot,
+            ToProjectFileName(path, pathResolver),
+            language,
+            baseType,
+            className,
+            rawContent: null,
+            sceneSerializer: null,
+            linkSceneFileName: null,
+            linkNodePath: null,
+            link_root_type: "Node",
+            cancellationToken);
 
     /// <summary>
     /// Creates a script file with basic boilerplate in GDScript or C#.
@@ -35,7 +48,7 @@ public static partial class GodotTools
     /// <param name="rawContent">Raw script content. If provided, written verbatim instead of generated boilerplate.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
-    [McpServerTool(Name = "create_script"), Description("Create a new GDScript or C# script file with basic boilerplate.")]
+    [McpServerTool(Name = "create_script"), Description("Create a new GDScript or C# script under projectPath. Optional linkSceneFileName + linkNodePath (with sceneSerializer) attach the script to a scene under projectPath/scenes/ after creation.")]
     public static async Task<ToolResult> CreateScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -45,11 +58,29 @@ public static partial class GodotTools
         [Description("Base Godot type to extend (e.g., Node, Node2D)."), Required] string baseType,
         [Description("Name of the script class."), Required] string className,
         [Description("Raw script content. If provided, written verbatim instead of generated boilerplate.")] string? rawContent = null,
+        [Description("Required when linkSceneFileName and linkNodePath are set.")] ISceneSerializer? sceneSerializer = null,
+        [Description("Scene file name under projectPath/scenes/; set together with linkNodePath to attach after create.")] string? linkSceneFileName = null,
+        [Description("Node path in the scene; set together with linkSceneFileName to attach after create.")] string? linkNodePath = null,
+        [Description("Bootstrap root type when linkSceneFileName targets a missing scene.")] string link_root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(language) || (string.IsNullOrWhiteSpace(rawContent) && (IsBlank(baseType) || IsBlank(className))))
         {
             return Invalid("projectPath, fileName, language and either rawContent or baseType+className are required.");
+        }
+
+        var linkScene = linkSceneFileName?.Trim();
+        var linkNode = linkNodePath?.Trim();
+        var hasLinkScene = !string.IsNullOrEmpty(linkScene);
+        var hasLinkNode = !string.IsNullOrEmpty(linkNode);
+        if (hasLinkScene != hasLinkNode)
+        {
+            return Invalid("linkSceneFileName and linkNodePath must both be provided together, or both omitted.");
+        }
+
+        if (hasLinkScene && sceneSerializer is null)
+        {
+            return Invalid("sceneSerializer is required when linkSceneFileName and linkNodePath are set.");
         }
 
         string path;
@@ -65,17 +96,17 @@ public static partial class GodotTools
         if (!string.IsNullOrWhiteSpace(rawContent))
         {
             await fileService.WriteAsync(path, rawContent, cancellationToken).ConfigureAwait(false);
-            return new ToolResult(true, $"Script created at {path}.");
-        }
-
-        string content;
-        if (string.Equals(language, "gd", StringComparison.OrdinalIgnoreCase))
-        {
-            content = $"extends {baseType}{Environment.NewLine}class_name {className}{Environment.NewLine}";
         }
         else
         {
-            content = $$"""
+            string content;
+            if (string.Equals(language, "gd", StringComparison.OrdinalIgnoreCase))
+            {
+                content = $"extends {baseType}{Environment.NewLine}class_name {className}{Environment.NewLine}";
+            }
+            else
+            {
+                content = $$"""
 using Godot;
 
 public partial class {{className}} : {{baseType}}
@@ -85,10 +116,36 @@ public partial class {{className}} : {{baseType}}
     }
 }
 """;
+            }
+
+            await fileService.WriteAsync(path, content, cancellationToken).ConfigureAwait(false);
         }
 
-        await fileService.WriteAsync(path, content, cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Script created at {path}.");
+        if (!hasLinkScene)
+        {
+            return new ToolResult(true, $"Script created at {path}.");
+        }
+
+        var attach = await AttachExtResourceToSceneNodeAsync(
+                fileService,
+                pathResolver,
+                sceneSerializer!,
+                projectPath,
+                linkScene!,
+                linkNode!,
+                fileName,
+                "script",
+                "Script",
+                link_root_type.Trim(),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!attach.Success)
+        {
+            return attach;
+        }
+
+        return new ToolResult(true, $"Script created at {path} and attached to '{linkNode}' in scene '{linkScene}'.", attach.Data);
     }
 
     /// <summary>
@@ -127,17 +184,6 @@ public partial class {{className}} : {{baseType}}
     /// <summary>
     /// Attaches an existing script resource to a node in a scene.
     /// </summary>
-    /// <param name="fileService">File abstraction for project I/O.</param>
-    /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
-    /// <param name="scenePath">Scene file path.</param>
-    /// <param name="nodePath">Target node name with path (e.g. Player or Player/CameraRig).</param>
-    /// <param name="scriptPath">Script resource path.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Tool result describing attachment status.</returns>
-    /// <summary>
-    /// Attaches an existing script resource to a node in a scene.
-    /// </summary>
     public static Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -146,53 +192,49 @@ public partial class {{className}} : {{baseType}}
         string nodePath,
         string scriptPath,
         CancellationToken cancellationToken = default)
-        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, pathResolver.ProjectRoot, ToProjectFileName(scenePath, pathResolver), nodePath, ToProjectFileName(scriptPath, pathResolver), cancellationToken);
+        => AttachScriptAsync(
+            fileService,
+            pathResolver,
+            sceneSerializer,
+            pathResolver.ProjectRoot,
+            ToProjectFileName(scenePath, pathResolver),
+            nodePath,
+            ToProjectFileName(scriptPath, pathResolver),
+            root_type: "Node",
+            cancellationToken);
 
     /// <summary>
     /// Attaches an existing script resource to a node in a scene.
     /// </summary>
-    [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene.")]
-    public static async Task<ToolResult> AttachScriptAsync(
+    [McpServerTool(Name = "attach_script"), Description("Attach an existing script resource to a node in a scene under projectPath/scenes/ (same contract as scene.add_node).")]
+    public static Task<ToolResult> AttachScriptAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Target node path in the scene (e.g. Player, Root/Player, Player/CameraRig)."), Required] string nodePath,
         [Description("Script file name or relative path under projectPath."), Required] string scriptFileName,
+        [Description("Bootstrap root type when the scene file is bootstrapped.")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(scriptFileName) || IsBlank(nodePath))
         {
-            return Invalid("projectPath, fileName, scriptFileName and nodePath are required.");
+            return Task.FromResult(Invalid("projectPath, fileName, scriptFileName and nodePath are required."));
         }
 
-        string scenePath;
-        string scriptPath;
-        try
-        {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
-            scriptPath = ResolveProjectFilePath(pathResolver, projectPath, scriptFileName);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return Invalid(ex.Message);
-        }
-
-        var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
-        var pathIndex = SceneNodePathIndex.Build(scene);
-        if (!SceneNodePathIndex.TryGetNode(pathIndex, nodePath, out var node) || node is null)
-        {
-            return new ToolResult(false, $"Node '{nodePath}' not found.");
-        }
-
-        var extId = (scene.ExternalResources.Count + 1).ToString();
-        scene.ExternalResources.Add(new ExtResource { Id = extId, Path = pathResolver.ToGodotResPath(scriptPath), Type = "Script" });
-
-        node.Properties["script"] = $"ExtResource(\"{extId}\")";
-        scene.RecomputeLoadSteps();
-        await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Script '{scriptPath}' attached to '{nodePath}'.");
+        return AttachExtResourceToSceneNodeAsync(
+            fileService,
+            pathResolver,
+            sceneSerializer,
+            projectPath,
+            fileName,
+            nodePath,
+            scriptFileName,
+            "script",
+            "Script",
+            root_type.Trim(),
+            cancellationToken);
     }
 
     /// <summary>

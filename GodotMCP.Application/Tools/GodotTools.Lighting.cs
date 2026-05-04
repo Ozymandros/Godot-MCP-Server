@@ -47,30 +47,33 @@ public static partial class GodotTools
     /// <param name="preset">Optional preset: sun, fill, spot.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional light payload.</returns>
-    [McpServerTool(Name = "light.create"), Description("Create a light node in a scene with an optional preset.")]
+    [McpServerTool(Name = "light.create"), Description("Create a light node in a scene under projectPath/scenes/ (same contract as scene.add_node), with an optional preset.")]
     public static async Task<ToolResult> LightCreateAsync(
         ILightingService lightingService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (see scene.list_nodes)."), Required] string fileName,
         [Description("Parent node path where the light is added."), Required] string parentNodePath,
         [Description("Light type: DirectionalLight3D, OmniLight3D, SpotLight3D, PointLight2D."), Required] string lightType,
         [Description("Name for the new light node."), Required] string nodeName,
         [Description("Optional preset: sun, fill, spot.")] string? preset = null,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(parentNodePath) || IsBlank(lightType) || IsBlank(nodeName))
         {
             return Invalid("projectPath, fileName, parentNodePath, lightType, and nodeName are required.");
         }
+        var rootType = IsBlank(root_type) ? InferRootTypeForLight(lightType) : root_type.Trim();
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, rootType, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var result = await lightingService
@@ -93,17 +96,18 @@ public static partial class GodotTools
     /// <param name="fileService">Optional file service used to write rawContent when supplied.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result containing operation status and optional light payload.</returns>
-    [McpServerTool(Name = "light.update"), Description("Update selected properties on an existing light node.")]
+    [McpServerTool(Name = "light.update"), Description("Update selected properties on an existing light node in projectPath/scenes/ (same contract as scene.add_node).")]
     public static async Task<ToolResult> LightUpdateAsync(
         ILightingService lightingService,
+        IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/."), Required] string fileName,
         [Description("Light node path to update."), Required] string nodePath,
         [Description("Light properties to update. Supported: light_energy, light_color, shadow_enabled, light_specular."), Required]
         Dictionary<string, JsonElement>? properties,
         [Description("Raw scene text. If provided, replaces the entire scene file.")] string? rawContent = null,
-        IGodotFileService? fileService = null,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node3D",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(nodePath))
@@ -113,20 +117,15 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type.Trim(), cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         if (!string.IsNullOrWhiteSpace(rawContent))
         {
-            if (fileService is null)
-            {
-                return Invalid("fileService is required to write rawContent.");
-            }
-
             await fileService.WriteAsync(scenePath, rawContent, cancellationToken).ConfigureAwait(false);
             return new ToolResult(true, $"Wrote scene '{scenePath}'.");
         }

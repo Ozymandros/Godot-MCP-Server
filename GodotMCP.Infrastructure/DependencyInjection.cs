@@ -31,8 +31,8 @@ public static class DependencyInjection
         services.AddSingleton<IProjectConfigService, ProjectConfigService>();
         services.AddSingleton<IGodotCliService, GodotCliService>();
         services.AddSingleton<IIntegrationInspector, IntegrationInspector>();
-        services.AddSingleton<ICameraService, CameraService>();
         services.AddSingleton<ISceneGraphService, SceneGraphService>();
+        services.AddSingleton<ICameraService, CameraService>();
         services.AddSingleton<IResourcePipelineService, ResourcePipelineService>();
         services.AddSingleton<IUiService, UiService>();
         services.AddSingleton<ILightingService, LightingService>();

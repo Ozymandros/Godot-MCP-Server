@@ -21,7 +21,8 @@ public class CameraServiceTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            var service = new CameraService(files, resolver, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var service = new CameraService(files, resolver, new SceneSerializer(), graph);
 
             var result = await service.ListAsync(root);
 
@@ -45,7 +46,8 @@ public class CameraServiceTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            var service = new CameraService(files, resolver, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var service = new CameraService(files, resolver, new SceneSerializer(), graph);
 
             var result = await service.CreateAsync(new CameraCreateRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -78,7 +80,8 @@ public class CameraServiceTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            var service = new CameraService(files, resolver, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var service = new CameraService(files, resolver, new SceneSerializer(), graph);
 
             var result = await service.UpdateAsync(new CameraUpdateRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -107,7 +110,8 @@ public class CameraServiceTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "scenes/Broken.tscn");
-            var service = new CameraService(files, resolver, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var service = new CameraService(files, resolver, new SceneSerializer(), graph);
 
             var issues = await service.ValidateAsync(root);
 

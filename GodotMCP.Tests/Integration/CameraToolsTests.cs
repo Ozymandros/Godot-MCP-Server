@@ -24,7 +24,8 @@ public class CameraToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+            var sceneGraph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer(), sceneGraph);
 
             var result = await GodotTools.CameraListAsync(cameraService, resolver, root);
 
@@ -50,9 +51,10 @@ public class CameraToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+            var sceneGraph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer(), sceneGraph);
 
-            var result = await GodotTools.CameraCreateAsync(cameraService, resolver, root, "scenes/Main.tscn", "GameplayCamera", "3d", "fps");
+            var result = await GodotTools.CameraCreateAsync(cameraService, files, resolver, root, "scenes/Main.tscn", "GameplayCamera", "3d", "fps");
 
             result.Success.Should().BeTrue();
             var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
@@ -77,7 +79,8 @@ public class CameraToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+            var sceneGraph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer(), sceneGraph);
 
             using var payload = JsonDocument.Parse("""
 {
@@ -91,7 +94,7 @@ public class CameraToolsTests
                 .EnumerateObject()
                 .ToDictionary(p => p.Name, p => p.Value.Clone(), StringComparer.Ordinal);
 
-            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, root, "scenes/Main.tscn", "MainCamera", properties);
+            var result = await GodotTools.CameraUpdateAsync(cameraService, files, resolver, root, "scenes/Main.tscn", "MainCamera", properties);
 
             result.Success.Should().BeTrue();
             var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
@@ -116,10 +119,11 @@ public class CameraToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasValid.tscn", "scenes/Main.tscn");
-            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+            var sceneGraph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer(), sceneGraph);
 
             var newContent = "REPLACED SCENE CONTENT";
-            var result = await GodotTools.CameraUpdateAsync(cameraService, resolver, root, "scenes/Main.tscn", "MainCamera", properties: null, rawContent: newContent, fileService: files);
+            var result = await GodotTools.CameraUpdateAsync(cameraService, files, resolver, root, "scenes/Main.tscn", "MainCamera", properties: null, rawContent: newContent);
 
             result.Success.Should().BeTrue();
             var sceneText = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
@@ -141,7 +145,8 @@ public class CameraToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "CamerasInvalid.tscn", "scenes/Invalid.tscn");
-            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer());
+            var sceneGraph = new SceneGraphService(files, new SceneSerializer(), resolver);
+            ICameraService cameraService = new CameraService(files, resolver, new SceneSerializer(), sceneGraph);
 
             var result = await GodotTools.CameraValidateAsync(cameraService, resolver, root);
 

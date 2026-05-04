@@ -115,7 +115,7 @@ public static partial class GodotTools
     /// <param name="rawContent">Raw texture file content (optional). If binary, encode as base64; content will be written as provided.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
-    [McpServerTool(Name = "create_texture"), Description("Create a dummy texture file and its .import configuration.")]
+    [McpServerTool(Name = "create_texture"), Description("Create a dummy texture file and its .import configuration. Optional linkMaterialFileName (with resourcePipelineService) calls resource.assign_texture after create.")]
     public static async Task<ToolResult> CreateTextureAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -123,6 +123,9 @@ public static partial class GodotTools
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Texture file name or relative path under projectPath."), Required] string fileName,
         [Description("Raw texture file content (optional). If binary, encode as base64 and note that file will be written as provided.")] string? rawContent = null,
+        IResourcePipelineService? resourcePipelineService = null,
+        [Description("Material .tres path under projectPath; requires resourcePipelineService when set.")] string? linkMaterialFileName = null,
+        [Description("Material root property to assign (e.g. albedo_texture).")] string linkMaterialPropertyKey = "albedo_texture",
         CancellationToken cancellationToken = default)
     {
         string texturePath;
@@ -143,11 +146,37 @@ public static partial class GodotTools
         {
             await fileService.WriteAsync(texturePath, string.Empty, cancellationToken).ConfigureAwait(false);
         }
-        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "texture", "Texture2D", new Dictionary<string, string>
+
+        var importResult = await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "texture", "Texture2D", new Dictionary<string, string>
         {
             ["compress/mode"] = "\"lossy\"",
             ["detect_3d/compress_to"] = "\"vrct\""
         }, cancellationToken).ConfigureAwait(false);
+
+        if (!importResult.Success)
+        {
+            return importResult;
+        }
+
+        if (string.IsNullOrWhiteSpace(linkMaterialFileName))
+        {
+            return importResult;
+        }
+
+        if (resourcePipelineService is null)
+        {
+            return Invalid("resourcePipelineService is required when linkMaterialFileName is set.");
+        }
+
+        return await ResourceAssignTextureAsync(
+                resourcePipelineService,
+                pathResolver,
+                projectPath,
+                linkMaterialFileName.Trim(),
+                fileName,
+                linkMaterialPropertyKey,
+                cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -161,7 +190,7 @@ public static partial class GodotTools
     /// <param name="rawContent">Raw audio file content (optional). If binary, encode as base64; content will be written as provided.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
-    [McpServerTool(Name = "create_audio"), Description("Create a dummy audio file and its .import configuration.")]
+    [McpServerTool(Name = "create_audio"), Description("Create a dummy audio file and its .import configuration. Optional linkSceneFileName + linkNodePath (with sceneSerializer) set stream on a node under projectPath/scenes/ after create.")]
     public static async Task<ToolResult> CreateAudioAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -169,6 +198,11 @@ public static partial class GodotTools
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Audio file name or relative path under projectPath."), Required] string fileName,
         [Description("Raw audio file content (optional). If binary, encode as base64 and note that file will be written as provided.")] string? rawContent = null,
+        ISceneSerializer? sceneSerializer = null,
+        [Description("Scene file name under projectPath/scenes/; set with linkNodePath and sceneSerializer to link after create.")] string? linkSceneFileName = null,
+        [Description("Node path (e.g. AudioStreamPlayer).")] string? linkNodePath = null,
+        [Description("Node property to set (usually stream).")] string linkStreamProperty = "stream",
+        [Description("Bootstrap root type when link scene is missing.")] string link_root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         string audioPath;
@@ -189,10 +223,49 @@ public static partial class GodotTools
         {
             await fileService.WriteAsync(audioPath, string.Empty, cancellationToken).ConfigureAwait(false);
         }
-        return await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "wav", "AudioStreamWAV", new Dictionary<string, string>
+
+        var importResult = await GenerateImportFileAsync(fileService, pathResolver, importFileGenerator, projectPath, fileName, "wav", "AudioStreamWAV", new Dictionary<string, string>
         {
             ["force/8_bit"] = "false",
             ["edit/trim"] = "true"
         }, cancellationToken).ConfigureAwait(false);
+
+        if (!importResult.Success)
+        {
+            return importResult;
+        }
+
+        var linkScene = linkSceneFileName?.Trim();
+        var linkNode = linkNodePath?.Trim();
+        var hasScene = !string.IsNullOrEmpty(linkScene);
+        var hasNode = !string.IsNullOrEmpty(linkNode);
+        if (hasScene != hasNode)
+        {
+            return Invalid("linkSceneFileName and linkNodePath must both be provided together, or both omitted.");
+        }
+
+        if (!hasScene)
+        {
+            return importResult;
+        }
+
+        if (sceneSerializer is null)
+        {
+            return Invalid("sceneSerializer is required when linkSceneFileName and linkNodePath are set.");
+        }
+
+        return await AttachExtResourceToSceneNodeAsync(
+                fileService,
+                pathResolver,
+                sceneSerializer,
+                projectPath,
+                linkScene!,
+                linkNode!,
+                fileName,
+                linkStreamProperty.Trim(),
+                "AudioStreamWAV",
+                link_root_type.Trim(),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 }

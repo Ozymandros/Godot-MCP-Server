@@ -26,7 +26,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
@@ -65,7 +65,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Parent node path (for example: ., Player, Player/CameraRig)."), Required] string parentNodePath,
         [Description("Godot node type to create (for example: Node3D, Sprite2D, Control)."), Required] string nodeType,
         [Description("Name for the new node."), Required] string nodeName,
@@ -111,7 +111,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Node path to remove."), Required] string nodePath,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
@@ -156,7 +156,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Node path to move."), Required] string nodePath,
         [Description("Destination parent node path (for example: ., Player, Player/CameraRig)."), Required] string newParentPath,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
@@ -202,7 +202,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Node path to rename."), Required] string nodePath,
         [Description("New node name."), Required] string newName,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
@@ -247,7 +247,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Node path to inspect."), Required] string nodePath,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
@@ -297,7 +297,7 @@ public static partial class GodotTools
         IGodotFileService fileService,
         IPathResolver pathResolver,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Node path to update."), Required] string nodePath,
         [Description("Property map to update. Values must be primitive JSON values."), Required]
         Dictionary<string, JsonElement>? properties,
@@ -364,7 +364,7 @@ public static partial class GodotTools
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
@@ -406,7 +406,7 @@ public static partial class GodotTools
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Scene file name under projectPath/scenes/ (e.g. Main.tscn); leading scenes/ merges with the scenes folder."), Required] string fileName,
         [Description("Signal name (e.g. pressed, gui_input)."), Required] string signal,
         [Description("From node path as in Godot scene text (e.g. Button or .. )."), Required] string from,
         [Description("To node path as in Godot scene text."), Required] string to,

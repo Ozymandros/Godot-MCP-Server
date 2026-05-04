@@ -71,7 +71,7 @@ public static partial class GodotTools
     /// <param name="rawContent">Raw resource file text. If provided, written verbatim instead of serializing type and properties.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing creation status.</returns>
-    [McpServerTool(Name = "create_resource"), Description("Create a new Godot resource file (.tres).")]
+    [McpServerTool(Name = "create_resource"), Description("Create a new Godot resource file (.tres). Optional linkSceneFileName + linkNodePath + linkPropertyKey (with sceneSerializer) attach the new resource to a scene under projectPath/scenes/.")]
     public static async Task<ToolResult> CreateResourceAsync(
         IGodotFileService fileService,
         IPathResolver pathResolver,
@@ -81,6 +81,12 @@ public static partial class GodotTools
         [Description("Godot resource type (e.g., Resource, Environment)."), Required] string type,
         [Description("Dictionary of property key-values for the resource.")] Dictionary<string, string>? properties = null,
         [Description("Raw resource file text. If provided, written verbatim instead of serializing type+properties.")] string? rawContent = null,
+        ISceneSerializer? sceneSerializer = null,
+        [Description("Scene file name under projectPath/scenes/; set with linkNodePath, linkPropertyKey, and sceneSerializer to link after create.")] string? linkSceneFileName = null,
+        [Description("Node path in the scene.")] string? linkNodePath = null,
+        [Description("Node property to set to the new .tres (e.g. environment).")] string? linkPropertyKey = null,
+        [Description("ext_resource type for the .tres (often matches Godot resource type).")] string link_ext_resource_type = "Resource",
+        [Description("Bootstrap root type when link scene is missing.")] string link_root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         string path;
@@ -96,15 +102,57 @@ public static partial class GodotTools
         if (!string.IsNullOrWhiteSpace(rawContent))
         {
             await fileService.WriteAsync(path, rawContent, cancellationToken).ConfigureAwait(false);
-            return new ToolResult(true, $"Resource created at '{path}'.");
         }
-
-        if (properties is null)
+        else
         {
-            return Invalid("properties are required when rawContent is not provided.");
+            if (properties is null)
+            {
+                return Invalid("properties are required when rawContent is not provided.");
+            }
+
+            await fileService.WriteAsync(path, resourceSerializer.Serialize(type, properties), cancellationToken).ConfigureAwait(false);
         }
 
-        await fileService.WriteAsync(path, resourceSerializer.Serialize(type, properties), cancellationToken).ConfigureAwait(false);
+        var linkScene = linkSceneFileName?.Trim();
+        var linkNode = linkNodePath?.Trim();
+        var linkProp = linkPropertyKey?.Trim();
+        var hasScene = !string.IsNullOrEmpty(linkScene);
+        var hasNode = !string.IsNullOrEmpty(linkNode);
+        var hasProp = !string.IsNullOrEmpty(linkProp);
+        if (hasScene || hasNode || hasProp)
+        {
+            if (!hasScene || !hasNode || !hasProp)
+            {
+                return Invalid("linkSceneFileName, linkNodePath, and linkPropertyKey must all be provided together when linking.");
+            }
+
+            if (sceneSerializer is null)
+            {
+                return Invalid("sceneSerializer is required when linking a resource to a scene.");
+            }
+
+            var attach = await AttachExtResourceToSceneNodeAsync(
+                    fileService,
+                    pathResolver,
+                    sceneSerializer,
+                    projectPath,
+                    linkScene!,
+                    linkNode!,
+                    fileName,
+                    linkProp!,
+                    link_ext_resource_type.Trim(),
+                    link_root_type.Trim(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!attach.Success)
+            {
+                return attach;
+            }
+
+            return new ToolResult(true, $"Resource created at '{path}' and linked to '{linkNode}' ({linkProp}).", attach.Data);
+        }
+
         return new ToolResult(true, $"Resource created at '{path}'.");
     }
 }
