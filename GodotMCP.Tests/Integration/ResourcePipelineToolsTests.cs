@@ -1,3 +1,5 @@
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Integration;
 
 /// <summary>
@@ -127,6 +129,39 @@ public class ResourcePipelineToolsTests
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain("not found");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies <c>resource.assign_texture</c> writes <c>res://</c> ext_resource and property.
+    /// </summary>
+    [Fact]
+    public async Task ResourceAssignTexture_CommandShouldWireExtResource()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await files.WriteAsync(Path.Combine("materials", "Mat.tres"), "[gd_resource type=\"StandardMaterial3D\" format=3]\n\nalbedo_color = Color(1, 1, 1)");
+            await files.WriteAsync(Path.Combine("textures", "t.png"), "x");
+            IResourcePipelineService service = new ResourcePipelineService(files, resolver, new ResourceSerializer());
+
+            var result = await GodotTools.ResourceAssignTextureAsync(
+                service,
+                resolver,
+                root,
+                "materials/Mat.tres",
+                "textures/t.png",
+                "albedo_texture",
+                "Texture2D");
+
+            result.Success.Should().BeTrue();
+            var text = await files.ReadAsync(Path.Combine("materials", "Mat.tres"));
+            text.Should().Contain("path=\"res://textures/t.png\"");
+            text.Should().Contain("albedo_texture = ExtResource(\"1\")");
         }
         finally
         {

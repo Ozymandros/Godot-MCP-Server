@@ -70,16 +70,16 @@ public sealed class SceneSerializer : ISceneSerializer
                         scene.Nodes.Add(currentNode);
                         break;
                     case "connection":
-                    {
-                        var connection = new GodotConnection();
-                        foreach (var kv in attributes)
                         {
-                            connection.Attributes[kv.Key] = kv.Value;
-                        }
+                            var connection = new GodotConnection();
+                            foreach (var kv in attributes)
+                            {
+                                connection.Attributes[kv.Key] = kv.Value;
+                            }
 
-                        scene.Connections.Add(connection);
-                        break;
-                    }
+                            scene.Connections.Add(connection);
+                            break;
+                        }
                 }
 
                 continue;

@@ -41,4 +41,21 @@ public interface IResourcePipelineService
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Mutation result with updated properties when successful.</returns>
     Task<ResourcePropertyMutationResult> RemovePropertyAsync(string resourcePath, string propertyKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ensures an <c>ext_resource</c> for a texture and assigns <paramref name="propertyKey"/> on the root resource
+    /// to <c>ExtResource("id")</c> (for example <c>albedo_texture</c> on <c>StandardMaterial3D</c> or <c>shader_parameter/foo</c> on <c>ShaderMaterial</c>).
+    /// </summary>
+    /// <param name="resourcePath">Path to the <c>.tres</c> / <c>.res</c> material or resource file to edit.</param>
+    /// <param name="texturePath">Texture file path (absolute under the project or project-relative).</param>
+    /// <param name="propertyKey">Root resource property name (e.g. <c>albedo_texture</c>).</param>
+    /// <param name="extResourceType"><c>ext_resource</c> type string (default <c>Texture2D</c>).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Mutation result with updated properties when successful.</returns>
+    Task<ResourcePropertyMutationResult> AssignTexturePropertyAsync(
+        string resourcePath,
+        string texturePath,
+        string propertyKey,
+        string extResourceType = "Texture2D",
+        CancellationToken cancellationToken = default);
 }

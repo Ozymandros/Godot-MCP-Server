@@ -166,6 +166,67 @@ public static partial class GodotTools
     }
 
     /// <summary>
+    /// Assigns a texture to a material (or other) <c>.tres</c> root property via <c>ExtResource</c>.
+    /// </summary>
+    /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="materialFileName">Material or resource <c>.tres</c> path under <paramref name="projectPath"/>.</param>
+    /// <param name="textureFileName">Texture asset path (e.g. <c>textures/albedo.png</c>) under the project.</param>
+    /// <param name="propertyKey">Root property to set (default <c>albedo_texture</c> for <c>StandardMaterial3D</c>).</param>
+    /// <param name="extResourceType"><c>ext_resource</c> type (default <c>Texture2D</c>).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result with updated property map.</returns>
+    [McpServerTool(Name = "resource.assign_texture"), Description("Ensure a texture ext_resource on a .tres/.res and set a property (e.g. albedo_texture) to ExtResource(\"id\").")]
+    public static async Task<ToolResult> ResourceAssignTextureAsync(
+        IResourcePipelineService resourcePipelineService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Material or resource file (.tres/.res) relative to projectPath."), Required] string materialFileName,
+        [Description("Texture file path relative to project root or absolute under project (e.g. textures/wood.png)."), Required] string textureFileName,
+        [Description("Resource property key (e.g. albedo_texture, normal_texture, shader_parameter/my_tex).")] string propertyKey = "albedo_texture",
+        [Description("Godot ext_resource type for the texture (usually Texture2D).")] string extResourceType = "Texture2D",
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(materialFileName) || IsBlank(textureFileName))
+        {
+            return Invalid("materialFileName and textureFileName are required.");
+        }
+
+        string materialPath;
+        try
+        {
+            materialPath = ResolveProjectFilePath(pathResolver, projectPath, materialFileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        string texturePath;
+        try
+        {
+            texturePath = ResolveProjectFilePath(pathResolver, projectPath, textureFileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message, "textureFileName must resolve under projectPath.");
+        }
+
+        try
+        {
+            var mutation = await resourcePipelineService
+                .AssignTexturePropertyAsync(materialPath, texturePath, propertyKey, extResourceType, cancellationToken)
+                .ConfigureAwait(false);
+            return new ToolResult(mutation.Success, mutation.Message, mutation.Properties);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or InvalidOperationException)
+        {
+            return new ToolResult(false, ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Removes a single property from a resource file.
     /// </summary>
     /// <param name="resourcePipelineService">Resource pipeline service abstraction.</param>

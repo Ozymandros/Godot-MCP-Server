@@ -70,12 +70,12 @@ public static class ProjectInputMapEditor
         return true;
     }
 
-/// <summary>
-/// Finds the index to insert a new input action in the [input] section.
-/// </summary>
-/// <param name="lines">The lines of the project.godot file.</param>
-/// <param name="inputIdx">The index of the [input] section.</param>
-/// <returns>The index to insert the new input action.</returns>
+    /// <summary>
+    /// Finds the index to insert a new input action in the [input] section.
+    /// </summary>
+    /// <param name="lines">The lines of the project.godot file.</param>
+    /// <param name="inputIdx">The index of the [input] section.</param>
+    /// <returns>The index to insert the new input action.</returns>
     private static int FindInsertIndexInInputSection(List<string> lines, int inputIdx)
     {
         var i = inputIdx + 1;

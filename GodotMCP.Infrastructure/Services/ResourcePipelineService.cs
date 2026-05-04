@@ -1,3 +1,4 @@
+using System.Globalization;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 
@@ -79,6 +80,81 @@ public sealed class ResourcePipelineService(
 
         await WriteAsync(resourcePath, document, cancellationToken).ConfigureAwait(false);
         return new ResourcePropertyMutationResult(true, $"Removed property '{propertyKey}'.", Clone(document.Properties));
+    }
+
+    /// <inheritdoc />
+    public async Task<ResourcePropertyMutationResult> AssignTexturePropertyAsync(
+        string resourcePath,
+        string texturePath,
+        string propertyKey,
+        string extResourceType = "Texture2D",
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(propertyKey))
+        {
+            return new ResourcePropertyMutationResult(false, "propertyKey is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(texturePath))
+        {
+            return new ResourcePropertyMutationResult(false, "texturePath is required.");
+        }
+
+        var extType = string.IsNullOrWhiteSpace(extResourceType) ? "Texture2D" : extResourceType.Trim();
+        EnsureValidResourcePath(resourcePath);
+
+        var textureFull = pathResolver.ResolvePath(texturePath.Trim());
+        pathResolver.EnsureInsideProject(textureFull);
+        var resPath = pathResolver.ToGodotResPath(textureFull);
+
+        var document = await ReadAsync(resourcePath, cancellationToken).ConfigureAwait(false);
+
+        var existing = document.ExternalResources.FirstOrDefault(e =>
+            string.Equals(e.Path, resPath, StringComparison.OrdinalIgnoreCase));
+
+        string extId;
+        if (existing is not null)
+        {
+            extId = existing.Id;
+            if (!string.Equals(existing.Type, extType, StringComparison.Ordinal))
+            {
+                existing.Type = extType;
+            }
+        }
+        else
+        {
+            extId = AllocateNextExtResourceId(document);
+            document.ExternalResources.Add(new ExtResource { Id = extId, Type = extType, Path = resPath });
+        }
+
+        var value = $"ExtResource(\"{extId}\")";
+        document.Properties[propertyKey] = value;
+        await WriteAsync(resourcePath, document, cancellationToken).ConfigureAwait(false);
+        return new ResourcePropertyMutationResult(
+            true,
+            $"Set '{propertyKey}' = {value} (texture {resPath}).",
+            Clone(document.Properties));
+    }
+
+    private static string AllocateNextExtResourceId(ResourceDocument document)
+    {
+        var used = new HashSet<string>(document.ExternalResources.Select(e => e.Id), StringComparer.Ordinal);
+        var max = 0;
+        foreach (var ext in document.ExternalResources)
+        {
+            if (int.TryParse(ext.Id, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+            {
+                max = Math.Max(max, n);
+            }
+        }
+
+        var candidate = max + 1;
+        while (used.Contains(candidate.ToString(CultureInfo.InvariantCulture)))
+        {
+            candidate++;
+        }
+
+        return candidate.ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>

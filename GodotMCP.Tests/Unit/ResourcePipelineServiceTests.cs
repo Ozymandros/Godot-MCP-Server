@@ -111,6 +111,64 @@ public class ResourcePipelineServiceTests
     }
 
     /// <summary>
+    /// Verifies texture assignment adds an ext_resource and sets albedo_texture.
+    /// </summary>
+    [Fact]
+    public async Task AssignTexturePropertyAsync_ShouldAddExtResourceAndAlbedoTexture()
+    {
+        var (root, _, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await files.WriteAsync(Path.Combine("materials", "Mat.tres"), "[gd_resource type=\"StandardMaterial3D\" format=3]\n\nalbedo_color = Color(1, 1, 1)");
+            await files.WriteAsync(Path.Combine("textures", "wood.png"), "fake");
+            var service = CreateService(files, root);
+            var matPath = Path.Combine(root, "materials", "Mat.tres");
+            var texPath = Path.Combine(root, "textures", "wood.png");
+
+            var result = await service.AssignTexturePropertyAsync(matPath, texPath, "albedo_texture");
+
+            result.Success.Should().BeTrue();
+            result.Properties!["albedo_texture"].Should().StartWith("ExtResource(");
+            var text = await files.ReadAsync(matPath);
+            text.Should().Contain("path=\"res://textures/wood.png\"");
+            text.Should().Contain("albedo_texture = ExtResource(\"1\")");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies a second property using the same texture reuses one ext_resource.
+    /// </summary>
+    [Fact]
+    public async Task AssignTexturePropertyAsync_ShouldReuseExtForSameTexturePath()
+    {
+        var (root, _, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await files.WriteAsync(Path.Combine("materials", "Mat.tres"), "[gd_resource type=\"StandardMaterial3D\" format=3]\n\nalbedo_color = Color(1, 1, 1)");
+            await files.WriteAsync(Path.Combine("textures", "wood.png"), "fake");
+            var service = CreateService(files, root);
+            var matPath = Path.Combine(root, "materials", "Mat.tres");
+            var texPath = Path.Combine(root, "textures", "wood.png");
+
+            await service.AssignTexturePropertyAsync(matPath, texPath, "albedo_texture");
+            await service.AssignTexturePropertyAsync(matPath, texPath, "normal_texture");
+
+            var text = await files.ReadAsync(matPath);
+            text.Split("path=\"res://textures/wood.png\"", StringSplitOptions.None).Should().HaveCount(2);
+            text.Should().Contain("albedo_texture = ExtResource(\"1\")");
+            text.Should().Contain("normal_texture = ExtResource(\"1\")");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
     /// Verifies that invalid file extensions are rejected.
     /// </summary>
     [Fact]
