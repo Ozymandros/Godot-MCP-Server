@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Text.Json;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Core.ProjectSettings;
@@ -307,6 +308,208 @@ project/assembly_name="{{projectName}}"
 
         var text = await File.ReadAllTextAsync(projectFile, cancellationToken).ConfigureAwait(false);
         if (!ProjectInputMapEditor.TryAppendPhysicalKeyAction(text, actionName, physical_key_code, out var updated, out var message))
+        {
+            return new ToolResult(false, message);
+        }
+
+        await File.WriteAllTextAsync(projectFile, updated, cancellationToken).ConfigureAwait(false);
+        return new ToolResult(true, message);
+    }
+
+    [McpServerTool(Name = "project.input_list_actions"), Description("List input actions and their events from project.godot [input].")]
+    public static async Task<ToolResult> ProjectInputListActionsAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        CancellationToken cancellationToken = default)
+    {
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
+        {
+            return new ToolResult(false, "project.godot not found. Create a project first.");
+        }
+
+        var text = await File.ReadAllTextAsync(projectFile, cancellationToken).ConfigureAwait(false);
+        if (!ProjectInputMapEditor.TryListActions(text, out var actions, out var message))
+        {
+            return new ToolResult(false, message);
+        }
+
+        var dto = actions.Select(a => new
+        {
+            name = a.Name,
+            deadzone = a.Deadzone,
+            events = a.Events.Select(e => new
+            {
+                eventType = e.EventType,
+                canonicalKey = e.CanonicalKey,
+                serializedType = e.SerializedType,
+                fields = e.SerializedFields
+            }).ToList()
+        }).ToList();
+
+        return new ToolResult(true, $"Listed {dto.Count} input action(s).", dto);
+    }
+
+    [McpServerTool(Name = "project.input_add_action"), Description("Add an input action in project.godot [input].")]
+    public static async Task<ToolResult> ProjectInputAddActionAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Action name (e.g. jump)."), Required] string actionName,
+        [Description("Action deadzone value.")] double deadzone = 0.5,
+        CancellationToken cancellationToken = default)
+    {
+        return await EditInputMapAsync(pathResolver, projectPath, cancellationToken, (string text, out string updated, out string message)
+            => ProjectInputMapEditor.TryAddAction(text, actionName, deadzone, overwriteIfExists: false, out updated, out message)).ConfigureAwait(false);
+    }
+
+    [McpServerTool(Name = "project.input_update_action"), Description("Update deadzone for an existing input action.")]
+    public static async Task<ToolResult> ProjectInputUpdateActionAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Action name (e.g. jump)."), Required] string actionName,
+        [Description("Updated deadzone value.")] double deadzone,
+        CancellationToken cancellationToken = default)
+    {
+        return await EditInputMapAsync(pathResolver, projectPath, cancellationToken, (string text, out string updated, out string message)
+            => ProjectInputMapEditor.TryUpdateDeadzone(text, actionName, deadzone, out updated, out message)).ConfigureAwait(false);
+    }
+
+    [McpServerTool(Name = "project.input_remove_action"), Description("Remove an input action from project.godot [input].")]
+    public static async Task<ToolResult> ProjectInputRemoveActionAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Action name to remove."), Required] string actionName,
+        CancellationToken cancellationToken = default)
+    {
+        return await EditInputMapAsync(pathResolver, projectPath, cancellationToken, (string text, out string updated, out string message)
+            => ProjectInputMapEditor.TryRemoveAction(text, actionName, out updated, out message)).ConfigureAwait(false);
+    }
+
+    [McpServerTool(Name = "project.input_add_event"), Description("Add an input event (key, mouse_button, joypad_button, joypad_motion) to an action.")]
+    public static async Task<ToolResult> ProjectInputAddEventAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Action name to edit."), Required] string actionName,
+        [Description("Event type: key, mouse_button, joypad_button, joypad_motion."), Required] string eventType,
+        [Description("Event payload object. key: physical_key_code|key_code + modifiers; mouse_button: button_index; joypad_button: button_index; joypad_motion: axis + axis_value.")]
+        Dictionary<string, JsonElement>? eventPayload = null,
+        [Description("Allow duplicate events on the same action.")] bool allowDuplicate = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryBuildProjectInputEvent(eventType, eventPayload, out var evt, out var error))
+        {
+            return Invalid(error);
+        }
+
+        return await EditInputMapAsync(pathResolver, projectPath, cancellationToken, (string text, out string updated, out string message)
+            => ProjectInputMapEditor.TryAddEvent(text, actionName, evt!, allowDuplicate, out updated, out message)).ConfigureAwait(false);
+    }
+
+    [McpServerTool(Name = "project.input_remove_event"), Description("Remove an input event from an action using explicit event fields.")]
+    public static async Task<ToolResult> ProjectInputRemoveEventAsync(
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Action name to edit."), Required] string actionName,
+        [Description("Event type: key, mouse_button, joypad_button, joypad_motion."), Required] string eventType,
+        [Description("Event payload object matching the event identity to remove.")] Dictionary<string, JsonElement>? eventPayload = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryBuildProjectInputEvent(eventType, eventPayload, out var evt, out var error))
+        {
+            return Invalid(error);
+        }
+
+        return await EditInputMapAsync(pathResolver, projectPath, cancellationToken, (string text, out string updated, out string message)
+            => ProjectInputMapEditor.TryRemoveEvent(text, actionName, evt!, out updated, out message)).ConfigureAwait(false);
+    }
+
+    private static bool TryBuildProjectInputEvent(
+        string eventType,
+        Dictionary<string, JsonElement>? payload,
+        out ProjectInputEvent? inputEvent,
+        out string error)
+    {
+        inputEvent = null;
+        error = string.Empty;
+        payload ??= new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        var kind = eventType.Trim().ToLowerInvariant();
+
+        bool Bool(string key, bool d = false)
+            => payload.TryGetValue(key, out var j) && j.ValueKind is JsonValueKind.True or JsonValueKind.False ? j.GetBoolean() : d;
+
+        int Int(string key, int d = 0)
+            => payload.TryGetValue(key, out var j) && j.ValueKind == JsonValueKind.Number && j.TryGetInt32(out var v) ? v : d;
+
+        double Double(string key, double d = 0)
+            => payload.TryGetValue(key, out var j) && j.ValueKind == JsonValueKind.Number && j.TryGetDouble(out var v) ? v : d;
+
+        switch (kind)
+        {
+            case "key":
+                inputEvent = ProjectInputEvent.Key(
+                    physicalKeyCode: Int("physical_key_code", 0),
+                    keyCode: Int("key_code", 0),
+                    shift: Bool("shift", false),
+                    alt: Bool("alt", false),
+                    ctrl: Bool("ctrl", false),
+                    meta: Bool("meta", false));
+                return true;
+            case "mouse_button":
+                inputEvent = ProjectInputEvent.MouseButton(Int("button_index", 1), Bool("double_click", false));
+                return true;
+            case "joypad_button":
+                inputEvent = ProjectInputEvent.JoypadButton(Int("button_index", 0));
+                return true;
+            case "joypad_motion":
+                inputEvent = ProjectInputEvent.JoypadMotion(Int("axis", 0), Double("axis_value", 1));
+                return true;
+            default:
+                error = "eventType must be one of: key, mouse_button, joypad_button, joypad_motion.";
+                return false;
+        }
+    }
+
+    private delegate bool InputMapEditDelegate(string text, out string updated, out string message);
+
+    private static async Task<ToolResult> EditInputMapAsync(
+        IPathResolver pathResolver,
+        string projectPath,
+        CancellationToken cancellationToken,
+        InputMapEditDelegate edit)
+    {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var projectFile = Path.Combine(baseDir, "project.godot");
+        if (!File.Exists(projectFile))
+        {
+            return new ToolResult(false, "project.godot not found. Create a project first.");
+        }
+
+        var text = await File.ReadAllTextAsync(projectFile, cancellationToken).ConfigureAwait(false);
+        if (!edit(text, out var updated, out var message))
         {
             return new ToolResult(false, message);
         }

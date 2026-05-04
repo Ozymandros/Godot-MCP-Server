@@ -71,4 +71,24 @@ public interface ISceneGraphService
     /// <param name="cancellationToken">Cancellation token for cooperative cancellation.</param>
     /// <returns>The mutation result including status and optional updated node snapshot.</returns>
     Task<SceneGraphMutationResult> SetNodePropertiesAsync(SceneGraphSetPropertiesRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Lists serialized connection rows from the target scene.
+    /// </summary>
+    Task<IReadOnlyList<SceneConnectionInfo>> ListConnectionsAsync(string scenePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds one connection row with validation.
+    /// </summary>
+    Task<SceneGraphMutationResult> AddConnectionAsync(SceneConnectionAddRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes a connection row by explicit match.
+    /// </summary>
+    Task<SceneGraphMutationResult> RemoveConnectionAsync(SceneConnectionRemoveRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates a connection by matching old fields and replacing with new fields.
+    /// </summary>
+    Task<SceneGraphMutationResult> UpdateConnectionAsync(SceneConnectionUpdateRequest request, CancellationToken cancellationToken = default);
 }

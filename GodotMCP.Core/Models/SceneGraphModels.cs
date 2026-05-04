@@ -88,6 +88,46 @@ public sealed record SceneGraphSetPropertiesRequest(
     IReadOnlyDictionary<string, object?> Properties);
 
 /// <summary>
+/// Connection descriptor for scene [connection] rows.
+/// </summary>
+public sealed record SceneConnectionInfo(
+    string Signal,
+    string From,
+    string To,
+    string Method,
+    string? Flags,
+    string? Binds,
+    string? Unbinds,
+    IReadOnlyDictionary<string, string> Attributes,
+    string CanonicalKey);
+
+public sealed record SceneConnectionAddRequest(
+    string ScenePath,
+    string Signal,
+    string From,
+    string To,
+    string Method,
+    string? Flags = null,
+    string? Binds = null,
+    string? Unbinds = null,
+    bool Idempotent = true);
+
+public sealed record SceneConnectionRemoveRequest(
+    string ScenePath,
+    string Signal,
+    string From,
+    string To,
+    string Method,
+    string? Flags = null,
+    string? Binds = null,
+    string? Unbinds = null);
+
+public sealed record SceneConnectionUpdateRequest(
+    string ScenePath,
+    SceneConnectionRemoveRequest Match,
+    SceneConnectionAddRequest NewValue);
+
+/// <summary>
 /// Represents the result of a scene graph mutation command.
 /// </summary>
 /// <param name="Success">Whether the operation succeeded.</param>

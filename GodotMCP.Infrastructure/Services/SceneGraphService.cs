@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
 using GodotMCP.Core.SceneGraph;
@@ -294,6 +295,77 @@ public sealed class SceneGraphService(
         return new SceneGraphMutationResult(true, $"Updated {request.Properties.Count} propertie(s) on '{targetPath}'.", snapshot);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<SceneConnectionInfo>> ListConnectionsAsync(string scenePath, CancellationToken cancellationToken = default)
+    {
+        var scene = await ReadSceneAsync(scenePath, cancellationToken).ConfigureAwait(false);
+        return scene.Connections
+            .Select(MapConnection)
+            .OrderBy(x => x.CanonicalKey, Comparer)
+            .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<SceneGraphMutationResult> AddConnectionAsync(SceneConnectionAddRequest request, CancellationToken cancellationToken = default)
+    {
+        var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
+        var index = SceneNodePathIndex.Build(scene);
+        if (!ValidateConnectionRequest(scene, index, request.Signal, request.From, request.To, request.Method, out var validationError))
+        {
+            return new SceneGraphMutationResult(false, validationError!);
+        }
+
+        var candidate = BuildConnection(request.Signal, request.From, request.To, request.Method, request.Flags, request.Binds, request.Unbinds);
+        var key = ComputeConnectionKey(candidate.Attributes);
+        var exists = scene.Connections.Any(c => ComputeConnectionKey(c.Attributes) == key);
+        if (exists && request.Idempotent)
+        {
+            return new SceneGraphMutationResult(true, "Connection already exists.");
+        }
+
+        if (exists)
+        {
+            return new SceneGraphMutationResult(false, "Connection already exists.");
+        }
+
+        scene.Connections.Add(candidate);
+        await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
+        return new SceneGraphMutationResult(true, "Connection added.");
+    }
+
+    /// <inheritdoc />
+    public async Task<SceneGraphMutationResult> RemoveConnectionAsync(SceneConnectionRemoveRequest request, CancellationToken cancellationToken = default)
+    {
+        var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
+        var key = ComputeConnectionKey(BuildConnection(request.Signal, request.From, request.To, request.Method, request.Flags, request.Binds, request.Unbinds).Attributes);
+        var removed = scene.Connections.RemoveAll(c => ComputeConnectionKey(c.Attributes) == key);
+        if (removed == 0)
+        {
+            return new SceneGraphMutationResult(false, "Connection was not found.");
+        }
+
+        await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
+        return new SceneGraphMutationResult(true, $"Removed {removed} connection(s).");
+    }
+
+    /// <inheritdoc />
+    public async Task<SceneGraphMutationResult> UpdateConnectionAsync(SceneConnectionUpdateRequest request, CancellationToken cancellationToken = default)
+    {
+        var remove = await RemoveConnectionAsync(request.Match, cancellationToken).ConfigureAwait(false);
+        if (!remove.Success)
+        {
+            return remove;
+        }
+
+        var add = await AddConnectionAsync(request.NewValue with { Idempotent = false }, cancellationToken).ConfigureAwait(false);
+        if (!add.Success)
+        {
+            return add;
+        }
+
+        return new SceneGraphMutationResult(true, "Connection updated.");
+    }
+
     /// <summary>
     /// Reads and deserializes a scene file from project storage.
     /// </summary>
@@ -542,4 +614,166 @@ public sealed class SceneGraphService(
     /// <returns><c>.</c> for root-level parents; otherwise the provided parent path.</returns>
     private static string DisplayParent(string? parentPath)
         => string.IsNullOrWhiteSpace(parentPath) ? "." : parentPath;
+
+    private static SceneConnectionInfo MapConnection(GodotConnection connection)
+    {
+        var attrs = connection.Attributes.ToDictionary(x => x.Key, x => x.Value, Comparer);
+        return new SceneConnectionInfo(
+            attrs.GetValueOrDefault("signal", string.Empty),
+            attrs.GetValueOrDefault("from", string.Empty),
+            attrs.GetValueOrDefault("to", string.Empty),
+            attrs.GetValueOrDefault("method", string.Empty),
+            attrs.GetValueOrDefault("flags"),
+            attrs.GetValueOrDefault("binds"),
+            attrs.GetValueOrDefault("unbinds"),
+            attrs,
+            ComputeConnectionKey(attrs));
+    }
+
+    private static GodotConnection BuildConnection(string signal, string from, string to, string method, string? flags, string? binds, string? unbinds)
+    {
+        var c = new GodotConnection();
+        c.Attributes["signal"] = signal.Trim();
+        c.Attributes["from"] = from.Trim();
+        c.Attributes["to"] = to.Trim();
+        c.Attributes["method"] = method.Trim();
+        if (!string.IsNullOrWhiteSpace(flags)) c.Attributes["flags"] = flags.Trim();
+        if (!string.IsNullOrWhiteSpace(binds)) c.Attributes["binds"] = binds.Trim();
+        if (!string.IsNullOrWhiteSpace(unbinds)) c.Attributes["unbinds"] = unbinds.Trim();
+        return c;
+    }
+
+    private static string ComputeConnectionKey(IReadOnlyDictionary<string, string> attrs)
+        => string.Join("|", new[]
+        {
+            attrs.GetValueOrDefault("signal", string.Empty).Trim(),
+            attrs.GetValueOrDefault("from", string.Empty).Trim(),
+            attrs.GetValueOrDefault("to", string.Empty).Trim(),
+            attrs.GetValueOrDefault("method", string.Empty).Trim(),
+            attrs.GetValueOrDefault("flags", string.Empty).Trim(),
+            attrs.GetValueOrDefault("binds", string.Empty).Trim(),
+            attrs.GetValueOrDefault("unbinds", string.Empty).Trim()
+        });
+
+    private bool ValidateConnectionRequest(
+        GodotScene scene,
+        ScenePathIndex index,
+        string signal,
+        string from,
+        string to,
+        string method,
+        out string? error)
+    {
+        error = null;
+        if (string.IsNullOrWhiteSpace(signal) || string.IsNullOrWhiteSpace(from) || string.IsNullOrWhiteSpace(to) || string.IsNullOrWhiteSpace(method))
+        {
+            error = "signal, from, to, and method are required.";
+            return false;
+        }
+
+        var fromPath = NormalizeConnectionNodePath(from);
+        var toPath = NormalizeConnectionNodePath(to);
+        if (!index.ByPath.ContainsKey(fromPath))
+        {
+            error = $"Source node '{from}' was not found.";
+            return false;
+        }
+
+        if (!index.ByPath.ContainsKey(toPath))
+        {
+            error = $"Target node '{to}' was not found.";
+            return false;
+        }
+
+        if (TryGetKnownSignals(index.ByPath[fromPath].Node.Type, out var known) && !known.Contains(signal.Trim(), StringComparer.Ordinal))
+        {
+            error = $"Signal '{signal}' is not known for node type '{index.ByPath[fromPath].Node.Type}'.";
+            return false;
+        }
+
+        if (!TryValidateTargetMethod(scene, index.ByPath[toPath].Node, method, out error))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static string NormalizeConnectionNodePath(string path)
+    {
+        var n = path.Trim();
+        if (n == ".")
+        {
+            return string.Empty;
+        }
+
+        if (n.StartsWith("%", StringComparison.Ordinal))
+        {
+            n = n[1..];
+        }
+
+        return SceneNodePathIndex.NormalizeNodePath(n);
+    }
+
+    private static bool TryGetKnownSignals(string nodeType, out string[] signals)
+    {
+        var known = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["Button"] = ["pressed", "button_down", "button_up", "toggled"],
+            ["BaseButton"] = ["pressed", "button_down", "button_up", "toggled"],
+            ["Area2D"] = ["body_entered", "body_exited", "area_entered", "area_exited"],
+            ["Area3D"] = ["body_entered", "body_exited", "area_entered", "area_exited"],
+            ["Timer"] = ["timeout"],
+            ["AnimationPlayer"] = ["animation_finished", "animation_started"],
+            ["Node"] = ["ready", "tree_entered", "tree_exited"]
+        };
+
+        return known.TryGetValue(nodeType.Trim(), out signals!);
+    }
+
+    private bool TryValidateTargetMethod(GodotScene scene, GodotNode targetNode, string method, out string? error)
+    {
+        error = null;
+        if (!targetNode.Properties.TryGetValue("script", out var scriptRef) || string.IsNullOrWhiteSpace(scriptRef))
+        {
+            return true;
+        }
+
+        var idMatch = Regex.Match(scriptRef, "ExtResource\\(\"(?<id>[^\"]+)\"\\)");
+        if (!idMatch.Success)
+        {
+            return true;
+        }
+
+        var id = idMatch.Groups["id"].Value;
+        var ext = scene.ExternalResources.FirstOrDefault(x => Comparer.Equals(x.Id, id));
+        if (ext is null || string.IsNullOrWhiteSpace(ext.Path))
+        {
+            return true;
+        }
+
+        var scriptPathRef = ext.Path.Trim();
+        if (scriptPathRef.StartsWith("res://", StringComparison.OrdinalIgnoreCase))
+        {
+            scriptPathRef = scriptPathRef["res://".Length..];
+        }
+
+        var scriptAbs = pathResolver.ResolvePath(scriptPathRef);
+        if (!fileService.Exists(scriptAbs))
+        {
+            return true;
+        }
+
+        var text = fileService.ReadAsync(scriptAbs).ConfigureAwait(false).GetAwaiter().GetResult();
+        var methodName = method.Trim();
+        var gd = Regex.IsMatch(text, $@"\bfunc\s+{Regex.Escape(methodName)}\s*\(", RegexOptions.Multiline);
+        var cs = Regex.IsMatch(text, $@"\b(?:public|private|protected|internal)\s+[^\r\n\(]+\s+{Regex.Escape(methodName)}\s*\(", RegexOptions.Multiline);
+        if (!gd && !cs)
+        {
+            error = $"Method '{methodName}' was not found in target script '{ext.Path}'.";
+            return false;
+        }
+
+        return true;
+    }
 }
