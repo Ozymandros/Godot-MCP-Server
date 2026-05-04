@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using GodotMCP.Core.SceneGraph;
 using ModelContextProtocol.Server;
 
 namespace GodotMCP.Application.Tools;
@@ -67,9 +69,10 @@ public static partial class GodotTools
     /// <summary>
     /// Appends a child node to a scene under a specific parent path.
     /// </summary>
+    /// <param name="sceneGraphService">Scene graph service for validated inserts.</param>
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="sceneSerializer">Scene serializer (reserved for MCP host compatibility).</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentPath">Parent node path.</param>
@@ -78,8 +81,9 @@ public static partial class GodotTools
     /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
-    [McpServerTool(Name = "add_node"), Description("Append a new child node to a specific parent path in a Godot scene.")]
+    [McpServerTool(Name = "add_node"), Description("Append a new child node to a specific parent path in a Godot scene. Uses the same parent validation as scene.add_node.")]
     public static async Task<ToolResult> AddNodeAsync(
+        ISceneGraphService sceneGraphService,
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
@@ -91,6 +95,7 @@ public static partial class GodotTools
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
+        _ = sceneSerializer;
         if (IsBlank(nodeName) || IsBlank(nodeType) || IsBlank(parentPath))
         {
             return Invalid("parentPath, nodeName and nodeType are required.");
@@ -105,16 +110,11 @@ public static partial class GodotTools
             return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
-        var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var scene = sceneSerializer.Deserialize(sceneText);
-        scene.Nodes.Add(new GodotNode
-        {
-            Name = nodeName,
-            Type = nodeType,
-            Parent = parentPath
-        });
-        await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Node '{nodeName}' added.");
+        var result = await sceneGraphService
+            .AddNodeAsync(new SceneGraphAddNodeRequest(scenePath, parentPath, nodeType, nodeName), cancellationToken)
+            .ConfigureAwait(false);
+
+        return ToToolResult(result);
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public static partial class GodotTools
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
-    /// <param name="nodeName">Target node name.</param>
+    /// <param name="nodePath">Target node path in the scene.</param>
     /// <param name="propertyKey">Property key to update.</param>
     /// <param name="propertyValue">Serialized property value.</param>
     /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
@@ -138,15 +138,15 @@ public static partial class GodotTools
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("Name of the node to modify."), Required] string nodeName,
+        [Description("Node path in the scene (e.g. Player, Player/CameraRig)."), Required] string nodePath,
         [Description("Property key (e.g., 'position', 'visible')."), Required] string propertyKey,
         [Description("Raw text value for the property (e.g., 'Vector2(0, 0)')."), Required] string propertyValue,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName) || IsBlank(propertyKey))
+        if (IsBlank(nodePath) || IsBlank(propertyKey))
         {
-            return Invalid("nodeName and propertyKey are required.");
+            return Invalid("nodePath and propertyKey are required.");
         }
         string scenePath;
         try
@@ -159,15 +159,15 @@ public static partial class GodotTools
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
-        var node = scene.Nodes.FirstOrDefault(n => n.Name == nodeName);
-        if (node is null)
+        var index = SceneNodePathIndex.Build(scene);
+        if (!SceneNodePathIndex.TryGetNode(index, nodePath, out var node) || node is null)
         {
-            return new ToolResult(false, $"Node '{nodeName}' not found.");
+            return new ToolResult(false, $"Node '{nodePath}' not found.");
         }
 
         node.Properties[propertyKey] = propertyValue;
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Property '{propertyKey}' updated for '{nodeName}'.");
+        return new ToolResult(true, $"Property '{propertyKey}' updated for '{nodePath}'.");
     }
 
     /// <summary>
@@ -178,7 +178,7 @@ public static partial class GodotTools
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
-    /// <param name="nodeName">Node name to remove.</param>
+    /// <param name="nodePath">Node path to remove (subtree).</param>
     /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing removal status.</returns>
@@ -189,13 +189,13 @@ public static partial class GodotTools
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("Name of the node to remove."), Required] string nodeName,
+        [Description("Node path to remove including descendants (e.g. Player, UI/Button)."), Required] string nodePath,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName))
+        if (IsBlank(nodePath))
         {
-            return Invalid("nodeName is required.");
+            return Invalid("nodePath is required.");
         }
         string scenePath;
         try
@@ -208,17 +208,26 @@ public static partial class GodotTools
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
-        var removed = scene.Nodes.RemoveAll(n => n.Name == nodeName || n.Parent.Contains(nodeName, StringComparison.Ordinal));
+        var index = SceneNodePathIndex.Build(scene);
+        var normalized = SceneNodePathIndex.NormalizeNodePath(nodePath);
+        if (!index.ByPath.ContainsKey(normalized))
+        {
+            return new ToolResult(false, $"Node '{nodePath}' not found.");
+        }
+
+        var toRemove = SceneNodePathIndex.GetRemovalSet(index, normalized);
+        var removed = scene.Nodes.RemoveAll(n => toRemove.Contains(n));
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return removed > 0 ? new ToolResult(true, $"Removed {removed} nodes.") : new ToolResult(false, "No matching nodes removed.");
+        return removed > 0 ? new ToolResult(true, $"Removed {removed} node(s).") : new ToolResult(false, "No matching nodes removed.");
     }
 
     /// <summary>
     /// Adds a packed scene instance node to a target scene and creates an external resource entry.
     /// </summary>
+    /// <param name="sceneGraphService">Scene graph service for validated parent and sibling checks.</param>
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="sceneSerializer">Scene serializer (reserved for MCP host compatibility).</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Target scene file name or relative path under <c>projectPath</c> (container scene).</param>
     /// <param name="parentPath">Parent path in the target scene.</param>
@@ -227,8 +236,9 @@ public static partial class GodotTools
     /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing instantiation status.</returns>
-    [McpServerTool(Name = "instantiate_packed_scene"), Description("Instantiate an existing .tscn file as a node inside another scene.")]
+    [McpServerTool(Name = "instantiate_packed_scene"), Description("Instantiate an existing .tscn file as a node inside another scene. Parent path is validated like scene.add_node.")]
     public static async Task<ToolResult> InstantiatePackedSceneAsync(
+        ISceneGraphService sceneGraphService,
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
@@ -240,6 +250,7 @@ public static partial class GodotTools
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
+        _ = sceneSerializer;
         if (IsBlank(parentPath) || IsBlank(instanceName))
         {
             return Invalid("projectPath, fileName, packedSceneFileName, parentPath and instanceName are required.");
@@ -256,18 +267,13 @@ public static partial class GodotTools
             return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
-        var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(targetScenePath, cancellationToken).ConfigureAwait(false));
-        var id = (scene.ExternalResources.Count + 1).ToString();
-        scene.ExternalResources.Add(new ExtResource { Id = id, Type = "PackedScene", Path = packedScenePath });
-        scene.Nodes.Add(new GodotNode
-        {
-            Name = instanceName,
-            Type = "Node",
-            Parent = parentPath,
-            Instance = $"ExtResource(\"{id}\")"
-        });
-        await fileService.WriteAsync(targetScenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Packed scene instance '{instanceName}' added.");
+        var result = await sceneGraphService
+            .InstantiatePackedSceneAsync(
+                new SceneGraphInstantiatePackedSceneRequest(targetScenePath, parentPath, packedScenePath, instanceName),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return ToToolResult(result);
     }
 
     /// <summary>
@@ -278,7 +284,7 @@ public static partial class GodotTools
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Source scene file name or relative path under <paramref name="projectPath"/>.</param>
-    /// <param name="nodeName">Branch root node name in the source scene.</param>
+    /// <param name="branchNodePath">Branch root node path in the source scene.</param>
     /// <param name="destinationFileName">Destination scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="root_type">Root node type used if scene bootstrap creation is required.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -290,14 +296,14 @@ public static partial class GodotTools
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Source scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("Root node name of the branch to export."), Required] string nodeName,
+        [Description("Root node path of the branch to export (e.g. Player, Player/CameraRig)."), Required] string branchNodePath,
         [Description("Destination scene file name or relative path under projectPath."), Required] string destinationFileName,
         [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(nodeName))
+        if (IsBlank(branchNodePath))
         {
-            return Invalid("projectPath, fileName, destinationFileName and nodeName are required.");
+            return Invalid("projectPath, fileName, destinationFileName and branchNodePath are required.");
         }
         string sourceScenePath;
         string destinationScenePath;
@@ -312,20 +318,131 @@ public static partial class GodotTools
         }
 
         var sourceScene = sceneSerializer.Deserialize(await fileService.ReadAsync(sourceScenePath, cancellationToken).ConfigureAwait(false));
-        var branchRoot = sourceScene.Nodes.FirstOrDefault(n => n.Name == nodeName);
-        if (branchRoot is null)
+        var pathIndex = SceneNodePathIndex.Build(sourceScene);
+        var branchKey = SceneNodePathIndex.NormalizeNodePath(branchNodePath);
+        if (!pathIndex.ByPath.TryGetValue(branchKey, out _))
         {
-            return new ToolResult(false, $"Node '{nodeName}' was not found.");
+            return new ToolResult(false, $"Node '{branchNodePath}' was not found.");
         }
 
-        var branch = new GodotScene();
-        branch.Nodes.Add(new GodotNode { Name = branchRoot.Name, Type = branchRoot.Type, Parent = string.Empty });
-        foreach (var node in sourceScene.Nodes.Where(n => n.Parent.Contains(nodeName, StringComparison.Ordinal)))
+        var inBranch = pathIndex.Entries
+            .Where(e => e.Path == branchKey || SceneNodePathIndex.IsSameOrDescendant(e.Path, branchKey))
+            .OrderBy(e => e.Path.Equals(branchKey, StringComparison.Ordinal) ? 0 : 1)
+            .ThenBy(e => e.Path, StringComparer.Ordinal)
+            .ToList();
+
+        var extIds = new HashSet<string>(StringComparer.Ordinal);
+        var subIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in inBranch)
         {
-            branch.Nodes.Add(new GodotNode { Name = node.Name, Type = node.Type, Parent = node.Parent });
+            CollectResourceReferencesFromNode(entry.Node, extIds, subIds);
+        }
+
+        ExpandSubResourceClosure(sourceScene, extIds, subIds);
+
+        var branch = new GodotScene();
+        foreach (var sub in sourceScene.SubResources.Where(s => subIds.Contains(s.Id)).OrderBy(x => x.Id, StringComparer.Ordinal))
+        {
+            var copy = new SubResource { Id = sub.Id, Type = sub.Type };
+            foreach (var kv in sub.Properties)
+            {
+                copy.Properties[kv.Key] = kv.Value;
+            }
+
+            branch.SubResources.Add(copy);
+        }
+
+        foreach (var ext in sourceScene.ExternalResources.Where(e => extIds.Contains(e.Id)).OrderBy(x => x.Id, StringComparer.Ordinal))
+        {
+            branch.ExternalResources.Add(new ExtResource { Id = ext.Id, Path = ext.Path, Type = ext.Type });
+        }
+
+        branch.RecomputeLoadSteps();
+
+        foreach (var e in inBranch)
+        {
+            var newParent = e.Path == branchKey
+                ? string.Empty
+                : SceneNodePathIndex.RemapParentForBranchExport(e.Node.Parent, branchKey);
+
+            var gn = new GodotNode
+            {
+                Name = e.Node.Name,
+                Type = e.Node.Type,
+                Parent = newParent,
+                Instance = e.Node.Instance
+            };
+
+            foreach (var kv in e.Node.Properties)
+            {
+                gn.Properties[kv.Key] = kv.Value;
+            }
+
+            branch.Nodes.Add(gn);
         }
 
         await fileService.WriteAsync(destinationScenePath, sceneSerializer.Serialize(branch), cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, $"Branch saved to '{destinationScenePath}'.");
+    }
+
+    private static readonly Regex ExtResourceReferenceRegex = new(@"ExtResource\(\s*""([^""]+)""\s*\)", RegexOptions.Compiled);
+
+    private static readonly Regex SubResourceReferenceRegex = new(@"SubResource\(\s*""([^""]+)""\s*\)", RegexOptions.Compiled);
+
+    private static void CollectResourceReferencesFromNode(GodotNode node, ISet<string> extIds, ISet<string> subIds)
+    {
+        if (!string.IsNullOrWhiteSpace(node.Instance))
+        {
+            CollectResourceReferencesFromText(node.Instance, extIds, subIds);
+        }
+
+        foreach (var value in node.Properties.Values)
+        {
+            CollectResourceReferencesFromText(value, extIds, subIds);
+        }
+    }
+
+    private static void CollectResourceReferencesFromText(string text, ISet<string> extIds, ISet<string> subIds)
+    {
+        foreach (Match m in ExtResourceReferenceRegex.Matches(text))
+        {
+            extIds.Add(m.Groups[1].Value);
+        }
+
+        foreach (Match m in SubResourceReferenceRegex.Matches(text))
+        {
+            subIds.Add(m.Groups[1].Value);
+        }
+    }
+
+    private static void ExpandSubResourceClosure(GodotScene source, ISet<string> extIds, ISet<string> subIds)
+    {
+        var queue = new Queue<string>(subIds);
+        while (queue.Count > 0)
+        {
+            var id = queue.Dequeue();
+            var sub = source.SubResources.FirstOrDefault(s => s.Id == id);
+            if (sub is null)
+            {
+                continue;
+            }
+
+            foreach (var value in sub.Properties.Values)
+            {
+                foreach (Match m in ExtResourceReferenceRegex.Matches(value))
+                {
+                    extIds.Add(m.Groups[1].Value);
+                }
+
+                foreach (Match m in SubResourceReferenceRegex.Matches(value))
+                {
+                    var sid = m.Groups[1].Value;
+                    if (subIds.Add(sid))
+                    {
+                        queue.Enqueue(sid);
+                    }
+                }
+            }
+        }
     }
 }

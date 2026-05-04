@@ -33,6 +33,19 @@ public sealed record SceneGraphAddNodeRequest(
     string NodeName);
 
 /// <summary>
+/// Input contract for instantiating a packed scene as a child node.
+/// </summary>
+/// <param name="ScenePath">Target scene path to modify.</param>
+/// <param name="ParentNodePath">Parent node path in the target scene.</param>
+/// <param name="PackedSceneAbsolutePath">Absolute filesystem path to the packed <c>.tscn</c> inside the project.</param>
+/// <param name="InstanceName">Name for the new instance node.</param>
+public sealed record SceneGraphInstantiatePackedSceneRequest(
+    string ScenePath,
+    string ParentNodePath,
+    string PackedSceneAbsolutePath,
+    string InstanceName);
+
+/// <summary>
 /// Input contract for removing a node subtree from a scene graph.
 /// </summary>
 /// <param name="ScenePath">Scene path containing the graph.</param>

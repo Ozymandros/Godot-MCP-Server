@@ -1,3 +1,5 @@
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Unit;
 
 /// <summary>
@@ -93,5 +95,5 @@ public class PhysicsServiceTests
     }
 
     private static PhysicsService CreateService(IGodotFileService files, IPathResolver resolver)
-        => new(files, resolver, new SceneGraphService(files, new SceneSerializer()));
+        => new(files, resolver, new SceneGraphService(files, new SceneSerializer(), resolver));
 }

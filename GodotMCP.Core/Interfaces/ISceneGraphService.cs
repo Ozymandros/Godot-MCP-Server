@@ -24,6 +24,14 @@ public interface ISceneGraphService
     Task<SceneGraphMutationResult> AddNodeAsync(SceneGraphAddNodeRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Adds a packed scene instance node under a validated parent and registers an <c>ext_resource</c> for the packed scene.
+    /// </summary>
+    /// <param name="request">Instantiation request details.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Mutation result including status and optional node snapshot.</returns>
+    Task<SceneGraphMutationResult> InstantiatePackedSceneAsync(SceneGraphInstantiatePackedSceneRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Removes a node and its descendants from the scene graph.
     /// </summary>
     /// <param name="request">Node removal request details.</param>

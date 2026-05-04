@@ -96,4 +96,41 @@ position = Vector2(10, 20)
             .Should()
             .BeLessThan(output.IndexOf("[sub_resource type=\"Resource\" id=\"5\"]", StringComparison.Ordinal));
     }
+
+    /// <summary>
+    /// Verifies connection sections round-trip through the serializer.
+    /// </summary>
+    [Fact]
+    public void SerializeAndDeserialize_ShouldPreserveConnections()
+    {
+        var serializer = new SceneSerializer();
+        var scene = new GodotScene();
+        scene.Nodes.Add(new GodotNode { Name = "Root", Type = "Control" });
+        var c = new GodotConnection();
+        c.Attributes["signal"] = "pressed";
+        c.Attributes["from"] = "Button";
+        c.Attributes["to"] = ".";
+        c.Attributes["method"] = "_on_pressed";
+        scene.Connections.Add(c);
+
+        var text = serializer.Serialize(scene);
+        var parsed = serializer.Deserialize(text);
+
+        parsed.Connections.Should().ContainSingle();
+        parsed.Connections[0].Attributes["signal"].Should().Be("pressed");
+        parsed.Connections[0].Attributes["method"].Should().Be("_on_pressed");
+    }
+
+    /// <summary>
+    /// Verifies <see cref="GodotScene.RecomputeLoadSteps"/> matches resource counts.
+    /// </summary>
+    [Fact]
+    public void RecomputeLoadSteps_ShouldCountExternalAndSubResources()
+    {
+        var scene = new GodotScene();
+        scene.ExternalResources.Add(new ExtResource { Id = "1", Path = "res://a.gd", Type = "Script" });
+        scene.SubResources.Add(new SubResource { Id = "1", Type = "StyleBoxFlat" });
+        scene.RecomputeLoadSteps();
+        scene.LoadSteps.Should().Be(3);
+    }
 }

@@ -4,10 +4,26 @@ namespace GodotMCP.Core.Models;
 /// Represents a serialized Godot resource document.
 /// </summary>
 /// <param name="Type">Godot resource type name.</param>
-/// <param name="Properties">Resource property dictionary.</param>
+/// <param name="Properties">Top-level resource property dictionary.</param>
 public sealed record ResourceDocument(
     string Type,
-    Dictionary<string, string> Properties);
+    Dictionary<string, string> Properties)
+{
+    /// <summary>
+    /// Gets optional external resource declarations for richer .tres/.res files.
+    /// </summary>
+    public List<ExtResource> ExternalResources { get; init; } = [];
+
+    /// <summary>
+    /// Gets optional sub-resource declarations (nested resources).
+    /// </summary>
+    public List<SubResource> SubResources { get; init; } = [];
+
+    /// <summary>
+    /// Gets or sets serialized format version (default 3).
+    /// </summary>
+    public int Format { get; init; } = 3;
+}
 
 /// <summary>
 /// Represents the result of a resource property mutation operation.

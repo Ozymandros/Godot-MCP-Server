@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GodotMCP.Infrastructure.Services;
 
 namespace GodotMCP.Tests.Integration;
 
@@ -17,7 +18,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneListNodesAsync(service, files, resolver, root, "scenes/Main.tscn");
 
@@ -43,7 +44,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneMoveNodeAsync(
                 service,
@@ -74,7 +75,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
@@ -106,7 +107,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneRemoveNodeAsync(
                 service,
@@ -137,7 +138,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneRenameNodeAsync(
                 service,
@@ -168,7 +169,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
@@ -200,7 +201,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             using var payload = JsonDocument.Parse("""
 {
@@ -245,7 +246,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneGetNodePropertiesAsync(
                 service,
@@ -274,7 +275,7 @@ public class SceneGraphToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             using var payload = JsonDocument.Parse("""
 {
@@ -313,7 +314,7 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
@@ -348,7 +349,7 @@ public class SceneGraphToolsTests
         var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
-            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer());
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await GodotTools.SceneAddNodeAsync(
                 service,
@@ -362,6 +363,28 @@ public class SceneGraphToolsTests
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain(".tscn");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies legacy <c>add_node</c> rejects invalid parents like <c>scene.add_node</c>.
+    /// </summary>
+    [Fact]
+    public async Task LegacyAddNode_ShouldRejectInvalidParent()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            ISceneGraphService service = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var scenes = new SceneSerializer();
+            var result = await GodotTools.AddNodeAsync(service, files, resolver, scenes, root, "scenes/Main.tscn", "NotAParent", "X", "Node");
+
+            result.Success.Should().BeFalse();
         }
         finally
         {

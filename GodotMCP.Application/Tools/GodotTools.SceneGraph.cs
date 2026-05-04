@@ -348,6 +348,99 @@ public static partial class GodotTools
     }
 
     /// <summary>
+    /// Lists serialized <c>[connection]</c> entries for a scene (signal wiring).
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer.</param>
+    /// <param name="projectPath">Project directory.</param>
+    /// <param name="fileName">Scene path under project.</param>
+    /// <param name="root_type">Bootstrap root type.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result with connection attribute dictionaries.</returns>
+    [McpServerTool(Name = "scene.list_connections"), Description("List signal connections ([connection] lines) in a .tscn file.")]
+    public static async Task<ToolResult> SceneListConnectionsAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
+        CancellationToken cancellationToken = default)
+    {
+        string scenePath;
+        try
+        {
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
+        }
+
+        var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
+        var dto = scene.Connections
+            .Select(c => c.Attributes.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal))
+            .ToList();
+        return new ToolResult(true, $"Listed {dto.Count} connection(s).", dto);
+    }
+
+    /// <summary>
+    /// Appends a <c>[connection]</c> line to a scene.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Project path resolver.</param>
+    /// <param name="sceneSerializer">Scene serializer.</param>
+    /// <param name="projectPath">Project directory.</param>
+    /// <param name="fileName">Scene path under project.</param>
+    /// <param name="signal">Signal name (e.g. pressed).</param>
+    /// <param name="from">Source node path (Godot format, e.g. %BaseButton or Control path).</param>
+    /// <param name="to">Target node path.</param>
+    /// <param name="method">Handler method name.</param>
+    /// <param name="root_type">Bootstrap root type.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result.</returns>
+    [McpServerTool(Name = "scene.add_connection"), Description("Add a [connection] entry (signal, from, to, method) to a .tscn and save.")]
+    public static async Task<ToolResult> SceneAddConnectionAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        ISceneSerializer sceneSerializer,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
+        [Description("Signal name (e.g. pressed, gui_input)."), Required] string signal,
+        [Description("From node path as in Godot scene text (e.g. Button or .. )."), Required] string from,
+        [Description("To node path as in Godot scene text."), Required] string to,
+        [Description("Method name on the target node."), Required] string method,
+        [Description("Root node type used when bootstrap creation is needed (for example: Node, Node2D, Node3D).")] string root_type = "Node",
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(signal) || IsBlank(from) || IsBlank(to) || IsBlank(method))
+        {
+            return Invalid("projectPath, fileName, signal, from, to, and method are required.");
+        }
+
+        string scenePath;
+        try
+        {
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
+        }
+
+        var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
+        var connection = new GodotConnection();
+        connection.Attributes["signal"] = signal;
+        connection.Attributes["from"] = from;
+        connection.Attributes["to"] = to;
+        connection.Attributes["method"] = method;
+        scene.Connections.Add(connection);
+        await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
+        return new ToolResult(true, "Connection added.");
+    }
+
+    /// <summary>
     /// Converts a mutation result from the domain layer into an MCP <see cref="ToolResult"/>.
     /// </summary>
     /// <param name="result">Mutation result from the scene graph service.</param>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using GodotMCP.Core.SceneGraph;
 
 namespace GodotMCP.Infrastructure.Services;
 
@@ -9,9 +10,11 @@ namespace GodotMCP.Infrastructure.Services;
 /// </summary>
 /// <param name="fileService">File abstraction for project I/O.</param>
 /// <param name="sceneSerializer">Serializer used for scene parsing and emission.</param>
+/// <param name="pathResolver">Path resolver for <c>res://</c> formatting.</param>
 public sealed class SceneGraphService(
     IGodotFileService fileService,
-    ISceneSerializer sceneSerializer) : ISceneGraphService
+    ISceneSerializer sceneSerializer,
+    IPathResolver pathResolver) : ISceneGraphService
 {
     /// <summary>
     /// Ordinal comparer used for deterministic path and property ordering.
@@ -22,7 +25,7 @@ public sealed class SceneGraphService(
     public async Task<IReadOnlyList<SceneGraphNodeInfo>> ListNodesAsync(string scenePath, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
+        var index = SceneNodePathIndex.Build(scene);
         return BuildTree(index);
     }
 
@@ -30,7 +33,7 @@ public sealed class SceneGraphService(
     public async Task<SceneGraphMutationResult> AddNodeAsync(SceneGraphAddNodeRequest request, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
+        var index = SceneNodePathIndex.Build(scene);
 
         if (!TryResolveParentForInsert(index, request.ParentNodePath, out var parentPath, out var serializedParent, out var error))
         {
@@ -48,7 +51,7 @@ public sealed class SceneGraphService(
             return new SceneGraphMutationResult(false, "nodeType is required.");
         }
 
-        var newNodePath = ComposeNodePathFromSerializedParent(serializedParent, nodeName);
+        var newNodePath = SceneNodePathIndex.ComposeNodePathFromSerializedParent(serializedParent, nodeName);
         if (index.ByPath.ContainsKey(newNodePath))
         {
             return new SceneGraphMutationResult(false, $"Node path '{newNodePath}' already exists.");
@@ -69,27 +72,74 @@ public sealed class SceneGraphService(
         scene.Nodes.Add(node);
         await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
 
-        var updated = BuildIndex(scene);
+        var updated = SceneNodePathIndex.Build(scene);
         var snapshot = BuildNodeInfo(updated, updated.ByPath[newNodePath]);
         return new SceneGraphMutationResult(true, $"Node '{newNodePath}' added.", snapshot);
+    }
+
+    /// <inheritdoc />
+    public async Task<SceneGraphMutationResult> InstantiatePackedSceneAsync(SceneGraphInstantiatePackedSceneRequest request, CancellationToken cancellationToken = default)
+    {
+        var packedFull = Path.GetFullPath(request.PackedSceneAbsolutePath);
+        pathResolver.EnsureInsideProject(packedFull);
+
+        var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
+        var index = SceneNodePathIndex.Build(scene);
+
+        if (!TryResolveParentForInsert(index, request.ParentNodePath, out var parentPath, out var serializedParent, out var error))
+        {
+            return new SceneGraphMutationResult(false, error ?? "Invalid parent node path.");
+        }
+
+        var instanceName = request.InstanceName.Trim();
+        if (instanceName.Length == 0)
+        {
+            return new SceneGraphMutationResult(false, "instanceName is required.");
+        }
+
+        var newNodePath = SceneNodePathIndex.ComposeNodePathFromSerializedParent(serializedParent, instanceName);
+        if (index.ByPath.ContainsKey(newNodePath))
+        {
+            return new SceneGraphMutationResult(false, $"Node path '{newNodePath}' already exists.");
+        }
+
+        if (HasSiblingWithName(index, parentPath, instanceName))
+        {
+            return new SceneGraphMutationResult(false, $"A sibling node named '{instanceName}' already exists under '{DisplayParent(parentPath)}'.");
+        }
+
+        var rootType = await TryGetPackedSceneRootTypeAsync(packedFull, cancellationToken).ConfigureAwait(false);
+        var resPath = pathResolver.ToGodotResPath(packedFull);
+        var id = AllocateNextExtResourceId(scene);
+        scene.ExternalResources.Add(new ExtResource { Id = id, Type = "PackedScene", Path = resPath });
+        scene.Nodes.Add(new GodotNode
+        {
+            Name = instanceName,
+            Type = rootType,
+            Parent = serializedParent,
+            Instance = $"ExtResource(\"{id}\")"
+        });
+        scene.RecomputeLoadSteps();
+        await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
+
+        var updated = SceneNodePathIndex.Build(scene);
+        var snapshot = BuildNodeInfo(updated, updated.ByPath[newNodePath]);
+        return new SceneGraphMutationResult(true, $"Packed scene instance '{newNodePath}' added.", snapshot);
     }
 
     /// <inheritdoc />
     public async Task<SceneGraphMutationResult> RemoveNodeAsync(SceneGraphRemoveNodeRequest request, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
-        var targetPath = NormalizeNodePath(request.NodePath);
+        var index = SceneNodePathIndex.Build(scene);
+        var targetPath = SceneNodePathIndex.NormalizeNodePath(request.NodePath);
 
         if (!index.ByPath.TryGetValue(targetPath, out var target))
         {
             return new SceneGraphMutationResult(false, $"Node '{request.NodePath}' not found.");
         }
 
-        var toRemove = index.Entries
-            .Where(x => IsSameOrDescendant(x.Path, targetPath))
-            .Select(x => x.Node)
-            .ToHashSet();
+        var toRemove = SceneNodePathIndex.GetRemovalSet(index, targetPath);
 
         var removedCount = scene.Nodes.RemoveAll(n => toRemove.Contains(n));
         await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
@@ -101,8 +151,8 @@ public sealed class SceneGraphService(
     public async Task<SceneGraphMutationResult> MoveNodeAsync(SceneGraphMoveNodeRequest request, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
-        var targetPath = NormalizeNodePath(request.NodePath);
+        var index = SceneNodePathIndex.Build(scene);
+        var targetPath = SceneNodePathIndex.NormalizeNodePath(request.NodePath);
 
         if (!index.ByPath.TryGetValue(targetPath, out var target))
         {
@@ -119,12 +169,12 @@ public sealed class SceneGraphService(
             return new SceneGraphMutationResult(false, error ?? "Invalid newParentPath.");
         }
 
-        if (Comparer.Equals(newParentPath, targetPath) || (newParentPath is not null && IsSameOrDescendant(newParentPath, targetPath)))
+        if (Comparer.Equals(newParentPath, targetPath) || (newParentPath is not null && SceneNodePathIndex.IsSameOrDescendant(newParentPath, targetPath)))
         {
             return new SceneGraphMutationResult(false, "Cannot move a node under itself or one of its descendants.");
         }
 
-        var candidatePath = ComposeNodePathFromSerializedParent(serializedParent, target.Node.Name);
+        var candidatePath = SceneNodePathIndex.ComposeNodePathFromSerializedParent(serializedParent, target.Node.Name);
         if (!Comparer.Equals(candidatePath, targetPath) && index.ByPath.ContainsKey(candidatePath))
         {
             return new SceneGraphMutationResult(false, $"A node already exists at '{candidatePath}'.");
@@ -138,8 +188,8 @@ public sealed class SceneGraphService(
         target.Node.Parent = serializedParent;
         await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
 
-        var updated = BuildIndex(scene);
-        var updatedPath = ComposeNodePathFromSerializedParent(serializedParent, target.Node.Name);
+        var updated = SceneNodePathIndex.Build(scene);
+        var updatedPath = SceneNodePathIndex.ComposeNodePathFromSerializedParent(serializedParent, target.Node.Name);
         var snapshot = updated.ByPath.TryGetValue(updatedPath, out var moved)
             ? BuildNodeInfo(updated, moved)
             : null;
@@ -151,8 +201,8 @@ public sealed class SceneGraphService(
     public async Task<SceneGraphMutationResult> RenameNodeAsync(SceneGraphRenameNodeRequest request, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
-        var targetPath = NormalizeNodePath(request.NodePath);
+        var index = SceneNodePathIndex.Build(scene);
+        var targetPath = SceneNodePathIndex.NormalizeNodePath(request.NodePath);
 
         if (!index.ByPath.TryGetValue(targetPath, out var target))
         {
@@ -165,7 +215,7 @@ public sealed class SceneGraphService(
             return new SceneGraphMutationResult(false, "newName is required.");
         }
 
-        var newPath = ComposeNodePathFromSerializedParent(target.Node.Parent, newName);
+        var newPath = SceneNodePathIndex.ComposeNodePathFromSerializedParent(target.Node.Parent, newName);
         if (!Comparer.Equals(newPath, targetPath) && index.ByPath.ContainsKey(newPath))
         {
             return new SceneGraphMutationResult(false, $"A node already exists at '{newPath}'.");
@@ -179,7 +229,7 @@ public sealed class SceneGraphService(
         target.Node.Name = newName;
         await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
 
-        var updated = BuildIndex(scene);
+        var updated = SceneNodePathIndex.Build(scene);
         var snapshot = updated.ByPath.TryGetValue(newPath, out var renamed)
             ? BuildNodeInfo(updated, renamed)
             : null;
@@ -191,8 +241,8 @@ public sealed class SceneGraphService(
     public async Task<IReadOnlyDictionary<string, string>> GetNodePropertiesAsync(string scenePath, string nodePath, CancellationToken cancellationToken = default)
     {
         var scene = await ReadSceneAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
-        var targetPath = NormalizeNodePath(nodePath);
+        var index = SceneNodePathIndex.Build(scene);
+        var targetPath = SceneNodePathIndex.NormalizeNodePath(nodePath);
 
         if (!index.ByPath.TryGetValue(targetPath, out var target))
         {
@@ -213,8 +263,8 @@ public sealed class SceneGraphService(
         }
 
         var scene = await ReadSceneAsync(request.ScenePath, cancellationToken).ConfigureAwait(false);
-        var index = BuildIndex(scene);
-        var targetPath = NormalizeNodePath(request.NodePath);
+        var index = SceneNodePathIndex.Build(scene);
+        var targetPath = SceneNodePathIndex.NormalizeNodePath(request.NodePath);
 
         if (!index.ByPath.TryGetValue(targetPath, out var target))
         {
@@ -239,7 +289,7 @@ public sealed class SceneGraphService(
 
         await WriteSceneAsync(request.ScenePath, scene, cancellationToken).ConfigureAwait(false);
 
-        var updated = BuildIndex(scene);
+        var updated = SceneNodePathIndex.Build(scene);
         var snapshot = BuildNodeInfo(updated, updated.ByPath[targetPath]);
         return new SceneGraphMutationResult(true, $"Updated {request.Properties.Count} propertie(s) on '{targetPath}'.", snapshot);
     }
@@ -272,7 +322,7 @@ public sealed class SceneGraphService(
     /// </summary>
     /// <param name="index">Indexed scene representation.</param>
     /// <returns>Root-level tree nodes.</returns>
-    private static IReadOnlyList<SceneGraphNodeInfo> BuildTree(SceneIndex index)
+    private static IReadOnlyList<SceneGraphNodeInfo> BuildTree(ScenePathIndex index)
     {
         var childrenLookup = index.Entries
             .GroupBy(e => e.ParentPath ?? string.Empty, Comparer)
@@ -298,9 +348,9 @@ public sealed class SceneGraphService(
     /// <param name="childrenLookup">Lookup from parent path to direct children.</param>
     /// <returns>Recursive node DTO.</returns>
     private static SceneGraphNodeInfo BuildTreeNode(
-        SceneIndex index,
-        IndexedNode node,
-        IReadOnlyDictionary<string, List<IndexedNode>> childrenLookup)
+        ScenePathIndex index,
+        ScenePathEntry node,
+        IReadOnlyDictionary<string, List<ScenePathEntry>> childrenLookup)
     {
         var children = childrenLookup.TryGetValue(node.Path, out var entries)
             ? entries.Select(x => BuildTreeNode(index, x, childrenLookup)).ToList()
@@ -316,7 +366,7 @@ public sealed class SceneGraphService(
     /// <param name="node">Indexed node entry.</param>
     /// <param name="children">Optional recursive children to attach.</param>
     /// <returns>Domain scene graph descriptor.</returns>
-    private static SceneGraphNodeInfo BuildNodeInfo(SceneIndex index, IndexedNode node, IReadOnlyList<SceneGraphNodeInfo>? children = null)
+    private static SceneGraphNodeInfo BuildNodeInfo(ScenePathIndex index, ScenePathEntry node, IReadOnlyList<SceneGraphNodeInfo>? children = null)
     {
         var properties = node.Node.Properties
             .OrderBy(x => x.Key, Comparer)
@@ -333,54 +383,6 @@ public sealed class SceneGraphService(
     }
 
     /// <summary>
-    /// Builds fast lookup indexes over the scene nodes for path-based operations.
-    /// </summary>
-    /// <param name="scene">Scene model to index.</param>
-    /// <returns>Scene index containing entries and path lookup map.</returns>
-    private static SceneIndex BuildIndex(GodotScene scene)
-    {
-        var root = scene.Nodes.FirstOrDefault(n => string.IsNullOrWhiteSpace(n.Parent));
-        var rootPath = root is null ? null : NormalizeNodePath(root.Name);
-
-        var entries = new List<IndexedNode>(scene.Nodes.Count);
-        var byPath = new Dictionary<string, IndexedNode>(Comparer);
-
-        foreach (var node in scene.Nodes)
-        {
-            var parentPath = ResolveHierarchyParentPath(node, rootPath);
-            var nodePath = ComputeNodePath(node);
-            var indexed = new IndexedNode(nodePath, parentPath, node);
-
-            entries.Add(indexed);
-            byPath[nodePath] = indexed;
-        }
-
-        return new SceneIndex(rootPath, entries, byPath);
-    }
-
-    /// <summary>
-    /// Resolves the logical hierarchy parent path for a node entry.
-    /// </summary>
-    /// <param name="node">Node whose parent is being resolved.</param>
-    /// <param name="rootPath">Root node path for the scene, when available.</param>
-    /// <returns>Hierarchy parent path, or <see langword="null"/> for scene root.</returns>
-    private static string? ResolveHierarchyParentPath(GodotNode node, string? rootPath)
-    {
-        if (string.IsNullOrWhiteSpace(node.Parent))
-        {
-            return null;
-        }
-
-        if (node.Parent.Trim() == ".")
-        {
-            return rootPath;
-        }
-
-        var parent = NormalizeNodePath(node.Parent);
-        return parent.Length == 0 ? rootPath : parent;
-    }
-
-    /// <summary>
     /// Resolves and validates a parent target for insert and move operations.
     /// </summary>
     /// <param name="index">Indexed scene representation.</param>
@@ -390,7 +392,7 @@ public sealed class SceneGraphService(
     /// <param name="error">Validation message when resolution fails.</param>
     /// <returns><see langword="true"/> when parent resolution succeeds; otherwise <see langword="false"/>.</returns>
     private static bool TryResolveParentForInsert(
-        SceneIndex index,
+        ScenePathIndex index,
         string parentNodePath,
         out string? parentPath,
         out string serializedParent,
@@ -398,7 +400,7 @@ public sealed class SceneGraphService(
     {
         error = null;
         serializedParent = ".";
-        var normalized = NormalizeNodePath(parentNodePath);
+        var normalized = SceneNodePathIndex.NormalizeNodePath(parentNodePath);
 
         if (normalized.Length == 0)
         {
@@ -433,12 +435,46 @@ public sealed class SceneGraphService(
     /// <param name="candidateName">Candidate node name.</param>
     /// <param name="exceptPath">Optional path to exclude from conflict checks.</param>
     /// <returns><see langword="true"/> when a conflicting sibling exists.</returns>
-    private static bool HasSiblingWithName(SceneIndex index, string? parentPath, string candidateName, string? exceptPath = null)
+    private static bool HasSiblingWithName(ScenePathIndex index, string? parentPath, string candidateName, string? exceptPath = null)
     {
         return index.Entries.Any(x =>
             (!Comparer.Equals(x.Path, exceptPath ?? string.Empty)) &&
             Comparer.Equals(x.ParentPath, parentPath) &&
             Comparer.Equals(x.Node.Name, candidateName));
+    }
+
+    private async Task<string> TryGetPackedSceneRootTypeAsync(string packedAbsolutePath, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var text = await fileService.ReadAsync(packedAbsolutePath, cancellationToken).ConfigureAwait(false);
+            var packed = sceneSerializer.Deserialize(text);
+            var idx = SceneNodePathIndex.Build(packed);
+            if (idx.RootPath is not null && idx.ByPath.TryGetValue(idx.RootPath, out var entry))
+            {
+                return string.IsNullOrWhiteSpace(entry.Node.Type) ? "Node" : entry.Node.Type.Trim();
+            }
+        }
+        catch
+        {
+            // Use default node type when the packed scene cannot be read or indexed.
+        }
+
+        return "Node";
+    }
+
+    private static string AllocateNextExtResourceId(GodotScene scene)
+    {
+        var max = 0;
+        foreach (var ext in scene.ExternalResources)
+        {
+            if (int.TryParse(ext.Id, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n))
+            {
+                max = Math.Max(max, n);
+            }
+        }
+
+        return (max + 1).ToString(CultureInfo.InvariantCulture);
     }
 
     /// <summary>
@@ -500,101 +536,10 @@ public sealed class SceneGraphService(
     }
 
     /// <summary>
-    /// Checks whether a candidate path is the same as, or a descendant of, an ancestor path.
-    /// </summary>
-    /// <param name="candidate">Candidate node path.</param>
-    /// <param name="ancestor">Ancestor node path.</param>
-    /// <returns><see langword="true"/> when candidate is same-or-descendant.</returns>
-    private static bool IsSameOrDescendant(string candidate, string ancestor)
-    {
-        if (Comparer.Equals(candidate, ancestor))
-        {
-            return true;
-        }
-
-        return candidate.StartsWith($"{ancestor}/", StringComparison.Ordinal);
-    }
-
-    /// <summary>
-    /// Computes a normalized node path from the serialized node parent and node name.
-    /// </summary>
-    /// <param name="node">Node to resolve.</param>
-    /// <returns>Normalized node path.</returns>
-    private static string ComputeNodePath(GodotNode node)
-    {
-        var parent = NormalizeNodePath(node.Parent);
-        var normalizedName = NormalizeNodePath(node.Name);
-        if (parent.Length == 0)
-        {
-            return normalizedName;
-        }
-
-        return $"{parent}/{normalizedName}";
-    }
-
-    /// <summary>
-    /// Composes a normalized node path from a serialized parent token and node name.
-    /// </summary>
-    /// <param name="serializedParent">Serialized parent token from a scene node record.</param>
-    /// <param name="name">Node name.</param>
-    /// <returns>Normalized node path.</returns>
-    private static string ComposeNodePathFromSerializedParent(string? serializedParent, string name)
-    {
-        var parent = NormalizeNodePath(serializedParent);
-        var normalizedName = NormalizeNodePath(name);
-        if (string.IsNullOrEmpty(parent))
-        {
-            return normalizedName;
-        }
-
-        return $"{parent}/{normalizedName}";
-    }
-
-    /// <summary>
-    /// Normalizes node paths by trimming root markers and collapsing separators.
-    /// </summary>
-    /// <param name="path">Node path candidate.</param>
-    /// <returns>Normalized path or an empty string for root markers.</returns>
-    private static string NormalizeNodePath(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path) || path == ".")
-        {
-            return string.Empty;
-        }
-
-        var normalized = path.Replace('\\', '/').Trim();
-        if (normalized.StartsWith("./", StringComparison.Ordinal))
-        {
-            normalized = normalized[2..];
-        }
-
-        return string.Join('/', normalized.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-    }
-
-    /// <summary>
     /// Formats a nullable parent path for transport output.
     /// </summary>
     /// <param name="parentPath">Parent path value.</param>
     /// <returns><c>.</c> for root-level parents; otherwise the provided parent path.</returns>
     private static string DisplayParent(string? parentPath)
         => string.IsNullOrWhiteSpace(parentPath) ? "." : parentPath;
-
-    /// <summary>
-    /// Internal indexed node representation used during graph transformations.
-    /// </summary>
-    /// <param name="Path">Resolved node path.</param>
-    /// <param name="ParentPath">Resolved parent path.</param>
-    /// <param name="Node">Underlying mutable node model.</param>
-    private sealed record IndexedNode(string Path, string? ParentPath, GodotNode Node);
-
-    /// <summary>
-    /// Internal scene index containing root metadata, flat entries, and fast path lookup.
-    /// </summary>
-    /// <param name="RootPath">Resolved scene root path.</param>
-    /// <param name="Entries">Flat indexed node entries.</param>
-    /// <param name="ByPath">Fast lookup map by normalized node path.</param>
-    private sealed record SceneIndex(
-        string? RootPath,
-        IReadOnlyList<IndexedNode> Entries,
-        IReadOnlyDictionary<string, IndexedNode> ByPath);
 }

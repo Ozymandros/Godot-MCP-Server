@@ -30,7 +30,7 @@ public static partial class GodotTools
         [Description("Asset file name or relative path under projectPath."), Required] string fileName,
         [Description("The Godot importer (e.g., texture, wav)."), Required] string importer,
         [Description("The resource type (e.g., Texture2D, AudioStreamWAV)."), Required] string type,
-        [Description("Optional importer parameters."), Required, MinLength(1)] Dictionary<string, string>? parameters = null,
+        [Description("Optional importer parameters (e.g. compress/mode for textures).")] Dictionary<string, string>? parameters = null,
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(importer) || IsBlank(type))

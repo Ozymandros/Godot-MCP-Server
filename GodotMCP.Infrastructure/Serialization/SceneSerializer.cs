@@ -69,6 +69,17 @@ public sealed class SceneSerializer : ISceneSerializer
                         };
                         scene.Nodes.Add(currentNode);
                         break;
+                    case "connection":
+                    {
+                        var connection = new GodotConnection();
+                        foreach (var kv in attributes)
+                        {
+                            connection.Attributes[kv.Key] = kv.Value;
+                        }
+
+                        scene.Connections.Add(connection);
+                        break;
+                    }
                 }
 
                 continue;
@@ -136,8 +147,29 @@ public sealed class SceneSerializer : ISceneSerializer
             sb.AppendLine();
         }
 
+        if (scene.Connections.Count > 0)
+        {
+            sb.AppendLine();
+        }
+
+        foreach (var conn in scene.Connections)
+        {
+            var parts = conn.Attributes
+                .OrderBy(x => x.Key, StringComparer.Ordinal)
+                .Select(kv => $"{kv.Key}=\"{EscapeConnectionValue(kv.Value)}\"");
+            sb.AppendLine($"[connection {string.Join(" ", parts)}]");
+        }
+
+        if (scene.Connections.Count > 0)
+        {
+            sb.AppendLine();
+        }
+
         return sb.ToString();
     }
+
+    private static string EscapeConnectionValue(string value)
+        => value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
 
     /// <summary>
     /// Parses section attributes from a scene header line.

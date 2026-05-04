@@ -48,7 +48,8 @@ public class ResourcePipelineServiceTests
                 }));
 
             var text = await files.ReadAsync(Path.Combine("materials", "NewMat.tres"));
-            text.Should().Contain("[gd_resource type=\"StandardMaterial3D\" format=3]");
+            text.Should().Contain("[gd_resource type=\"StandardMaterial3D\"");
+            text.Should().Contain("format=3");
             text.Should().Contain("metallic = 0.35");
         }
         finally

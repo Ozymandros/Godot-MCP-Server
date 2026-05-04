@@ -1,3 +1,5 @@
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Unit;
 
 /// <summary>
@@ -11,11 +13,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task ListNodesAsync_ShouldReturnHierarchyWithChildrenAndScript()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.ListNodesAsync(Path.Combine(root, "scenes", "Main.tscn"));
 
@@ -42,11 +44,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task AddNodeAsync_ShouldInsertUnderRootWhenParentIsDot()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.AddNodeAsync(new SceneGraphAddNodeRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -70,11 +72,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task AddNodeAsync_ShouldRejectUnknownParentPath()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.AddNodeAsync(new SceneGraphAddNodeRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -92,16 +94,77 @@ public class SceneGraphServiceTests
     }
 
     /// <summary>
+    /// Verifies that instantiating a packed scene rejects an unknown parent path.
+    /// </summary>
+    [Fact]
+    public async Task InstantiatePackedSceneAsync_ShouldRejectUnknownParent()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Packed.tscn");
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var packedPath = Path.Combine(root, "scenes", "Packed.tscn");
+            var result = await service.InstantiatePackedSceneAsync(new SceneGraphInstantiatePackedSceneRequest(
+                Path.Combine(root, "scenes", "Main.tscn"),
+                "NoSuchParent",
+                packedPath,
+                "Inst"));
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("not found");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
+    /// Verifies packed instance parent attribute and root type from the packed scene.
+    /// </summary>
+    [Fact]
+    public async Task InstantiatePackedSceneAsync_ShouldSetParentAndPackedSceneRootType()
+    {
+        var (root, resolver, files) = FixtureFactory.CreateProject();
+        try
+        {
+            await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
+            await files.WriteAsync(
+                Path.Combine(root, "scenes", "Tiny.tscn"),
+                "[gd_scene format=3]\n\n[node name=\"SubRoot\" type=\"Node3D\"]\n");
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
+            var packedPath = Path.Combine(root, "scenes", "Tiny.tscn");
+            var result = await service.InstantiatePackedSceneAsync(new SceneGraphInstantiatePackedSceneRequest(
+                Path.Combine(root, "scenes", "Main.tscn"),
+                "Player",
+                packedPath,
+                "TinyInst"));
+
+            result.Success.Should().BeTrue();
+            var text = await files.ReadAsync(Path.Combine(root, "scenes", "Main.tscn"));
+            text.Should().Contain("TinyInst\" type=\"Node3D\" parent=\"Player\"");
+            text.Should().Contain("instance=ExtResource(\"2\")");
+            text.Should().Contain("path=\"res://scenes/Tiny.tscn\"");
+        }
+        finally
+        {
+            FixtureFactory.Cleanup(root);
+        }
+    }
+
+    /// <summary>
     /// Verifies that removing a node removes its full descendant subtree.
     /// </summary>
     [Fact]
     public async Task RemoveNodeAsync_ShouldDeleteSubtree()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.RemoveNodeAsync(new SceneGraphRemoveNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "Player"));
 
@@ -123,11 +186,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task MoveNodeAsync_ShouldRejectCircularParenting()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.MoveNodeAsync(new SceneGraphMoveNodeRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -149,11 +212,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task MoveNodeAsync_ShouldRejectMovingRootNode()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.MoveNodeAsync(new SceneGraphMoveNodeRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -175,11 +238,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task RenameNodeAsync_ShouldRenameNode()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.RenameNodeAsync(new SceneGraphRenameNodeRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -202,11 +265,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task SetNodePropertiesAsync_ShouldUpdateOnlyProvidedProperties()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -235,11 +298,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task GetNodePropertiesAsync_ShouldThrowWhenNodeDoesNotExist()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var act = async () => await service.GetNodePropertiesAsync(Path.Combine(root, "scenes", "Main.tscn"), "MissingNode");
 
@@ -257,11 +320,11 @@ public class SceneGraphServiceTests
     [Fact]
     public async Task SetNodePropertiesAsync_ShouldRejectNonPrimitiveValues()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new SceneGraphService(files, new SceneSerializer());
+            var service = new SceneGraphService(files, new SceneSerializer(), resolver);
 
             var result = await service.SetNodePropertiesAsync(new SceneGraphSetPropertiesRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),

@@ -1,3 +1,5 @@
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Unit;
 
 /// <summary>
@@ -97,7 +99,7 @@ public class LightingServiceTests
 
     private static LightingService CreateService(IGodotFileService files, IPathResolver resolver)
     {
-        var graph = new SceneGraphService(files, new SceneSerializer());
+        var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
         return new LightingService(files, resolver, graph);
     }
 }

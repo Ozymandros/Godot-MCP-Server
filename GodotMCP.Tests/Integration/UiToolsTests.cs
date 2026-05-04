@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Integration;
 
 /// <summary>
@@ -17,7 +19,7 @@ public class UiToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
 
             var result = await GodotTools.UiAddControlAsync(
                 service,
@@ -48,7 +50,7 @@ public class UiToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
             await GodotTools.UiAddControlAsync(service, resolver, root, "scenes/Main.tscn", "UI", "Control", "Hud");
 
             var result = await GodotTools.UiSetLayoutPresetAsync(
@@ -80,7 +82,7 @@ public class UiToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
             await GodotTools.UiAddControlAsync(service, resolver, root, "scenes/Main.tscn", "UI", "Label", "Title");
 
             using var payload = JsonDocument.Parse("""
@@ -120,7 +122,7 @@ public class UiToolsTests
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            IUiService service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
             await GodotTools.UiAddControlAsync(service, resolver, root, "scenes/Main.tscn", "UI", "Button", "PlayButton");
 
             var result = await GodotTools.UiListControlsAsync(service, resolver, root, "scenes/Main.tscn");

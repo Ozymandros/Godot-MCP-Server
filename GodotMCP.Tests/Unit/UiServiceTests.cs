@@ -1,3 +1,5 @@
+using GodotMCP.Infrastructure.Services;
+
 namespace GodotMCP.Tests.Unit;
 
 /// <summary>
@@ -11,11 +13,11 @@ public class UiServiceTests
     [Fact]
     public async Task ListControlsAsync_ShouldReturnOnlyUiNodes()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var graph = new SceneGraphService(files, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
             await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "UI", "Button", "PlayButton"));
             await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "Player", "Node3D", "NonUi"));
             var service = new UiService(graph);
@@ -38,11 +40,11 @@ public class UiServiceTests
     [Fact]
     public async Task AddControlAsync_ShouldRejectNonUiType()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            var service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
 
             var result = await service.AddControlAsync(new UiAddControlRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),
@@ -65,11 +67,11 @@ public class UiServiceTests
     [Fact]
     public async Task SetLayoutPresetAsync_ShouldApplyFullRect()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var graph = new SceneGraphService(files, new SceneSerializer());
+            var graph = new SceneGraphService(files, new SceneSerializer(), resolver);
             await graph.AddNodeAsync(new SceneGraphAddNodeRequest(Path.Combine(root, "scenes", "Main.tscn"), "UI", "Control", "Hud"));
             var service = new UiService(graph);
 
@@ -94,11 +96,11 @@ public class UiServiceTests
     [Fact]
     public async Task SetLayoutPresetAsync_ShouldRejectUnknownPreset()
     {
-        var (root, _, files) = FixtureFactory.CreateProject();
+        var (root, resolver, files) = FixtureFactory.CreateProject();
         try
         {
             await FixtureFactory.CopySceneFixtureAsync(root, "SceneGraphValid.tscn", "scenes/Main.tscn");
-            var service = new UiService(new SceneGraphService(files, new SceneSerializer()));
+            var service = new UiService(new SceneGraphService(files, new SceneSerializer(), resolver));
 
             var result = await service.SetLayoutPresetAsync(new UiSetLayoutRequest(
                 Path.Combine(root, "scenes", "Main.tscn"),

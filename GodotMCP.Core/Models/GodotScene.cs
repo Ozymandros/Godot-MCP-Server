@@ -29,6 +29,28 @@ public sealed class GodotScene
     /// Gets scene node declarations.
     /// </summary>
     public List<GodotNode> Nodes { get; } = [];
+
+    /// <summary>
+    /// Gets signal connection declarations (<c>[connection ...]</c>).
+    /// </summary>
+    public List<GodotConnection> Connections { get; } = [];
+
+    /// <summary>
+    /// Sets <see cref="LoadSteps"/> to <c>1 + external + sub</c> resources, matching common Godot 4 scene headers.
+    /// </summary>
+    public void RecomputeLoadSteps()
+        => LoadSteps = Math.Max(1, 1 + ExternalResources.Count + SubResources.Count);
+}
+
+/// <summary>
+/// Represents a <c>[connection ...]</c> line in a scene file.
+/// </summary>
+public sealed class GodotConnection
+{
+    /// <summary>
+    /// Gets header attributes (signal, from, to, method, flags, etc.).
+    /// </summary>
+    public Dictionary<string, string> Attributes { get; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>

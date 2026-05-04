@@ -1,5 +1,6 @@
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using GodotMCP.Core.SceneGraph;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -16,26 +17,31 @@ public static partial class GodotTools
     /// <summary>
     /// Adds an <c>AnimationPlayer</c> node to a scene under a target parent path.
     /// </summary>
+    /// <param name="sceneGraphService">Scene graph service for validated inserts.</param>
     /// <param name="fileService">File abstraction for project I/O.</param>
     /// <param name="pathResolver">Project path resolver.</param>
-    /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
+    /// <param name="sceneSerializer">Scene serializer (reserved for MCP host compatibility).</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
     /// <param name="parentPath">Parent node path where the AnimationPlayer is inserted.</param>
     /// <param name="nodeName">AnimationPlayer node name.</param>
+    /// <param name="root_type">Root node type used when the scene file is bootstrapped.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
-    [McpServerTool(Name = "add_animation_player"), Description("Append an AnimationPlayer node to a scene.")]
+    [McpServerTool(Name = "add_animation_player"), Description("Append an AnimationPlayer node under a validated parent path (same rules as scene.add_node).")]
     public static async Task<ToolResult> AddAnimationPlayerAsync(
+        ISceneGraphService sceneGraphService,
         IGodotFileService fileService,
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
-        [Description("Scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("The hierarchy path of the parent node (e.g., '.', 'Root')."), Required] string parentPath,
+        [Description("Scene file name or relative path under projectPath (under scenes/)."), Required] string fileName,
+        [Description("Parent node path (e.g. '.', 'Player')."), Required] string parentPath,
         [Description("Name for the new AnimationPlayer node."), Required] string nodeName = "AnimationPlayer",
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
+        _ = sceneSerializer;
         if (IsBlank(nodeName) || IsBlank(parentPath))
         {
             return Invalid("parentPath and nodeName are required.");
@@ -43,25 +49,18 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
-        var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
-        var scene = sceneSerializer.Deserialize(sceneText);
+        var result = await sceneGraphService
+            .AddNodeAsync(new SceneGraphAddNodeRequest(scenePath, parentPath, "AnimationPlayer", nodeName), cancellationToken)
+            .ConfigureAwait(false);
 
-        scene.Nodes.Add(new GodotNode
-        {
-            Name = nodeName,
-            Type = "AnimationPlayer",
-            Parent = parentPath
-        });
-
-        await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"AnimationPlayer '{nodeName}' added to {scenePath}.");
+        return ToToolResult(result);
     }
 
     /// <summary>
@@ -72,10 +71,11 @@ public static partial class GodotTools
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
     /// <param name="fileName">Scene file name or relative path under <paramref name="projectPath"/>.</param>
-    /// <param name="playerNodeName">AnimationPlayer node name.</param>
+    /// <param name="playerNodePath">AnimationPlayer node path (for example <c>AnimationPlayer</c> or <c>UI/AnimationPlayer</c>).</param>
     /// <param name="animName">Animation name.</param>
     /// <param name="length">Animation duration in seconds.</param>
     /// <param name="loop">Whether the animation should loop.</param>
+    /// <param name="root_type">Root node type used when the scene file is bootstrapped.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation"), Description("Create and add an animation sub-resource to an AnimationPlayer in a scene.")]
@@ -85,33 +85,38 @@ public static partial class GodotTools
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("The name of the AnimationPlayer node."), Required] string playerNodeName,
+        [Description("AnimationPlayer node path (e.g. 'AnimationPlayer', 'UI/AnimationPlayer')."), Required] string playerNodePath,
         [Description("The name for the new animation (e.g., 'fade_out')."), Required] string animName,
         [Description("Duration of the animation in seconds."), Required] float length,
         [Description("Whether the animation loops."), Required] bool loop = false,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(playerNodeName) || IsBlank(animName))
+        if (IsBlank(playerNodePath) || IsBlank(animName))
         {
-            return Invalid("playerNodeName and animName are required.");
+            return Invalid("playerNodePath and animName are required.");
         }
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);
         var scene = sceneSerializer.Deserialize(sceneText);
-
-        var playerNode = scene.Nodes.FirstOrDefault(n => n.Name == playerNodeName && n.Type == "AnimationPlayer");
-        if (playerNode == null)
+        var index = SceneNodePathIndex.Build(scene);
+        if (!SceneNodePathIndex.TryGetNode(index, playerNodePath, out var playerNode) || playerNode is null)
         {
-            return new ToolResult(false, $"AnimationPlayer node '{playerNodeName}' not found in scene.");
+            return new ToolResult(false, $"AnimationPlayer node '{playerNodePath}' not found in scene.");
+        }
+
+        if (!string.Equals(playerNode.Type, "AnimationPlayer", StringComparison.Ordinal))
+        {
+            return new ToolResult(false, $"Node '{playerNodePath}' is not an AnimationPlayer (found type '{playerNode.Type}').");
         }
 
         // Create animation sub-resource
@@ -157,7 +162,7 @@ public static partial class GodotTools
         }
 
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Animation '{animName}' added to {playerNodeName}. Use 'add_animation_track' to add keys.");
+        return new ToolResult(true, $"Animation '{animName}' added to {playerNodePath}. Use 'add_animation_track' to add keys.");
     }
 
     /// <summary>
@@ -172,6 +177,7 @@ public static partial class GodotTools
     /// <param name="targetPath">NodePath target expression for the track.</param>
     /// <param name="trackType">Track type identifier.</param>
     /// <param name="keys">Optional key points for the track.</param>
+    /// <param name="root_type">Root node type used when the scene file is bootstrapped.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing mutation status.</returns>
     [McpServerTool(Name = "add_animation_track"), Description("Add a property track with keys to an existing animation inside a scene.")]
@@ -185,6 +191,7 @@ public static partial class GodotTools
         [Description("Target node path relative to AnimationPlayer (e.g., 'Sprite2D:position')."), Required] string targetPath,
         [Description("Track type: 'value', 'method', 'bezier', 'audio'. Default 'value'."), Required] string trackType = "value",
         [Description("Array of key points: {Time, Value, Transition}."), Required, MinLength(1)] List<KeyPoint>? keys = null,
+        [Description("Root node type when the scene file is bootstrapped.")] string root_type = "Node",
         CancellationToken cancellationToken = default)
     {
         if (IsBlank(animName) || IsBlank(targetPath))
@@ -194,11 +201,11 @@ public static partial class GodotTools
         string scenePath;
         try
         {
-            scenePath = ResolveProjectFilePath(pathResolver, projectPath, fileName);
+            scenePath = await EnsureSceneReadyAsync(fileService, pathResolver, projectPath, fileName, root_type, cancellationToken).ConfigureAwait(false);
         }
         catch (InvalidOperationException ex)
         {
-            return Invalid(ex.Message);
+            return Invalid(ex.Message, "Use projectPath + /scenes/ + fileName (with .tscn extension).");
         }
 
         var sceneText = await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false);

@@ -1,4 +1,5 @@
 using GodotMCP.Core.Interfaces;
+using GodotMCP.Core.ProjectSettings;
 
 namespace GodotMCP.Infrastructure.Config;
 
@@ -17,77 +18,12 @@ public sealed class ProjectConfigService(IPathResolver pathResolver) : IProjectC
     }
 
     /// <inheritdoc />
-    public async Task SetValueAsync(string section, string key, string value, CancellationToken cancellationToken = default)
-    {
-        var (lines, sectionLine, existingValue) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
-        var keyLine = $"{key}={value}";
-        if (existingValue is null)
-        {
-            if (sectionLine < 0)
-            {
-                lines.Add(string.Empty);
-                lines.Add($"[{section}]");
-                lines.Add(keyLine);
-            }
-            else
-            {
-                var insertAt = sectionLine + 1;
-                while (insertAt < lines.Count && !lines[insertAt].StartsWith("[", StringComparison.Ordinal))
-                {
-                    insertAt++;
-                }
-
-                lines.Insert(insertAt, keyLine);
-            }
-        }
-        else
-        {
-            for (var i = 0; i < lines.Count; i++)
-            {
-                if (lines[i].TrimStart().StartsWith($"{key}=", StringComparison.Ordinal))
-                {
-                    lines[i] = keyLine;
-                    break;
-                }
-            }
-        }
-
-        var path = Path.Combine(pathResolver.ProjectRoot, "project.godot");
-        await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
-    }
+    public Task SetValueAsync(string section, string key, string value, CancellationToken cancellationToken = default) =>
+        ProjectGodotMerger.SetSectionKeyAsync(pathResolver.ProjectRoot, section, key, value, cancellationToken);
 
     /// <inheritdoc />
-    public async Task RemoveKeyAsync(string section, string key, CancellationToken cancellationToken = default)
-    {
-        var (lines, sectionLine, _) = await ReadAndLocateAsync(section, key, cancellationToken).ConfigureAwait(false);
-        if (sectionLine < 0)
-        {
-            return;
-        }
-
-        var start = sectionLine + 1;
-        var end = lines.Count;
-        for (var i = start; i < lines.Count; i++)
-        {
-            if (lines[i].StartsWith("[", StringComparison.Ordinal))
-            {
-                end = i;
-                break;
-            }
-        }
-
-        for (var i = start; i < end; i++)
-        {
-            if (lines[i].TrimStart().StartsWith($"{key}=", StringComparison.Ordinal))
-            {
-                lines.RemoveAt(i);
-                break;
-            }
-        }
-
-        var path = Path.Combine(pathResolver.ProjectRoot, "project.godot");
-        await File.WriteAllTextAsync(path, string.Join(Environment.NewLine, lines), cancellationToken).ConfigureAwait(false);
-    }
+    public Task RemoveKeyAsync(string section, string key, CancellationToken cancellationToken = default) =>
+        ProjectGodotMerger.RemoveSectionKeyAsync(pathResolver.ProjectRoot, section, key, cancellationToken);
 
     /// <summary>
     /// Reads project config text and locates a section/key pair.

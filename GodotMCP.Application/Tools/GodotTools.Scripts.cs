@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
+using GodotMCP.Core.SceneGraph;
 using ModelContextProtocol.Server;
 
 namespace GodotMCP.Application.Tools;
@@ -130,7 +131,7 @@ public partial class {{className}} : {{baseType}}
     /// <param name="pathResolver">Project path resolver.</param>
     /// <param name="sceneSerializer">Scene serializer used for parsing and writing.</param>
     /// <param name="scenePath">Scene file path.</param>
-    /// <param name="nodeName">Target node name.</param>
+    /// <param name="nodePath">Target node name with path (e.g. Player or Player/CameraRig).</param>
     /// <param name="scriptPath">Script resource path.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Tool result describing attachment status.</returns>
@@ -142,10 +143,10 @@ public partial class {{className}} : {{baseType}}
         IPathResolver pathResolver,
         ISceneSerializer sceneSerializer,
         string scenePath,
-        string nodeName,
+        string nodePath,
         string scriptPath,
         CancellationToken cancellationToken = default)
-        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, pathResolver.ProjectRoot, ToProjectFileName(scenePath, pathResolver), nodeName, ToProjectFileName(scriptPath, pathResolver), cancellationToken);
+        => AttachScriptAsync(fileService, pathResolver, sceneSerializer, pathResolver.ProjectRoot, ToProjectFileName(scenePath, pathResolver), nodePath, ToProjectFileName(scriptPath, pathResolver), cancellationToken);
 
     /// <summary>
     /// Attaches an existing script resource to a node in a scene.
@@ -157,13 +158,13 @@ public partial class {{className}} : {{baseType}}
         ISceneSerializer sceneSerializer,
         [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
         [Description("Scene file name or relative path under projectPath."), Required] string fileName,
-        [Description("Name of the target node."), Required] string nodeName,
+        [Description("Target node path in the scene (e.g. Player, Root/Player, Player/CameraRig)."), Required] string nodePath,
         [Description("Script file name or relative path under projectPath."), Required] string scriptFileName,
         CancellationToken cancellationToken = default)
     {
-        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(scriptFileName) || IsBlank(nodeName))
+        if (IsBlank(projectPath) || IsBlank(fileName) || IsBlank(scriptFileName) || IsBlank(nodePath))
         {
-            return Invalid("projectPath, fileName, scriptFileName and nodeName are required.");
+            return Invalid("projectPath, fileName, scriptFileName and nodePath are required.");
         }
 
         string scenePath;
@@ -179,18 +180,19 @@ public partial class {{className}} : {{baseType}}
         }
 
         var scene = sceneSerializer.Deserialize(await fileService.ReadAsync(scenePath, cancellationToken).ConfigureAwait(false));
+        var pathIndex = SceneNodePathIndex.Build(scene);
+        if (!SceneNodePathIndex.TryGetNode(pathIndex, nodePath, out var node) || node is null)
+        {
+            return new ToolResult(false, $"Node '{nodePath}' not found.");
+        }
+
         var extId = (scene.ExternalResources.Count + 1).ToString();
         scene.ExternalResources.Add(new ExtResource { Id = extId, Path = pathResolver.ToGodotResPath(scriptPath), Type = "Script" });
 
-        var node = scene.Nodes.FirstOrDefault(n => n.Name == nodeName);
-        if (node is null)
-        {
-            return new ToolResult(false, $"Node '{nodeName}' not found.");
-        }
-
         node.Properties["script"] = $"ExtResource(\"{extId}\")";
+        scene.RecomputeLoadSteps();
         await fileService.WriteAsync(scenePath, sceneSerializer.Serialize(scene), cancellationToken).ConfigureAwait(false);
-        return new ToolResult(true, $"Script '{scriptPath}' attached to '{nodeName}'.");
+        return new ToolResult(true, $"Script '{scriptPath}' attached to '{nodePath}'.");
     }
 
     /// <summary>
