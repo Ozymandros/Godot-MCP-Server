@@ -48,6 +48,9 @@ public static partial class GodotTools
             return new ToolResult(false, "A project.godot already exists.");
         }
 
+        const string mainSceneRelativePath = "scenes/Main.tscn";
+        const string mainSceneResPath = "res://scenes/Main.tscn";
+
         var content = $$"""
 ; Engine configuration file.
 ; It's best edited using the editor UI and not directly.
@@ -57,7 +60,7 @@ config_version=5
 [application]
 
 config/name="{{projectName}}"
-run/main_scene=""
+run/main_scene="{{mainSceneResPath}}"
 
 [dotnet]
 project/assembly_name="{{projectName}}"
@@ -68,6 +71,7 @@ project/assembly_name="{{projectName}}"
             Directory.CreateDirectory(Path.Combine(baseDir, "scripts"));
             Directory.CreateDirectory(Path.Combine(baseDir, "addons"));
             await File.WriteAllTextAsync(projectFilePath, content, cancellationToken).ConfigureAwait(false);
+            await WriteDefaultMainSceneAsync(baseDir, mainSceneRelativePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -85,7 +89,10 @@ project/assembly_name="{{projectName}}"
             return new ToolResult(false, "A project.godot already exists.");
         }
 
-        var content = "; Engine configuration file.\n; It's best edited using the editor UI and not directly.\n\nconfig_version=5\n\n[application]\n\nconfig/name=\"" + projectName + "\"\nrun/main_scene=\"\"\n\n[dotnet]\nproject/assembly_name=\"" + projectName + "\"\n";
+        const string mainSceneRelativePath = "scenes/Main.tscn";
+        const string mainSceneResPath = "res://scenes/Main.tscn";
+
+        var content = "; Engine configuration file.\n; It's best edited using the editor UI and not directly.\n\nconfig_version=5\n\n[application]\n\nconfig/name=\"" + projectName + "\"\nrun/main_scene=\"" + mainSceneResPath + "\"\n\n[dotnet]\nproject/assembly_name=\"" + projectName + "\"\n";
 
         try
         {
@@ -93,6 +100,7 @@ project/assembly_name="{{projectName}}"
             Directory.CreateDirectory(Path.Combine(baseDir, "scripts"));
             Directory.CreateDirectory(Path.Combine(baseDir, "addons"));
             await File.WriteAllTextAsync(projectFilePath, content, cancellationToken).ConfigureAwait(false);
+            await WriteDefaultMainSceneAsync(baseDir, mainSceneRelativePath, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -109,6 +117,17 @@ project/assembly_name="{{projectName}}"
     // Helper: remove a key from a project.godot located at baseDir.
     private static Task RemoveProjectConfigKeyAsync(string baseDir, string section, string key, CancellationToken cancellationToken = default) =>
         ProjectGodotMerger.RemoveSectionKeyAsync(baseDir, section, key, cancellationToken);
+
+    private static Task WriteDefaultMainSceneAsync(string baseDir, string sceneRelativePath, CancellationToken cancellationToken = default)
+    {
+        var scenePath = Path.Combine(baseDir, sceneRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var mainSceneText = """
+[gd_scene format=3]
+
+[node name="Main" type="Node2D"]
+""";
+        return File.WriteAllTextAsync(scenePath, mainSceneText, cancellationToken);
+    }
 
     /// <summary>
     /// Reads basic project configuration values from <c>project.godot</c>.
@@ -516,6 +535,706 @@ project/assembly_name="{{projectName}}"
 
         await File.WriteAllTextAsync(projectFile, updated, cancellationToken).ConfigureAwait(false);
         return new ToolResult(true, message);
+    }
+
+    /// <summary>
+    /// Creates a Main-first endless runner project structure with Main scene, Level, ObstacleContainer, and optional UI scaffold.
+    /// </summary>
+    /// <param name="fileService">File abstraction for project I/O.</param>
+    /// <param name="pathResolver">Path resolver for project paths.</param>
+    /// <param name="projectPath">Project directory (absolute path or path relative to the configured project root).</param>
+    /// <param name="projectName">Project display name.</param>
+    /// <param name="language">Script language ('gd' for GDScript, 'cs' for C#).</param>
+    /// <param name="gameType">Game dimension ('2d' or '3d').</param>
+    /// <param name="includeUi">Whether to include CanvasLayer HUD with score Label and restart Button.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tool result describing project creation status.</returns>
+    [McpServerTool(Name = "initialize_project"), Description("Create a Main-first endless runner project structure with Main scene, Level, ObstacleContainer, and optional UI scaffold.")]
+    public static async Task<ToolResult> InitializeProjectAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("The name of the Godot project.")] string? projectName = null,
+        [Description("Script language ('gd' for GDScript, 'cs' for C#). Defaults to 'gd'.")] string language = "gd",
+        [Description("Game dimension ('2d' or '3d'). Defaults to '2d'.")] string gameType = "2d",
+        [Description("Include CanvasLayer HUD with score Label and restart Button.")] bool includeUi = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
+        var lang = language.Trim().ToLowerInvariant();
+        var dim = gameType.Trim().ToLowerInvariant();
+        if (lang != "gd" && lang != "cs")
+        {
+            return Invalid("language must be 'gd' (GDScript) or 'cs' (C#).");
+        }
+        if (dim != "2d" && dim != "3d")
+        {
+            return Invalid("gameType must be '2d' or '3d'.");
+        }
+
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var effectiveName = string.IsNullOrWhiteSpace(projectName) ? Path.GetFileName(baseDir) : projectName;
+        if (string.IsNullOrWhiteSpace(effectiveName))
+        {
+            effectiveName = "New Godot Project";
+        }
+
+        var mainSceneRelativePath = "scenes/Main.tscn";
+        var mainSceneResPath = "res://scenes/Main.tscn";
+        var mainScriptPath = lang == "gd" ? "scripts/Main.gd" : "scripts/Main.cs";
+
+        var projectFilePath = Path.Combine(baseDir, "project.godot");
+        var existingProject = File.Exists(projectFilePath);
+
+        if (existingProject)
+        {
+            var text = await File.ReadAllTextAsync(projectFilePath, cancellationToken).ConfigureAwait(false);
+            if (!text.Contains("run/main_scene"))
+            {
+                await SetProjectConfigValueAsync(baseDir, "application", "run/main_scene", $"\"{mainSceneResPath}\"", cancellationToken).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            var dotnetSection = lang == "cs" ? $"\n[dotnet]\nproject/assembly_name=\"{effectiveName}\"" : "";
+            var content = $"""
+                ; Engine configuration file.
+                ; It's best edited using the editor UI and not directly.
+
+                config_version=5
+
+                [application]
+
+                config/name="{effectiveName}"
+                run/main_scene="{mainSceneResPath}"{dotnetSection}
+                """;
+            Directory.CreateDirectory(Path.Combine(baseDir, "scenes"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "scripts"));
+            Directory.CreateDirectory(Path.Combine(baseDir, "addons"));
+            await File.WriteAllTextAsync(projectFilePath, content, cancellationToken).ConfigureAwait(false);
+        }
+
+        var mainScenePath = Path.Combine(baseDir, mainSceneRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var rootType = dim == "2d" ? "Node2D" : "Node3D";
+        var levelType = dim == "2d" ? "Node2D" : "Node3D";
+        var obstacleType = dim == "2d" ? "Node2D" : "Node3D";
+
+        string mainSceneContent;
+        if (dim == "2d")
+        {
+            mainSceneContent = """
+                [gd_scene load_steps=2 format=3]
+
+                [ext_resource type="Script" path="res://scripts/Main.gd" id="1"]
+
+                [node name="Main" type="Node2D"]
+                script = ExtResource("1")
+
+                [node name="Level" type="Node2D" parent="."]
+
+                [node name="ObstacleContainer" type="Node2D" parent="."]
+                """;
+        }
+        else
+        {
+            mainSceneContent = """
+                [gd_scene load_steps=2 format=3]
+
+                [ext_resource type="Script" path="res://scripts/Main.cs" id="1"]
+
+                [node name="Main" type="Node3D"]
+                script = ExtResource("1")
+
+                [node name="Level" type="Node3D" parent="."]
+
+                [node name="ObstacleContainer" type="Node3D" parent="."]
+                """;
+        }
+
+        if (includeUi)
+        {
+            mainSceneContent += "\n\n[node name=\"Hud\" type=\"CanvasLayer\" parent=\".\"]";
+        }
+
+        await File.WriteAllTextAsync(mainScenePath, mainSceneContent, cancellationToken).ConfigureAwait(false);
+
+        var mainScriptFullPath = Path.Combine(baseDir, mainScriptPath.Replace('/', Path.DirectorySeparatorChar));
+        var scriptContent = GenerateMainScript(lang, dim, includeUi);
+        await File.WriteAllTextAsync(mainScriptFullPath, scriptContent, cancellationToken).ConfigureAwait(false);
+
+        if (includeUi)
+        {
+            var uiManagerPath = Path.Combine(baseDir, (lang == "gd" ? "scripts/UiManager.gd" : "scripts/UiManager.cs"));
+            var uiContent = GenerateUiManagerScript(lang, dim);
+            await File.WriteAllTextAsync(uiManagerPath, uiContent, cancellationToken).ConfigureAwait(false);
+        }
+
+        var metaPath = Path.Combine(baseDir, ".gdmcp-meta.json");
+        var meta = new Dictionary<string, string>
+        {
+            ["language"] = lang,
+            ["gameType"] = dim
+        };
+        await File.WriteAllTextAsync(metaPath, System.Text.Json.JsonSerializer.Serialize(meta), cancellationToken).ConfigureAwait(false);
+
+        return new ToolResult(true, $"Project initialized: {effectiveName} ({dim}, {lang}). Main.tscn created with Level and ObstacleContainer.");
+    }
+
+    /// <summary>
+    /// Creates an actor scene and optionally instantiates it into Main.tscn.
+    /// </summary>
+    [McpServerTool(Name = "create_actor"), Description("Create an actor scene and optionally instantiate it into Main.tscn. Supports player camera logic.")]
+    public static async Task<ToolResult> CreateActorAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Actor name (used for scene file and node name)."), Required] string actorName,
+        [Description("Actor role: 'player' for player-controlled, 'enemy' for AI, 'npc' for non-player character.")] string role = "enemy",
+        [Description("Script language ('gd' or 'cs'). Defaults to 'gd' or project metadata.")] string? language = null,
+        [Description("Game dimension ('2d' or '3d'). Defaults to '2d' or project metadata.")] string? gameType = null,
+        [Description("Whether to create a script for this actor.")] bool createScript = true,
+        [Description("Whether to instantiate this actor into Main.tscn.")] bool addToMain = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(projectPath) || IsBlank(actorName))
+        {
+            return Invalid("projectPath and actorName are required.");
+        }
+
+        var (lang, dim, foundMeta) = await LoadProjectMetadataAsync(pathResolver, fileService, projectPath, language, gameType, cancellationToken).ConfigureAwait(false);
+        if (!foundMeta)
+        {
+            lang ??= "gd";
+            dim ??= "2d";
+        }
+
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var actorsDir = Path.Combine(baseDir, "scenes", "actors");
+        Directory.CreateDirectory(actorsDir);
+
+        var actorFileName = $"{actorName}.tscn";
+        var actorScenePath = Path.Combine(actorsDir, actorFileName);
+        var nodeType = dim == "2d" ? "CharacterBody2D" : "CharacterBody3D";
+
+        var sceneContent = new System.Text.StringBuilder();
+        sceneContent.AppendLine("[gd_scene load_steps=2 format=3]");
+
+        if (createScript)
+        {
+            var scriptExt = lang == "gd" ? "gd" : "cs";
+            var scriptPath = $"res://scenes/actors/{actorName}.{scriptExt}";
+            sceneContent.AppendLine($@"[ext_resource type=""Script"" path=""{scriptPath}"" id=""1""]");
+        }
+
+        var cameraType = dim == "2d" ? "Camera2D" : "Camera3D";
+        if (role == "player")
+        {
+            sceneContent.AppendLine();
+            sceneContent.AppendLine($"[node name=\"{actorName}\" type=\"{nodeType}\"]");
+            if (createScript)
+            {
+                sceneContent.AppendLine("script = ExtResource(\"1\")");
+            }
+            sceneContent.AppendLine();
+            sceneContent.AppendLine($"[node name=\"{cameraType}\" type=\"{cameraType}\" parent=\".\"]");
+        }
+        else
+        {
+            sceneContent.AppendLine();
+            sceneContent.AppendLine($"[node name=\"{actorName}\" type=\"{nodeType}\"]");
+            if (createScript)
+            {
+                sceneContent.AppendLine("script = ExtResource(\"1\")");
+            }
+        }
+
+        await File.WriteAllTextAsync(actorScenePath, sceneContent.ToString(), cancellationToken).ConfigureAwait(false);
+
+        if (createScript)
+        {
+            var scriptsDir = Path.Combine(baseDir, "scenes", "actors");
+            Directory.CreateDirectory(scriptsDir);
+            var scriptPath = Path.Combine(scriptsDir, $"{actorName}.{(lang == "gd" ? "gd" : "cs")}");
+            var scriptContent = GenerateActorScript(lang!, dim!, role, actorName);
+            await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (addToMain)
+        {
+            var mainScenePath = Path.Combine(baseDir, "scenes", "Main.tscn");
+            if (!File.Exists(mainScenePath))
+            {
+                return new ToolResult(true, $"Actor scene created at {actorScenePath}. Main.tscn not found - actor not added to Main.");
+            }
+
+            var mainContent = await File.ReadAllTextAsync(mainScenePath, cancellationToken).ConfigureAwait(false);
+            var actorInstance = $"[node name=\"{actorName}\" type=\"{nodeType}\" parent=\"Level\"]";
+            if (!mainContent.Contains(actorInstance))
+            {
+                mainContent += $"\n{actorInstance}\n";
+                await File.WriteAllTextAsync(mainScenePath, mainContent, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return new ToolResult(true, $"Actor '{actorName}' created at {actorScenePath}." + (addToMain ? " Added to Main.tscn/Level." : ""));
+    }
+
+    private static string GenerateActorScript(string language, string gameType, string role, string actorName)
+    {
+        var className = char.ToUpper(actorName[0]) + actorName[1..];
+        if (language == "gd")
+        {
+            var baseType = gameType == "2d" ? "CharacterBody2D" : "CharacterBody3D";
+            var moveFunc = gameType == "2d"
+                ? "func _physics_process(delta: float) -> void:\n    move_and_slide()"
+                : "func _physics_process(delta: float) -> void:\n    move_and_slide()";
+
+            var cameraFollow = role == "player"
+                ? "\nfunc _process(delta: float) -> void:\n    if has_node(\"Camera2D\"):\n        $Camera2D.position = position"
+                : "";
+
+            return $"extends {baseType}\nclass_name {className}\n\n{moveFunc}{cameraFollow}\n";
+        }
+        else
+        {
+            var baseType = gameType == "2d" ? "CharacterBody2D" : "CharacterBody3D";
+            var cameraFollow = role == "player"
+                ? "\n    public override void _Process(double delta)\n    {\n        var camera = GetNodeOrNull<Camera2D>(\"Camera2D\");\n        if (camera != null) camera.Position = Position;\n    }"
+                : "";
+
+            return $$"""
+                using Godot;
+
+                public partial class {{className}} : {{baseType}}
+                {
+                    public override void _PhysicsProcess(double delta)
+                    {
+                        MoveAndSlide();
+                    }{{cameraFollow}}
+                }
+                """;
+        }
+    }
+
+    private static async Task<(string? lang, string? dim, bool found)> LoadProjectMetadataAsync(
+        IPathResolver pathResolver,
+        IGodotFileService fileService,
+        string projectPath,
+        string? explicitLang,
+        string? explicitDim,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(explicitLang) || !string.IsNullOrEmpty(explicitDim))
+        {
+            return (explicitLang, explicitDim, false);
+        }
+
+        try
+        {
+            var baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var metaPath = Path.Combine(baseDir, ".gdmcp-meta.json");
+            if (File.Exists(metaPath))
+            {
+                var content = await File.ReadAllTextAsync(metaPath, cancellationToken).ConfigureAwait(false);
+                using var doc = System.Text.Json.JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                var lang = root.TryGetProperty("language", out var l) ? l.GetString() : null;
+                var dim = root.TryGetProperty("gameType", out var d) ? d.GetString() : null;
+                return (lang, dim, true);
+            }
+        }
+        catch
+        {
+        }
+        return (null, null, false);
+    }
+
+    /// <summary>
+    /// Creates a spawnable obstacle/scene with Area2D/Area3D, collision shape, and off-screen cleanup notifier.
+    /// </summary>
+    [McpServerTool(Name = "create_spawnable"), Description("Create a spawnable obstacle scene with Area2D/Area3D, collision shape, and off-screen cleanup. Injects PackedScene export and signal wiring into Main script.")]
+    public static async Task<ToolResult> CreateSpawnableAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Spawnable name (used for scene file and export variable)."), Required] string spawnableName,
+        [Description("Script language ('gd' or 'cs'). Defaults to project metadata.")] string? language = null,
+        [Description("Game dimension ('2d' or '3d'). Defaults to project metadata.")] string? gameType = null,
+        [Description("Whether to create a script for this spawnable.")] bool createScript = true,
+        [Description("Whether to add PackedScene export and signal to Main script.")] bool wireToMain = true,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(projectPath) || IsBlank(spawnableName))
+        {
+            return Invalid("projectPath and spawnableName are required.");
+        }
+
+        var (lang, dim, foundMeta) = await LoadProjectMetadataAsync(pathResolver, fileService, projectPath, language, gameType, cancellationToken).ConfigureAwait(false);
+        if (!foundMeta)
+        {
+            lang ??= "gd";
+            dim ??= "2d";
+        }
+
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var spawnablesDir = Path.Combine(baseDir, "scenes", "spawnables");
+        Directory.CreateDirectory(spawnablesDir);
+
+        var spawnableFileName = $"{spawnableName}.tscn";
+        var spawnableScenePath = Path.Combine(spawnablesDir, spawnableFileName);
+
+        var areaType = dim == "2d" ? "Area2D" : "Area3D";
+        var shapeType = dim == "2d" ? "CollisionShape2D" : "CollisionShape3D";
+        var shapeResource = dim == "2d" ? "RectangleShape2D" : "BoxShape3D";
+        var notifierType = dim == "2d" ? "VisibleOnScreenNotifier2D" : "Area3D";
+
+        var sceneContent = new System.Text.StringBuilder();
+        sceneContent.AppendLine("[gd_scene load_steps=3 format=3]");
+
+        if (createScript)
+        {
+            var scriptExt = lang == "gd" ? "gd" : "cs";
+            var scriptPath = $"res://scenes/spawnables/{spawnableName}.{scriptExt}";
+            sceneContent.AppendLine($@"[ext_resource type=""Script"" path=""{scriptPath}"" id=""1""]");
+        }
+
+        sceneContent.AppendLine();
+        sceneContent.AppendLine($"[node name=\"{spawnableName}\" type=\"{areaType}\"]");
+        if (createScript)
+        {
+            sceneContent.AppendLine("script = ExtResource(\"1\")");
+        }
+
+        sceneContent.AppendLine();
+        sceneContent.AppendLine($"[node name=\"{shapeType}\" type=\"{shapeType}\" parent=\".\"]");
+        sceneContent.AppendLine($"[sub_resource type=\"{shapeResource}\" id=\"1\"]");
+
+        if (dim == "2d")
+        {
+            sceneContent.AppendLine();
+            sceneContent.AppendLine($"[node name=\"{notifierType}\" type=\"{notifierType}\" parent=\".\"]");
+        }
+        else
+        {
+            sceneContent.AppendLine();
+            sceneContent.AppendLine("[node name=\"DespawnArea\" type=\"Area3D\" parent=\".\"]");
+            sceneContent.AppendLine("[node name=\"CollisionShape3D\" type=\"CollisionShape3D\" parent=\"DespawnArea\"]");
+            sceneContent.AppendLine("[sub_resource type=\"BoxShape3D\" id=\"2\"]");
+        }
+
+        await File.WriteAllTextAsync(spawnableScenePath, sceneContent.ToString(), cancellationToken).ConfigureAwait(false);
+
+        if (createScript)
+        {
+            var scriptsDir = Path.Combine(baseDir, "scenes", "spawnables");
+            Directory.CreateDirectory(scriptsDir);
+            var scriptPath = Path.Combine(scriptsDir, $"{spawnableName}.{(lang == "gd" ? "gd" : "cs")}");
+            var scriptContent = GenerateSpawnableScript(lang!, dim!, spawnableName);
+            await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (wireToMain)
+        {
+            var mainScriptPath = Path.Combine(baseDir, "scripts", $"Main.{(lang == "gd" ? "gd" : "cs")}");
+            if (File.Exists(mainScriptPath))
+            {
+                var mainContent = await File.ReadAllTextAsync(mainScriptPath, cancellationToken).ConfigureAwait(false);
+                var exportVar = $"var {spawnableName}_scene: PackedScene";
+                if (!mainContent.Contains(exportVar))
+                {
+                    if (lang == "gd")
+                    {
+                        var insertPos = mainContent.IndexOf("extends");
+                        if (insertPos >= 0)
+                        {
+                            insertPos = mainContent.IndexOf('\n', insertPos) + 1;
+                            mainContent = mainContent.Insert(insertPos, $"\n@export var {spawnableName}_scene: PackedScene\n");
+                        }
+                    }
+                    else
+                    {
+                        var insertPos = mainContent.IndexOf("public partial class");
+                        if (insertPos >= 0)
+                        {
+                            insertPos = mainContent.IndexOf('\n', insertPos) + 1;
+                            mainContent = mainContent.Insert(insertPos, $"    [Export] public PackedScene {spawnableName}Scene;\n");
+                        }
+                    }
+                    await File.WriteAllTextAsync(mainScriptPath, mainContent, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        return new ToolResult(true, $"Spawnable '{spawnableName}' created at {spawnableScenePath}." + (wireToMain ? $" PackedScene export added to Main script." : ""));
+    }
+
+    private static string GenerateSpawnableScript(string language, string gameType, string spawnableName)
+    {
+        var className = char.ToUpper(spawnableName[0]) + spawnableName[1..];
+        if (language == "gd")
+        {
+            var baseType = gameType == "2d" ? "Area2D" : "Area3D";
+            var onScreenExit = gameType == "2d"
+                ? "func _on_visible_on_screen_exited() -> void:\n    queue_free()"
+                : """
+                func _on_despawn_area_entered(area: Area3D) -> void:
+                    if area.name == "DespawnArea":
+                        queue_free()
+                """;
+
+            var signalConnect = gameType == "2d"
+                ? "$VisibleOnScreenNotifier2D.screen_exited.connect(_on_visible_on_screen_exited)"
+                : "$DespawnArea.area_entered.connect(_on_despawn_area_entered)";
+
+            return $"""
+                extends {baseType}
+                class_name {className}
+
+                func _ready() -> void:
+                    {signalConnect}
+
+                {onScreenExit}
+                """;
+        }
+        else
+        {
+            var baseType = gameType == "2d" ? "Area2D" : "Area3D";
+            var onScreenExit = gameType == "2d"
+                ? "    private void _OnVisibleOnScreenExited()\n    {\n        QueueFree();\n    }"
+                : """
+                private void _OnDespawnAreaEntered(Area3D area)
+                {
+                    if (area.Name == "DespawnArea") QueueFree();
+                }
+                """;
+
+            var signalConnect = gameType == "2d"
+                ? "GetNode<VisibleOnScreenNotifier2D>(\"VisibleOnScreenNotifier2D\").ScreenExited += _OnVisibleOnScreenExited;"
+                : "GetNode<Area3D>(\"DespawnArea\").AreaEntered += _OnDespawnAreaEntered;";
+
+            return "using Godot;\n\n" +
+                $"public partial class {className} : {baseType}\n" +
+                "{\n" +
+                "    public override void _Ready()\n" +
+                "    {\n" +
+                $"        {signalConnect}\n" +
+                "    }\n" +
+                $"{onScreenExit}\n" +
+                "}\n";
+        }
+    }
+
+    private static string GenerateMainScript(string language, string gameType, bool includeUi)
+    {
+        if (language == "gd")
+        {
+            if (includeUi)
+            {
+                return """
+                extends Node2D
+
+                var score: int = 0
+
+                func _ready() -> void:
+                    $ObstacleContainer.connect("obstacle_hit", _on_obstacle_hit)
+                    if has_node("Hud"):
+                        $Hud/CanvasLayer/ScoreLabel.text = "Score: 0"
+
+                func _on_obstacle_hit(obstacle: Node) -> void:
+                    score += 1
+                    if has_node("Hud"):
+                        $Hud/CanvasLayer/ScoreLabel.text = "Score: " + str(score)
+
+                func _on_restart_pressed() -> void:
+                    get_tree().reload_current_scene()
+
+                func add_spawnable(spawnable_scene: PackedScene) -> void:
+                    var instance = spawnable_scene.instantiate()
+                    $ObstacleContainer.add_child(instance)
+
+                func get_level() -> Node2D:
+                    return $Level as Node2D
+                """;
+            }
+            return """
+                extends Node2D
+
+                func _ready() -> void:
+                    $ObstacleContainer.connect("obstacle_hit", _on_obstacle_hit)
+
+                func _on_obstacle_hit(obstacle: Node) -> void:
+                    pass
+
+                func add_spawnable(spawnable_scene: PackedScene) -> void:
+                    var instance = spawnable_scene.instantiate()
+                    $ObstacleContainer.add_child(instance)
+
+                func get_level() -> Node2D:
+                    return $Level as Node2D
+                """;
+        }
+        else
+        {
+            if (includeUi)
+            {
+                return """
+                using Godot;
+
+                public partial class Main : Node2D
+                {
+                    private int _score = 0;
+
+                    public override void _Ready()
+                    {
+                        var obstacleContainer = GetNode<Node>("ObstacleContainer");
+                        obstacleContainer.Connect("obstacle_hit", Callable.From(_OnObstacleHit));
+                        var hud = GetNodeOrNull<Node2D>("Hud");
+                        if (hud != null)
+                        {
+                            var label = hud.GetNodeOrNull<Label>("CanvasLayer/ScoreLabel");
+                            if (label != null) label.Text = "Score: 0";
+                        }
+                    }
+
+                    private void _OnObstacleHit(Node obstacle)
+                    {
+                        _score++;
+                        var hud = GetNodeOrNull<Node2D>("Hud");
+                        if (hud != null)
+                        {
+                            var label = hud.GetNodeOrNull<Label>("CanvasLayer/ScoreLabel");
+                            if (label != null) label.Text = $"Score: {_score}";
+                        }
+                    }
+
+                    public void _OnRestartPressed()
+                    {
+                        GetTree().ReloadCurrentScene();
+                    }
+
+                    public void AddSpawnable(PackedScene spawnableScene)
+                    {
+                        var instance = spawnableScene.Instantiate();
+                        GetNode<Node>("ObstacleContainer").AddChild(instance);
+                    }
+
+                    public Node2D GetLevel()
+                    {
+                        return GetNode<Node2D>("Level");
+                    }
+                }
+                """;
+            }
+            return """
+                using Godot;
+
+                public partial class Main : Node2D
+                {
+                    public override void _Ready()
+                    {
+                        var obstacleContainer = GetNode<Node>("ObstacleContainer");
+                        obstacleContainer.Connect("obstacle_hit", Callable.From(_OnObstacleHit));
+                    }
+
+                    private void _OnObstacleHit(Node obstacle)
+                    {
+                    }
+
+                    public void AddSpawnable(PackedScene spawnableScene)
+                    {
+                        var instance = spawnableScene.Instantiate();
+                        GetNode<Node>("ObstacleContainer").AddChild(instance);
+                    }
+
+                    public Node2D GetLevel()
+                    {
+                        return GetNode<Node2D>("Level");
+                    }
+                }
+                """;
+        }
+    }
+
+    private static string GenerateUiManagerScript(string language, string gameType)
+    {
+        if (language == "gd")
+        {
+            return """
+            extends CanvasLayer
+
+            @onready var score_label: Label = $ScoreLabel
+            @onready var restart_button: Button = $RestartButton
+
+            func _ready() -> void:
+                restart_button.pressed.connect(_on_restart_pressed)
+
+            func update_score(value: int) -> void:
+                score_label.text = "Score: " + str(value)
+
+            func _on_restart_pressed() -> void:
+                get_tree().reload_current_scene()
+            """;
+        }
+        else
+        {
+            return """
+            using Godot;
+
+            public partial class UiManager : CanvasLayer
+            {
+                private Label _scoreLabel;
+                private Button _restartButton;
+
+                public override void _Ready()
+                {
+                    _scoreLabel = GetNode<Label>("ScoreLabel");
+                    _restartButton = GetNode<Button>("RestartButton");
+                    _restartButton.Pressed += _OnRestartPressed;
+                }
+
+                public void UpdateScore(int value)
+                {
+                    _scoreLabel.Text = $"Score: {value}";
+                }
+
+                private void _OnRestartPressed()
+                {
+                    GetTree().ReloadCurrentScene();
+                }
+            }
+            """;
+        }
     }
 
     /// <summary>

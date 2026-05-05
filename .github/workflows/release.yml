@@ -27,11 +27,9 @@ jobs:
       - name: Test
         run: dotnet test GodotMCP.slnx -c Release --no-build
 
-  publish-nuget:
+  pack-nuget:
     needs: quality-gate
     runs-on: ubuntu-latest
-    env:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -42,13 +40,35 @@ jobs:
       - name: Build
         run: dotnet build GodotMCP.slnx -c Release --no-restore
       - name: Pack
-        run: dotnet pack GodotMCP.Server/GodotMCP.Server.csproj -c Release -o ./artifacts --no-build --no-restore
+        run: dotnet pack GodotMCP.Server/GodotMCP.Server.csproj -c Release -o ./nupkg --no-build --no-restore
+      - name: Upload nupkg artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: |
+            nupkg/*.nupkg
+            nupkg/*.snupkg
+
+  publish-nuget:
+    needs: pack-nuget
+    runs-on: ubuntu-latest
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Download nupkg artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkg
+          path: nupkg
       - name: Publish NuGet
         if: env.NUGET_API_KEY != ''
-        run: dotnet nuget push "./artifacts/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "nupkg/*.nupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Publish NuGet symbols
         if: env.NUGET_API_KEY != ''
-        run: dotnet nuget push "./artifacts/*.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push "nupkg/*.snupkg" --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: NuGet publish skipped (missing key)
         if: env.NUGET_API_KEY == ''
         run: echo "NUGET_API_KEY is not configured. Skipping NuGet publish."

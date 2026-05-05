@@ -21,22 +21,23 @@ public class ExternalProjectCreationTests
             var config = new ProjectConfigService(resolver);
 
             var projectFile = Path.Combine(root, "project.godot");
+            var mainSceneFile = Path.Combine(root, "scenes", "Main.tscn");
             if (File.Exists(projectFile)) File.Delete(projectFile);
 
-            // Calling GetProjectInfoAsync should create a minimal project.godot when missing.
+            // Calling GetProjectInfoAsync should create a project.godot and initialize a main scene.
             var info = await GodotTools.GetProjectInfoAsync(files, resolver, config, root);
             info.Success.Should().BeTrue();
             File.Exists(projectFile).Should().BeTrue();
-
-            // Prepare a placeholder scene so autoload insertion can reference it.
-            Directory.CreateDirectory(Path.Combine(root, "scenes"));
-            await File.WriteAllTextAsync(Path.Combine(root, "scenes", "Main.tscn"), "[gd_scene load_steps=1 format=3]\n");
+            File.Exists(mainSceneFile).Should().BeTrue();
+            var createdMainScene = await File.ReadAllTextAsync(mainSceneFile);
+            createdMainScene.Should().Contain("[node name=\"Main\" type=\"Node2D\"]");
 
             // Add an autoload entry; the tool should update the project's project.godot in-place.
             var autoloadResult = await GodotTools.ConfigureAutoloadAsync(resolver, config, root, "Singleton", "scenes/Main.tscn", true);
             autoloadResult.Success.Should().BeTrue();
 
             var text = await File.ReadAllTextAsync(projectFile);
+            text.Should().Contain("run/main_scene=\"res://scenes/Main.tscn\"");
             text.Should().Contain("[autoload]");
             text.Should().Contain("Singleton=");
         }

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Text.Json;
 using GodotMCP.Core.Interfaces;
 using GodotMCP.Core.Models;
@@ -197,6 +198,176 @@ public static partial class GodotTools
             .ConfigureAwait(false);
 
         return ToUiToolResult(result);
+    }
+
+    /// <summary>
+    /// Sets up a CanvasLayer HUD with score Label and restart Button, plus UiManager script.
+    /// </summary>
+    [McpServerTool(Name = "setup_ui"), Description("Set up a CanvasLayer HUD with score Label and restart Button, plus UiManager script. Wires to Main script for score/restart updates.")]
+    public static async Task<ToolResult> SetupUiAsync(
+        IGodotFileService fileService,
+        IPathResolver pathResolver,
+        [Description("Project directory (absolute path or path relative to the configured project root)."), Required] string projectPath,
+        [Description("Script language ('gd' or 'cs'). Defaults to project metadata.")] string? language = null,
+        [Description("Game dimension ('2d' or '3d'). Defaults to project metadata.")] string? gameType = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (IsBlank(projectPath))
+        {
+            return Invalid("projectPath is required.");
+        }
+
+        var (lang, dim, foundMeta) = await LoadUiProjectMetadataAsync(pathResolver, fileService, projectPath, language, gameType, cancellationToken).ConfigureAwait(false);
+        if (!foundMeta)
+        {
+            lang ??= "gd";
+            dim ??= "2d";
+        }
+
+        string baseDir;
+        try
+        {
+            baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Invalid(ex.Message);
+        }
+
+        var mainScenePath = Path.Combine(baseDir, "scenes", "Main.tscn");
+        if (!File.Exists(mainScenePath))
+        {
+            return new ToolResult(false, "Main.tscn not found. Run initialize_project first.");
+        }
+
+        var mainContent = await File.ReadAllTextAsync(mainScenePath, cancellationToken).ConfigureAwait(false);
+        var canvasLayerNode = "[node name=\"Hud\" type=\"CanvasLayer\" parent=\".\"]";
+        if (!mainContent.Contains("name=\"Hud\""))
+        {
+            mainContent += $"\n\n{canvasLayerNode}\n";
+            await File.WriteAllTextAsync(mainScenePath, mainContent, cancellationToken).ConfigureAwait(false);
+        }
+
+        var scriptsDir = Path.Combine(baseDir, "scripts");
+        Directory.CreateDirectory(scriptsDir);
+
+        var uiManagerScriptPath = Path.Combine(scriptsDir, $"UiManager.{(lang == "gd" ? "gd" : "cs")}");
+        var uiManagerContent = UiGenerateUiManagerScript(lang!, dim!);
+        await File.WriteAllTextAsync(uiManagerScriptPath, uiManagerContent, cancellationToken).ConfigureAwait(false);
+
+        var mainScriptPath = Path.Combine(scriptsDir, $"Main.{(lang == "gd" ? "gd" : "cs")}");
+        if (File.Exists(mainScriptPath))
+        {
+            var mainScriptContent = await File.ReadAllTextAsync(mainScriptPath, cancellationToken).ConfigureAwait(false);
+            var hasRestartHandler = mainScriptContent.Contains("_on_restart_pressed") || mainScriptContent.Contains("_OnRestartPressed");
+            if (!hasRestartHandler)
+            {
+                if (lang == "gd")
+                {
+                    var insertPos = mainScriptContent.IndexOf("func get_level");
+                    if (insertPos >= 0)
+                    {
+                        var funcEnd = mainScriptContent.IndexOf('\n', insertPos);
+                        mainScriptContent = mainScriptContent.Insert(funcEnd + 1, "\n    _on_restart_pressed():\n        get_tree().reload_current_scene()\n");
+                    }
+                }
+                else
+                {
+                    var insertPos = mainScriptContent.LastIndexOf("}");
+                    if (insertPos >= 0)
+                    {
+                        mainScriptContent = mainScriptContent.Insert(insertPos, "\n    public void _OnRestartPressed()\n    {\n        GetTree().ReloadCurrentScene();\n    }\n");
+                    }
+                }
+                await File.WriteAllTextAsync(mainScriptPath, mainScriptContent, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        return new ToolResult(true, $"UI scaffold created: CanvasLayer/Hud, UiManager script, and Main script wired for restart.");
+    }
+
+    private static async Task<(string? lang, string? dim, bool found)> LoadUiProjectMetadataAsync(
+        IPathResolver pathResolver,
+        IGodotFileService fileService,
+        string projectPath,
+        string? explicitLang,
+        string? explicitDim,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(explicitLang) || !string.IsNullOrEmpty(explicitDim))
+        {
+            return (explicitLang, explicitDim, false);
+        }
+
+        try
+        {
+            var baseDir = NormalizeProjectPath(pathResolver, projectPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var metaPath = Path.Combine(baseDir, ".gdmcp-meta.json");
+            if (File.Exists(metaPath))
+            {
+                var content = await File.ReadAllTextAsync(metaPath, cancellationToken).ConfigureAwait(false);
+                using var doc = System.Text.Json.JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                var lang = root.TryGetProperty("language", out var l) ? l.GetString() : null;
+                var dim = root.TryGetProperty("gameType", out var d) ? d.GetString() : null;
+                return (lang, dim, true);
+            }
+        }
+        catch
+        {
+        }
+        return (null, null, false);
+    }
+
+    private static string UiGenerateUiManagerScript(string language, string gameType)
+    {
+        if (language == "gd")
+        {
+            return """
+            extends CanvasLayer
+
+            @onready var score_label: Label = $ScoreLabel
+            @onready var restart_button: Button = $RestartButton
+
+            func _ready() -> void:
+                restart_button.pressed.connect(_on_restart_pressed)
+
+            func update_score(value: int) -> void:
+                score_label.text = "Score: " + str(value)
+
+            func _on_restart_pressed() -> void:
+                get_tree().reload_current_scene()
+            """;
+        }
+        else
+        {
+            return """
+            using Godot;
+
+            public partial class UiManager : CanvasLayer
+            {
+                private Label _scoreLabel;
+                private Button _restartButton;
+
+                public override void _Ready()
+                {
+                    _scoreLabel = GetNode<Label>("ScoreLabel");
+                    _restartButton = GetNode<Button>("RestartButton");
+                    _restartButton.Pressed += _OnRestartPressed;
+                }
+
+                public void UpdateScore(int value)
+                {
+                    _scoreLabel.Text = $"Score: {value}";
+                }
+
+                private void _OnRestartPressed()
+                {
+                    GetTree().ReloadCurrentScene();
+                }
+            }
+            """;
+        }
     }
 
     /// <summary>
