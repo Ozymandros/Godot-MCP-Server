@@ -669,26 +669,38 @@ project/assembly_name="{{projectName}}"
             mainSceneContent += "\n\n[node name=\"Hud\" type=\"CanvasLayer\" parent=\".\"]";
         }
 
-        await File.WriteAllTextAsync(mainScenePath, mainSceneContent, cancellationToken).ConfigureAwait(false);
+        if (!File.Exists(mainScenePath))
+        {
+            await File.WriteAllTextAsync(mainScenePath, mainSceneContent, cancellationToken).ConfigureAwait(false);
+        }
 
         var mainScriptFullPath = Path.Combine(baseDir, mainScriptPath.Replace('/', Path.DirectorySeparatorChar));
         var scriptContent = GenerateMainScript(lang, dim, includeUi);
-        await File.WriteAllTextAsync(mainScriptFullPath, scriptContent, cancellationToken).ConfigureAwait(false);
+        if (!File.Exists(mainScriptFullPath))
+        {
+            await File.WriteAllTextAsync(mainScriptFullPath, scriptContent, cancellationToken).ConfigureAwait(false);
+        }
 
         if (includeUi)
         {
             var uiManagerPath = Path.Combine(baseDir, (lang == "gd" ? "scripts/UiManager.gd" : "scripts/UiManager.cs"));
             var uiContent = GenerateUiManagerScript(lang, dim);
-            await File.WriteAllTextAsync(uiManagerPath, uiContent, cancellationToken).ConfigureAwait(false);
+            if (!File.Exists(uiManagerPath))
+            {
+                await File.WriteAllTextAsync(uiManagerPath, uiContent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         var metaPath = Path.Combine(baseDir, ".gdmcp-meta.json");
-        var meta = new Dictionary<string, string>
+        if (!File.Exists(metaPath))
         {
-            ["language"] = lang,
-            ["gameType"] = dim
-        };
-        await File.WriteAllTextAsync(metaPath, System.Text.Json.JsonSerializer.Serialize(meta), cancellationToken).ConfigureAwait(false);
+            var meta = new Dictionary<string, string>
+            {
+                ["language"] = lang,
+                ["gameType"] = dim
+            };
+            await File.WriteAllTextAsync(metaPath, System.Text.Json.JsonSerializer.Serialize(meta), cancellationToken).ConfigureAwait(false);
+        }
 
         return new ToolResult(true, $"Project initialized: {effectiveName} ({dim}, {lang}). Main.tscn created with Level and ObstacleContainer.");
     }
